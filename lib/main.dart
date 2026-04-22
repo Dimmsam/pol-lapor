@@ -1,11 +1,31 @@
 import 'package:flutter/material.dart';
-// Import file view yang sudah dibuat sebelumnya
-import 'ui/pelapor/form_laporan_view.dart'; 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
 
-void main() {
-  // Nantinya di sini kamu akan melakukan inisialisasi Hive
-  // sebelum runApp() dipanggil.
-  runApp(const PolLaporApp());
+import 'core/constants/app_constants.dart';
+import 'data/models/laporan_lokal.dart';
+import 'data/models/user_session.dart';
+import 'presentation/screens/splash/splash_screen.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load .env
+  await dotenv.load(fileName: '.env');
+
+  // Init Hive
+  await Hive.initFlutter();
+
+  // Register adapter (akan dibuat di Step 6)
+  Hive.registerAdapter(LaporanLokalAdapter());
+  Hive.registerAdapter(UserSessionAdapter());
+
+  // Buka box
+  await Hive.openBox<LaporanLokal>(AppConstants.boxLaporan);
+  await Hive.openBox<UserSession>(AppConstants.boxUser);
+
+  runApp(const MyApp());
 }
 
 class PolLaporApp extends StatelessWidget {
@@ -13,20 +33,20 @@ class PolLaporApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pol Lapor',
-      debugShowCheckedModeBanner: false, // Menghilangkan banner debug
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-        // Konfigurasi warna biru gelap khas Polban
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1565C0), // Blue 800
-          primary: const Color(0xFF1565C0),
+    return MultiProvider(
+      providers: [
+        // Provider akan ditambahkan di sini seiring development
+      ],
+      child: MaterialApp(
+        title: 'PolLapor',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E3A5F)),
+          useMaterial3: true,
+          fontFamily: 'Roboto',
         ),
+        home: const SplashScreen(),
       ),
-      // Langsung memanggil View Form Laporan sebagai halaman utama
-      home: const FormLaporanView(),
     );
   }
 }
