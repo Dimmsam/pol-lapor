@@ -6,7 +6,10 @@ import 'package:provider/provider.dart';
 import 'core/constants/app_constants.dart';
 import 'data/models/laporan_lokal.dart';
 import 'data/models/user_session.dart';
+import 'presentation/screens/home/home_provider.dart';
+import 'presentation/screens/login/login_provider.dart';
 import 'presentation/screens/splash/splash_screen.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +38,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Provider akan ditambahkan di sini seiring development
+        ChangeNotifierProvider(create: (_) => LoginProvider()),
+        ChangeNotifierProvider(create: (_) => HomeProvider()),
       ],
       child: MaterialApp(
         title: 'PolLapor',
