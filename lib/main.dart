@@ -6,6 +6,9 @@ import 'ui/pelapor/form_laporan_view.dart';
 // Tambahan untuk login
 import 'presentation/screens/auth/login_screen.dart';
 
+// Tambahan untuk home (BARU)
+import 'presentation/screens/home/home_screen.dart';
+
 void main() {
   runApp(const PolLaporApp());
 }
@@ -29,7 +32,10 @@ class PolLaporApp extends StatelessWidget {
 
       routes: {
         '/login': (context) => const LoginScreen(),
-        '/home': (context) => const FormLaporanView(),
+
+        '/home': (context) => const HomeScreen(),
+
+        '/form': (context) => const FormLaporanView(),
       },
 
       home: const LoginScreen(),
