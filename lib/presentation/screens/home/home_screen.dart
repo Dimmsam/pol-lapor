@@ -10,7 +10,7 @@ import 'laporan_screen.dart';
 import 'profile_screen.dart';
 
 // Import form laporan (reuse)
-import '../../../ui/pelapor/form_laporan_view.dart';
+import '../pelapor/form_laporan_screen.dart';
 
 // Import widget
 import '../../screens/home/bottom_nav_bar.dart';
@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> screens = const [
     DashboardScreen(),
     LaporanScreen(),
-    FormLaporanView(),
+    FormLaporanScreen(),
     ProfileScreen(),
   ];
 
@@ -45,9 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: SafeArea(
-        child: screens[currentIndex],
-      ),
+      body: SafeArea(child: screens[currentIndex]),
       bottomNavigationBar: BottomNavBar(
         currentIndex: currentIndex,
         onTap: onTabTapped,

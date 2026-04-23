@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pol_lapor/models/laporan_model.dart';
 
-import 'ui/pelapor/form_laporan_view.dart';
+import 'presentation/screens/pelapor/form_laporan_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/home/home_screen.dart';
 
@@ -41,7 +41,7 @@ class PolLaporApp extends StatelessWidget {
 
         '/home': (context) => const HomeScreen(),
 
-        '/form': (context) => const FormLaporanView(),
+        '/form': (context) => const FormLaporanScreen(),
       },
 
       home: const LoginScreen(),
