@@ -4,9 +4,9 @@ import 'package:provider/provider.dart';
 
 import 'data/models/laporan_lokal.dart';
 import 'data/models/user_session.dart';
-import 'presentation/screens/home/home_provider.dart';
+import 'logic/providers/home_provider.dart';
+import 'logic/providers/login_provider.dart';
 import 'presentation/screens/home/home_screen.dart';
-import 'presentation/screens/login/login_provider.dart';
 import 'presentation/screens/login/login_screen.dart';
 import 'presentation/screens/pelapor/form_laporan_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
