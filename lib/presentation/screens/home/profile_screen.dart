@@ -3,6 +3,9 @@
 // File: profile_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'home_provider.dart';
+import '../login/login_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -12,9 +15,11 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final home = context.watch<HomeProvider>();
+
     return Column(
       children: [
-        // Header
+        // Header — nama & email dari session nyata
         Container(
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
@@ -29,8 +34,8 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           child: Column(
-            children: const [
-              CircleAvatar(
+            children: [
+              const CircleAvatar(
                 radius: 40,
                 backgroundColor: Colors.white,
                 child: Icon(
@@ -39,21 +44,29 @@ class ProfileScreen extends StatelessWidget {
                   color: Color(0xFF0D47A1),
                 ),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Text(
-                'Rina Permata Dewi',
-                style: TextStyle(
+                home.namaUser,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                'rina@polban.ac.id',
-                style: TextStyle(
+                home.emailUser,
+                style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                home.roleUser,
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 12,
                 ),
               ),
             ],
@@ -66,20 +79,20 @@ class ProfileScreen extends StatelessWidget {
         Expanded(
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: const [
-              _ProfileItem(
+            children: [
+              const _ProfileItem(
                 icon: Icons.person_outline,
                 title: 'Edit Profil',
               ),
-              _ProfileItem(
+              const _ProfileItem(
                 icon: Icons.lock_outline,
                 title: 'Ubah Password',
               ),
-              _ProfileItem(
+              const _ProfileItem(
                 icon: Icons.info_outline,
                 title: 'Tentang Aplikasi',
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               _LogoutButton(),
             ],
           ),
@@ -136,8 +149,12 @@ class _LogoutButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        onPressed: () {
-          Navigator.pushReplacementNamed(context, '/login');
+        onPressed: () async {
+          // Logout via LoginProvider (hapus session dari Hive)
+          await context.read<LoginProvider>().logout();
+          if (context.mounted) {
+            Navigator.pushReplacementNamed(context, '/login');
+          }
         },
         child: const Text(
           'Logout',

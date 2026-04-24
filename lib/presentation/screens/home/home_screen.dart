@@ -3,6 +3,10 @@
 // File: home_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+// Import provider
+import 'home_provider.dart';
 
 // Import screen
 import 'dashboard_screen.dart';
@@ -34,6 +38,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final Color primaryBlue = const Color(0xFF0D47A1);
   final Color accentOrange = const Color(0xFFFF8F00);
+
+  @override
+  void initState() {
+    super.initState();
+    // Inisialisasi session & statistik laporan saat home pertama dibuka
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HomeProvider>().init();
+    });
+  }
 
   void onTabTapped(int index) {
     setState(() {
