@@ -3,6 +3,8 @@
 // File: dashboard_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'home_provider.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -12,11 +14,13 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<HomeProvider>();
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Header — nama & role dari session
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -36,21 +40,29 @@ class DashboardScreen extends StatelessWidget {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Selamat Datang',
+              children: [
+                const Text(
+                  'Selamat Datang,',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  'PolLapor Dashboard',
-                  style: TextStyle(
+                  provider.namaUser,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  provider.roleUser,
+                  style: const TextStyle(
+                    color: Colors.white60,
+                    fontSize: 13,
                   ),
                 ),
               ],
@@ -59,16 +71,32 @@ class DashboardScreen extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Statistik
+          // Statistik dari HomeProvider
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
-              children: const [
-                Expanded(child: _StatCard(title: 'Total', value: '12')),
-                SizedBox(width: 12),
-                Expanded(child: _StatCard(title: 'Diproses', value: '5')),
-                SizedBox(width: 12),
-                Expanded(child: _StatCard(title: 'Selesai', value: '7')),
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    title: 'Total',
+                    value: provider.totalLaporan.toString(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatCard(
+                    title: 'Belum Sync',
+                    value: provider.totalUnsynced.toString(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatCard(
+                    title: 'Tersync',
+                    value: (provider.totalLaporan - provider.totalUnsynced)
+                        .toString(),
+                  ),
+                ),
               ],
             ),
           ),
@@ -89,7 +117,7 @@ class DashboardScreen extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // List dummy laporan
+          // List dummy laporan (akan diganti dengan data nyata di M2)
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -174,8 +202,8 @@ class _ReportCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: const [
+      child: const Row(
+        children: [
           Icon(
             Icons.report,
             color: Color(0xFF0D47A1),
