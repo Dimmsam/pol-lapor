@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import '../../../data/datasources/local/auth_local_datasource.dart';
-import '../../../data/datasources/local/hive_local_datasource.dart';
-import '../../../data/models/user_session.dart';
+import '../../data/datasources/local/auth_local_datasource.dart';
+import '../../data/datasources/local/hive_local_datasource.dart';
+import '../../data/models/user_session.dart';
 
 class HomeProvider extends ChangeNotifier {
   final AuthLocalDatasource _auth = AuthLocalDatasource();

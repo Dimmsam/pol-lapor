@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import '../../../data/datasources/local/auth_local_datasource.dart';
-import '../../../data/models/user_session.dart';
+import '../../data/datasources/local/auth_local_datasource.dart';
+import '../../data/models/user_session.dart';
 
 enum LoginStatus { idle, loading, success, error }
 

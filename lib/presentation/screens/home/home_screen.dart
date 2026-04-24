@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // Import provider
-import 'home_provider.dart';
+import '../../../logic/providers/home_provider.dart';
 
 // Import screen
 import 'dashboard_screen.dart';
