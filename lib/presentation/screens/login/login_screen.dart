@@ -3,8 +3,8 @@
 // File: login_screen.dart
 
 import 'package:flutter/material.dart';
-
-enum LoginStatus { idle, loading, success, error }
+import 'package:provider/provider.dart';
+import 'login_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,9 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool obscurePassword = true;
 
-  LoginStatus status = LoginStatus.idle;
-  String? errorMessage;
-
   @override
   void dispose() {
     emailController.dispose();
@@ -30,39 +27,35 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> handleLogin() async {
-    setState(() {
-      errorMessage = null;
-    });
+    final provider = context.read<LoginProvider>();
 
-    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
-      setState(() {
-        status = LoginStatus.error;
-        errorMessage = 'Email dan password wajib diisi';
-      });
+    // Validasi input kosong sebelum memanggil provider
+    if (emailController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email dan password wajib diisi')),
+      );
       return;
     }
 
-    setState(() {
-      status = LoginStatus.loading;
-    });
+    await provider.login(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
 
-    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
 
-    if (emailController.text == 'admin@polban.ac.id' &&
-        passwordController.text == '123456') {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    } else {
-      setState(() {
-        status = LoginStatus.error;
-        errorMessage = 'Login gagal';
-      });
+    if (provider.status == LoginStatus.success) {
+      Navigator.pushReplacementNamed(context, '/home');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<LoginProvider>();
+    final isLoading = provider.isLoading;
+    final errorMessage = provider.errorMessage;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -129,6 +122,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   TextField(
                     controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    onChanged: (_) {
+                      if (provider.status == LoginStatus.error) {
+                        provider.resetError();
+                      }
+                    },
                     decoration: InputDecoration(
                       labelText: 'Email',
                       border: OutlineInputBorder(
@@ -147,6 +146,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(
                     controller: passwordController,
                     obscureText: obscurePassword,
+                    onChanged: (_) {
+                      if (provider.status == LoginStatus.error) {
+                        provider.resetError();
+                      }
+                    },
                     decoration: InputDecoration(
                       labelText: 'Password',
                       border: OutlineInputBorder(
@@ -174,6 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 16),
 
+                  // Pesan error dari provider
                   if (errorMessage != null)
                     Container(
                       width: double.infinity,
@@ -183,14 +188,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        errorMessage!,
+                        errorMessage,
                         style: const TextStyle(color: Colors.red),
                       ),
                     ),
 
                   const SizedBox(height: 20),
 
-                  status == LoginStatus.loading
+                  isLoading
                       ? const CircularProgressIndicator(
                           color: Color(0xFF0D47A1),
                         )
