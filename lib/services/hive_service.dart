@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import '../models/laporan_model.dart'; // Sesuaikan jika nama filenya laporan_model.dart
+import '/data/models/laporan_lokal.dart'; // Sesuaikan jika nama filenya laporan_model.dart
 
 class HiveService {
   static const String boxName = 'laporanBox';
