@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:pol_lapor/logic/controllers/laporan_controller.dart';
-
+import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
+import '../../../data/datasources/local/hive_local_datasource.dart';
+import '../../../data/models/laporan_lokal.dart';
+import '../home/home_provider.dart';
 import '../../widgets/pelapor/laporan_photo_field.dart';
 
 class FormLaporanScreen extends StatefulWidget {
@@ -12,7 +15,8 @@ class FormLaporanScreen extends StatefulWidget {
 
 class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _laporanController = LaporanController();
+  final _datasource = HiveLocalDatasource();
+  final _uuid = const Uuid();
   bool _isSubmitting = false;
 
   // Controller untuk menangkap input
@@ -116,7 +120,8 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      await _laporanController.tambahLaporan(
+      final laporan = LaporanLokal(
+        laporanId: _uuid.v4(),
         judul: _judulController.text.trim(),
         deskripsi: _deskripsiController.text.trim(),
         kategori: _selectedKategori!,
@@ -126,7 +131,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
         nomorInventaris: _nomorInventarisController.text.trim().isEmpty
             ? null
             : _nomorInventarisController.text.trim(),
+        pelaporId: context.read<HomeProvider>().session?.userId ?? '',
       );
+      await _datasource.saveLaporan(laporan);
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -134,9 +141,11 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       return;
     }
 
-    _simpanKeLokal();
-
     if (!mounted) return;
+
+    // Refresh statistik di HomeProvider
+    context.read<HomeProvider>().onReturnFromForm();
+
     _formKey.currentState?.reset();
     _judulController.clear();
     _deskripsiController.clear();
@@ -148,6 +157,8 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       _selectedTingkatKerusakan = null;
       _fotoPath = null;
     });
+
+    _showSnackBar('Laporan berhasil disimpan secara offline.');
   }
 
   @override
@@ -404,7 +415,4 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     );
   }
 
-  void _simpanKeLokal() {
-    _showSnackBar('Laporan disimpan secara offline (Hive)');
-  }
 }
