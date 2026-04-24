@@ -5,7 +5,7 @@ part 'laporan_model.g.dart';
 @HiveType(typeId: 0)
 class LaporanLokal extends HiveObject {
   @HiveField(0)
-  String uuid;
+  String laporanId;
 
   @HiveField(1)
   String judul;
@@ -14,40 +14,48 @@ class LaporanLokal extends HiveObject {
   String deskripsi;
 
   @HiveField(3)
-  int status; // Kita pakai angka 1-8
+  String kategori;
 
   @HiveField(4)
-  bool isSynced;
+  String lokasi;
 
   @HiveField(5)
-  String? kategori;
-
-  @HiveField(6)
-  String? lokasi;
-
-  @HiveField(7)
   String? nomorInventaris;
 
-  @HiveField(8)
-  String? tingkatKerusakan;
+  @HiveField(6)
+  String tingkatKerusakan;
 
-  @HiveField(9)
+  @HiveField(7)
   String? fotoPath;
 
+  @HiveField(8)
+  String? fotoCloudUrl;
+
+  @HiveField(9)
+  String status; // Sudah diubah menjadi String
+
   @HiveField(10)
+  bool isSynced;
+
+  @HiveField(11)
   DateTime createdAt;
 
+  @HiveField(12)
+  String pelaporId;
+
   LaporanLokal({
-    required this.uuid,
+    required this.laporanId,
     required this.judul,
     required this.deskripsi,
-    this.status = 1,
-    this.isSynced = false,
-    this.kategori,
-    this.lokasi,
+    required this.kategori,
+    required this.lokasi,
     this.nomorInventaris,
-    this.tingkatKerusakan,
+    required this.tingkatKerusakan,
     this.fotoPath,
+    this.fotoCloudUrl,
+    this.status = 'menunggu', // Default status string
+    this.isSynced = false,
     DateTime? createdAt,
+    required this.pelaporId,
   }) : createdAt = createdAt ?? DateTime.now();
 }

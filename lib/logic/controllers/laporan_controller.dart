@@ -1,4 +1,4 @@
-import '/models/laporan_model.dart';
+import '/models/laporan_model.dart'; // Sesuaikan path jika berbeda
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
@@ -19,53 +19,57 @@ class LaporanController {
     required String kategori,
     required String lokasi,
     required String tingkatKerusakan,
-    required String fotoPath,
+    required String pelaporId, // Wajib ada sesuai model baru
+    String? fotoPath,
     String? nomorInventaris,
   }) async {
+    // Validasi agar data tidak kosong
     if (judul.trim().isEmpty ||
         deskripsi.trim().isEmpty ||
         kategori.trim().isEmpty ||
         lokasi.trim().isEmpty ||
         tingkatKerusakan.trim().isEmpty ||
-        fotoPath.trim().isEmpty) {
+        pelaporId.trim().isEmpty) {
       throw ArgumentError('Data laporan wajib belum lengkap');
     }
 
     final box = await Hive.openBox<LaporanLokal>(boxName);
 
     final baru = LaporanLokal(
-      uuid: _uuid.v4(),
+      laporanId: _uuid.v4(), // Disesuaikan: sebelumnya uuid
       judul: judul,
       deskripsi: deskripsi,
-      status: 1, // Default status awal
-      isSynced: false,
       kategori: kategori,
       lokasi: lokasi,
       nomorInventaris: nomorInventaris,
       tingkatKerusakan: tingkatKerusakan,
       fotoPath: fotoPath,
+      status: 'menunggu', // Disesuaikan: menggunakan String sesuai model
+      isSynced: false,
+      pelaporId: pelaporId, // Disesuaikan: parameter baru dari model
       createdAt: DateTime.now(),
     );
 
-    await box.put(baru.uuid, baru);
+    // Disesuaikan: menggunakan laporanId sebagai key di Hive
+    await box.put(baru.laporanId, baru); 
   }
 
   // 3. Ubah Status Laporan (Update Status)
-  // Kamu tinggal panggil ini dan masukkan angka statusnya (misal: 2, 3, dst)
-  Future<void> gantiStatus(String uuid, int statusTarget) async {
+  // Masukkan string statusTarget (misal: 'diproses', 'selesai')
+  Future<void> gantiStatus(String laporanId, String statusTarget) async {
     final box = await Hive.openBox<LaporanLokal>(boxName);
-    final laporan = box.get(uuid);
+    final laporan = box.get(laporanId); // Disesuaikan: cari pakai laporanId
 
     if (laporan != null) {
       laporan.status = statusTarget;
-      laporan.isSynced = false; // Reset flag sync karena ada perubahan data
-      await laporan.save(); // Simpan perubahan ke Hive
+      laporan.isSynced = false; // Tandai false agar tersinkronisasi ulang ke cloud
+      await laporan.save();
     }
   }
 
   // 4. Hapus Laporan (Delete)
-  Future<void> hapusLaporan(String uuid) async {
+  Future<void> hapusLaporan(String laporanId) async {
     final box = await Hive.openBox<LaporanLokal>(boxName);
-    await box.delete(uuid);
+    await box.delete(laporanId); // Disesuaikan: hapus pakai laporanId
   }
 }
