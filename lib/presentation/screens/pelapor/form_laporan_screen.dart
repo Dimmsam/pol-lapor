@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/datasources/local/hive_local_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
-import '../home/home_provider.dart';
+import '../../../logic/providers/home_provider.dart';
 import '../../widgets/pelapor/laporan_photo_field.dart';
 
 class FormLaporanScreen extends StatefulWidget {

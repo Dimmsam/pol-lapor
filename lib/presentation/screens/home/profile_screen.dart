@@ -4,8 +4,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'home_provider.dart';
-import '../login/login_provider.dart';
+import '../../../logic/providers/home_provider.dart';
+import '../../../logic/providers/login_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
