@@ -17,46 +17,52 @@ class LaporanLokalAdapter extends TypeAdapter<LaporanLokal> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return LaporanLokal(
-      uuid: fields[0] as String,
+      laporanId: fields[0] as String,
       judul: fields[1] as String,
       deskripsi: fields[2] as String,
-      status: fields[3] as int,
-      isSynced: fields[4] as bool,
-      kategori: fields[5] as String?,
-      lokasi: fields[6] as String?,
-      nomorInventaris: fields[7] as String?,
-      tingkatKerusakan: fields[8] as String?,
-      fotoPath: fields[9] as String?,
-      createdAt: fields[10] as DateTime?,
+      kategori: fields[3] as String,
+      lokasi: fields[4] as String,
+      nomorInventaris: fields[5] as String?,
+      tingkatKerusakan: fields[6] as String,
+      fotoPath: fields[7] as String?,
+      fotoCloudUrl: fields[8] as String?,
+      status: fields[9] as String,
+      isSynced: fields[10] as bool,
+      createdAt: fields[11] as DateTime?,
+      pelaporId: fields[12] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, LaporanLokal obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(13)
       ..writeByte(0)
-      ..write(obj.uuid)
+      ..write(obj.laporanId)
       ..writeByte(1)
       ..write(obj.judul)
       ..writeByte(2)
       ..write(obj.deskripsi)
       ..writeByte(3)
-      ..write(obj.status)
-      ..writeByte(4)
-      ..write(obj.isSynced)
-      ..writeByte(5)
       ..write(obj.kategori)
-      ..writeByte(6)
+      ..writeByte(4)
       ..write(obj.lokasi)
-      ..writeByte(7)
+      ..writeByte(5)
       ..write(obj.nomorInventaris)
-      ..writeByte(8)
+      ..writeByte(6)
       ..write(obj.tingkatKerusakan)
-      ..writeByte(9)
+      ..writeByte(7)
       ..write(obj.fotoPath)
+      ..writeByte(8)
+      ..write(obj.fotoCloudUrl)
+      ..writeByte(9)
+      ..write(obj.status)
       ..writeByte(10)
-      ..write(obj.createdAt);
+      ..write(obj.isSynced)
+      ..writeByte(11)
+      ..write(obj.createdAt)
+      ..writeByte(12)
+      ..write(obj.pelaporId);
   }
 
   @override
