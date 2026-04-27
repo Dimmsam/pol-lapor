@@ -1,7 +1,7 @@
 // lib/presentation/screens/splash/splash_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../login/login_provider.dart';
+import '../../../logic/providers/login_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -36,11 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF0D47A1),
-              Color(0xD90D47A1),
-              Color(0xB3FF8F00),
-            ],
+            colors: [Color(0xFF0D47A1), Color(0xD90D47A1), Color(0xB3FF8F00)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -49,11 +45,7 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(
-                'assets/images/logo.png',
-                width: 100,
-                height: 100,
-              ),
+              Image.asset('assets/images/logo.png', width: 100, height: 100),
               const SizedBox(height: 20),
               const Text(
                 'PolLapor',
@@ -66,10 +58,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 8),
               const Text(
                 'Sistem Pelaporan Fasilitas Kampus',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
               const SizedBox(height: 40),
               const CircularProgressIndicator(

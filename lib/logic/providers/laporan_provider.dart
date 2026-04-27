@@ -1,4 +1,5 @@
-import '/models/laporan_model.dart'; // Sesuaikan path jika berbeda
+import 'package:pol_lapor/core/constants/app_constants.dart';
+import '/data/models/laporan_lokal.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
@@ -43,15 +44,16 @@ class LaporanController {
       lokasi: lokasi,
       nomorInventaris: nomorInventaris,
       tingkatKerusakan: tingkatKerusakan,
-      fotoPath: fotoPath,
-      status: 'menunggu', // Disesuaikan: menggunakan String sesuai model
+      fotoLokalPath: fotoPath,
+      status: AppConstants.statusMenungguKlasifikasi,
       isSynced: false,
       pelaporId: pelaporId, // Disesuaikan: parameter baru dari model
       createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
 
     // Disesuaikan: menggunakan laporanId sebagai key di Hive
-    await box.put(baru.laporanId, baru); 
+    await box.put(baru.laporanId, baru);
   }
 
   // 3. Ubah Status Laporan (Update Status)
@@ -62,7 +64,8 @@ class LaporanController {
 
     if (laporan != null) {
       laporan.status = statusTarget;
-      laporan.isSynced = false; // Tandai false agar tersinkronisasi ulang ke cloud
+      laporan.isSynced =
+          false; // Tandai false agar tersinkronisasi ulang ke cloud
       await laporan.save();
     }
   }
