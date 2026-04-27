@@ -1,5 +1,5 @@
 import 'package:pol_lapor/core/constants/app_constants.dart';
-import '/data/models/laporan_lokal.dart'; // Sesuaikan path jika berbeda
+import '/data/models/laporan_lokal.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
