@@ -12,7 +12,7 @@ void main() {
   LaporanLokal makeLaporan({
     String id = 'laporan-001',
     String judul = 'AC rusak di kelas',
-    String status = AppConstants.statusMenunggu,
+    String status = AppConstants.statusMenungguKlasifikasi,
     bool isSynced = false,
     DateTime? createdAt,
   }) {
@@ -26,6 +26,7 @@ void main() {
       status: status,
       isSynced: isSynced,
       createdAt: createdAt ?? DateTime.now(),
+      updatedAt: createdAt ?? DateTime.now(),
     );
   }
 
@@ -49,17 +50,20 @@ void main() {
   });
 
   // ── TC-01 ─────────────────────────────────────────────────────────────────
-  test('TC-01: saveLaporan() menyimpan laporan dan bisa dibaca kembali', () async {
-    final laporan = makeLaporan();
-    await datasource.saveLaporan(laporan);
+  test(
+    'TC-01: saveLaporan() menyimpan laporan dan bisa dibaca kembali',
+    () async {
+      final laporan = makeLaporan();
+      await datasource.saveLaporan(laporan);
 
-    final result = datasource.getLaporanById('laporan-001');
+      final result = datasource.getLaporanById('laporan-001');
 
-    expect(result, isNotNull);
-    expect(result!.laporanId, equals('laporan-001'));
-    expect(result.judul, equals('AC rusak di kelas'));
-    expect(result.isSynced, isFalse);
-  });
+      expect(result, isNotNull);
+      expect(result!.laporanId, equals('laporan-001'));
+      expect(result.judul, equals('AC rusak di kelas'));
+      expect(result.isSynced, isFalse);
+    },
+  );
 
   // ── TC-02 ─────────────────────────────────────────────────────────────────
   test('TC-02: getAllLaporan() return list sorted createdAt DESC', () async {
@@ -89,51 +93,65 @@ void main() {
   });
 
   // ── TC-04 ─────────────────────────────────────────────────────────────────
-  test('TC-04: getUnsyncedLaporan() hanya return laporan dengan isSynced=false', () async {
-    await datasource.saveLaporan(makeLaporan(id: 'a', isSynced: false));
-    await datasource.saveLaporan(makeLaporan(id: 'b', isSynced: true));
-    await datasource.saveLaporan(makeLaporan(id: 'c', isSynced: false));
+  test(
+    'TC-04: getUnsyncedLaporan() hanya return laporan dengan isSynced=false',
+    () async {
+      await datasource.saveLaporan(makeLaporan(id: 'a', isSynced: false));
+      await datasource.saveLaporan(makeLaporan(id: 'b', isSynced: true));
+      await datasource.saveLaporan(makeLaporan(id: 'c', isSynced: false));
 
-    final result = datasource.getUnsyncedLaporan();
+      final result = datasource.getUnsyncedLaporan();
 
-    expect(result.length, equals(2));
-    expect(result.every((l) => !l.isSynced), isTrue);
-  });
+      expect(result.length, equals(2));
+      expect(result.every((l) => !l.isSynced), isTrue);
+    },
+  );
 
   // ── TC-05 ─────────────────────────────────────────────────────────────────
-  test('TC-05: getUnsyncedLaporan() return empty jika semua sudah synced', () async {
-    await datasource.saveLaporan(makeLaporan(id: 'a', isSynced: true));
-    await datasource.saveLaporan(makeLaporan(id: 'b', isSynced: true));
+  test(
+    'TC-05: getUnsyncedLaporan() return empty jika semua sudah synced',
+    () async {
+      await datasource.saveLaporan(makeLaporan(id: 'a', isSynced: true));
+      await datasource.saveLaporan(makeLaporan(id: 'b', isSynced: true));
 
-    final result = datasource.getUnsyncedLaporan();
+      final result = datasource.getUnsyncedLaporan();
 
-    expect(result, isEmpty);
-  });
+      expect(result, isEmpty);
+    },
+  );
 
   // ── TC-06 ─────────────────────────────────────────────────────────────────
-  test('TC-06: markAsSynced() mengubah isSynced=true dan mengisi fotoCloudUrl', () async {
-    await datasource.saveLaporan(makeLaporan(id: 'laporan-001'));
+  test(
+    'TC-06: markAsSynced() mengubah isSynced=true dan mengisi fotoCloudUrl',
+    () async {
+      await datasource.saveLaporan(makeLaporan(id: 'laporan-001'));
 
-    await datasource.markAsSynced(
-      'laporan-001',
-      'https://res.cloudinary.com/foto123.jpg',
-    );
+      await datasource.markAsSynced(
+        'laporan-001',
+        'https://res.cloudinary.com/foto123.jpg',
+      );
 
-    final result = datasource.getLaporanById('laporan-001');
-    expect(result!.isSynced, isTrue);
-    expect(result.fotoCloudUrl, equals('https://res.cloudinary.com/foto123.jpg'));
-  });
+      final result = datasource.getLaporanById('laporan-001');
+      expect(result!.isSynced, isTrue);
+      expect(result.fotoUrl, equals('https://res.cloudinary.com/foto123.jpg'));
+    },
+  );
 
   // ── TC-07 ─────────────────────────────────────────────────────────────────
-  test('TC-07: updateLaporan() mengupdate data laporan yang sudah ada', () async {
-    await datasource.saveLaporan(makeLaporan(id: 'laporan-001', judul: 'Judul Lama'));
+  test(
+    'TC-07: updateLaporan() mengupdate data laporan yang sudah ada',
+    () async {
+      await datasource.saveLaporan(
+        makeLaporan(id: 'laporan-001', judul: 'Judul Lama'),
+      );
 
-    final updated = makeLaporan(id: 'laporan-001', judul: 'Judul Baru');
-    await datasource.updateLaporan(updated);
+      final updated = makeLaporan(id: 'laporan-001', judul: 'Judul Baru');
+      await datasource.updateLaporan(updated);
 
-    final result = datasource.getLaporanById('laporan-001');
-    expect(result!.judul, equals('Judul Baru'));
-  });
+      final result = datasource.getLaporanById('laporan-001');
+      expect(result!.judul, equals('Judul Baru'));
+    },
+  );
 
   // ── TC-08 ─────────────────────────────────────────────────────────────────
   test('TC-08: deleteLaporan() menghapus laporan dari box', () async {
@@ -154,10 +172,12 @@ void main() {
 
   // ── TC-10 ─────────────────────────────────────────────────────────────────
   test('TC-10: updateStatus() mengubah status laporan dengan benar', () async {
-    await datasource.saveLaporan(makeLaporan(
-      id: 'laporan-001',
-      status: AppConstants.statusMenunggu,
-    ));
+    await datasource.saveLaporan(
+      makeLaporan(
+        id: 'laporan-001',
+        status: AppConstants.statusMenungguKlasifikasi,
+      ),
+    );
 
     await datasource.updateStatus('laporan-001', AppConstants.statusDisposisi);
 

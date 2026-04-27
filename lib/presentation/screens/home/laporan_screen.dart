@@ -7,9 +7,6 @@ import 'package:flutter/material.dart';
 class LaporanScreen extends StatelessWidget {
   const LaporanScreen({super.key});
 
-  final Color primaryBlue = const Color(0xFF0D47A1);
-  final Color accentOrange = const Color(0xFFFF8F00);
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -20,10 +17,7 @@ class LaporanScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Color(0xFF0D47A1),
-                Color(0xD90D47A1),
-              ],
+              colors: [Color(0xFF0D47A1), Color(0xD90D47A1)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -80,10 +74,7 @@ class _LaporanCard extends StatelessWidget {
           // Judul laporan
           const Text(
             'Kerusakan AC di Ruang Kelas',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
 
           const SizedBox(height: 6),
@@ -91,10 +82,7 @@ class _LaporanCard extends StatelessWidget {
           // Deskripsi singkat
           const Text(
             'AC tidak dingin dan mengeluarkan suara berisik.',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.black54,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.black54),
           ),
 
           const SizedBox(height: 10),
@@ -106,10 +94,7 @@ class _LaporanCard extends StatelessWidget {
               _StatusBadge(status: 'Proses'),
               Text(
                 '12 Mei 2025',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ],
           ),
