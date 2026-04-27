@@ -127,11 +127,13 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
         kategori: _selectedKategori!,
         lokasi: _lokasiController.text.trim(),
         tingkatKerusakan: _selectedTingkatKerusakan!,
-        fotoPath: _fotoPath!,
+        fotoLokalPath: _fotoPath!,
         nomorInventaris: _nomorInventarisController.text.trim().isEmpty
             ? null
             : _nomorInventarisController.text.trim(),
         pelaporId: context.read<HomeProvider>().session?.userId ?? '',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
       await _datasource.saveLaporan(laporan);
     } catch (_) {
@@ -228,7 +230,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
 
                   _sectionLabel('Kategori Fasilitas', required: true),
                   DropdownButtonFormField<String>(
-                    value: _selectedKategori,
+                    initialValue: _selectedKategori,
                     items: _kategoriList
                         .map(
                           (kat) => DropdownMenuItem<String>(
@@ -414,5 +416,4 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       ),
     );
   }
-
 }

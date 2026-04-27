@@ -1,4 +1,3 @@
-// lib/data/models/laporan_lokal.dart
 import 'package:hive/hive.dart';
 
 part 'laporan_lokal.g.dart';
@@ -6,43 +5,46 @@ part 'laporan_lokal.g.dart';
 @HiveType(typeId: 0)
 class LaporanLokal extends HiveObject {
   @HiveField(0)
-  String laporanId;
+  final String laporanId;
 
   @HiveField(1)
-  String judul;
+  final String judul;
 
   @HiveField(2)
-  String deskripsi;
+  final String deskripsi;
 
   @HiveField(3)
-  String kategori;
+  final String kategori; // AC_Kipas | Proyektor | Listrik | dll
 
   @HiveField(4)
-  String lokasi;
+  final String lokasi;
 
   @HiveField(5)
-  String? nomorInventaris;
+  final String? nomorInventaris;
 
   @HiveField(6)
-  String tingkatKerusakan;
+  String? fotoLokalPath;
 
   @HiveField(7)
-  String? fotoPath;
+  String? fotoUrl; // URL Supabase Storage (diisi setelah sync)
 
   @HiveField(8)
-  String? fotoCloudUrl;
+  String status; // 8 status sesuai AppConstants
 
   @HiveField(9)
-  String status; // 'menunggu', 'diproses', 'selesai', dll.
+  String? tingkatKerusakan; // rusak_ringan | rusak_berat | null
 
   @HiveField(10)
-  bool isSynced;
+  final String pelaporId;
 
   @HiveField(11)
-  DateTime createdAt;
+  bool isSynced;
 
   @HiveField(12)
-  String pelaporId;
+  final DateTime createdAt;
+
+  @HiveField(13)
+  DateTime updatedAt;
 
   LaporanLokal({
     required this.laporanId,
@@ -51,12 +53,25 @@ class LaporanLokal extends HiveObject {
     required this.kategori,
     required this.lokasi,
     this.nomorInventaris,
-    required this.tingkatKerusakan,
-    this.fotoPath,
-    this.fotoCloudUrl,
-    this.status = 'menunggu',
+    String? fotoLokalPath,
+    String? fotoPath,
+    String? fotoUrl,
+    String? fotoCloudUrl,
+    String? status,
+    this.tingkatKerusakan,
+    required this.pelaporId,
     this.isSynced = false,
     DateTime? createdAt,
-    required this.pelaporId,
-  }) : createdAt = createdAt ?? DateTime.now();
+    DateTime? updatedAt,
+  }) : fotoLokalPath = fotoLokalPath ?? fotoPath,
+       fotoUrl = fotoUrl ?? fotoCloudUrl,
+       status = status ?? 'menunggu_klasifikasi',
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? createdAt ?? DateTime.now();
+
+  String? get fotoPath => fotoLokalPath;
+  set fotoPath(String? value) => fotoLokalPath = value;
+
+  String? get fotoCloudUrl => fotoUrl;
+  set fotoCloudUrl(String? value) => fotoUrl = value;
 }

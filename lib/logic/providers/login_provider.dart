@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../data/datasources/local/auth_local_datasource.dart';
 import '../../data/models/user_session.dart';
+import '../../core/constants/app_constants.dart';
 
 enum LoginStatus { idle, loading, success, error }
 
@@ -81,42 +82,58 @@ class LoginProvider extends ChangeNotifier {
 
   // ── Mock users untuk MVP (sebelum MongoDB auth siap) ─────────────────────
   List<Map<String, String>> _getMockUsers() {
-    return [
-      {
-        'userId': 'user-001',
-        'nama': 'Budi Mahasiswa',
-        'email': 'pelapor@polban.ac.id',
-        'password': 'password123',
-        'role': 'pelapor',
-      },
-      {
-        'userId': 'user-002',
-        'nama': 'Drs. Ahmad Kasubbag',
-        'email': 'kasubbag@polban.ac.id',
-        'password': 'password123',
-        'role': 'kasubbag_tu',
-      },
-      {
-        'userId': 'user-003',
-        'nama': 'Siti Petugas BMN',
-        'email': 'bmn@polban.ac.id',
-        'password': 'password123',
-        'role': 'petugas_bmn',
-      },
-      {
-        'userId': 'user-004',
-        'nama': 'Rudi Teknisi',
-        'email': 'teknisi@polban.ac.id',
-        'password': 'password123',
-        'role': 'teknisi_upt',
-      },
-      {
-        'userId': 'user-005',
-        'nama': 'Admin Sistem',
-        'email': 'admin@polban.ac.id',
-        'password': 'admin123',
-        'role': 'admin',
-      },
-    ];
+  return [
+    {
+      'userId': 'user-001',
+      'nama': 'Budi Mahasiswa',
+      'email': 'mahasiswa@polban.ac.id',
+      'password': 'password123',
+      'role': AppConstants.roleMahasiswa,
+    },
+    {
+      'userId': 'user-002',
+      'nama': 'Rudi Teknisi Jurusan',
+      'email': 'teknisi.jurusan@polban.ac.id',
+      'password': 'password123',
+      'role': AppConstants.roleTeknisiJurusan,
+      'unitGedung': 'Jurusan Teknik Informatika',
+    },
+    {
+      'userId': 'user-003',
+      'nama': 'Sari Admin Jurusan',
+      'email': 'admin.jurusan@polban.ac.id',
+      'password': 'password123',
+      'role': AppConstants.roleAdminJurusan,
+      'unitGedung': 'Jurusan Teknik Informatika',
+    },
+    {
+      'userId': 'user-004',
+      'nama': 'Dr. Ahmad Kajur',
+      'email': 'kajur@polban.ac.id',
+      'password': 'password123',
+      'role': AppConstants.roleKajur,
+    },
+    {
+      'userId': 'user-005',
+      'nama': 'Dewi Admin UPT PP',
+      'email': 'admin.upt@polban.ac.id',
+      'password': 'password123',
+      'role': AppConstants.roleAdminUptPp,
+    },
+    {
+      'userId': 'user-006',
+      'nama': 'Dr. Budi Ketua UPT PP',
+      'email': 'ketua.upt@polban.ac.id',
+      'password': 'password123',
+      'role': AppConstants.roleKetuaUptPp,
+    },
+    {
+      'userId': 'user-007',
+      'nama': 'Joko Teknisi UPT PP',
+      'email': 'teknisi.upt@polban.ac.id',
+      'password': 'password123',
+      'role': AppConstants.roleTeknisiUptPp,
+    },
+  ];
   }
 }
