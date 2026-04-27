@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/constants/app_constants.dart'; 
 import 'data/models/laporan_lokal.dart';
 import 'data/models/user_session.dart';
 import 'logic/providers/home_provider.dart';
@@ -13,8 +16,12 @@ import 'presentation/screens/splash/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
   await Hive.initFlutter();
-
   if (!Hive.isAdapterRegistered(0)) {
     Hive.registerAdapter(LaporanLokalAdapter());
   }
@@ -22,11 +29,13 @@ Future<void> main() async {
     Hive.registerAdapter(UserSessionAdapter());
   }
 
-  await Hive.openBox<LaporanLokal>('laporanBox');
-  await Hive.openBox<UserSession>('userBox');
+  await Hive.openBox<LaporanLokal>(AppConstants.boxLaporan);
+  await Hive.openBox<UserSession>(AppConstants.boxUser);
 
   runApp(const PolLaporApp());
 }
+
+final supabase = Supabase.instance.client;
 
 class PolLaporApp extends StatelessWidget {
   const PolLaporApp({super.key});

@@ -3,8 +3,7 @@ import '../../models/laporan_lokal.dart';
 import '../../../core/constants/app_constants.dart';
 
 class HiveLocalDatasource {
-  Box<LaporanLokal> get _box =>
-      Hive.box<LaporanLokal>(AppConstants.boxLaporan);
+  Box<LaporanLokal> get _box => Hive.box<LaporanLokal>(AppConstants.boxLaporan);
 
   // ── CREATE ────────────────────────────────────────────────────────────────
   Future<void> saveLaporan(LaporanLokal laporan) async {
@@ -43,7 +42,8 @@ class HiveLocalDatasource {
     final laporan = _box.get(laporanId);
     if (laporan == null) return;
     laporan.isSynced = true;
-    laporan.fotoCloudUrl = fotoCloudUrl;
+    laporan.fotoUrl = fotoCloudUrl;
+    laporan.updatedAt = DateTime.now();
     await laporan.save(); // HiveObject.save() langsung update tanpa put ulang
   }
 
@@ -52,6 +52,7 @@ class HiveLocalDatasource {
     final laporan = _box.get(laporanId);
     if (laporan == null) return;
     laporan.status = statusBaru;
+    laporan.updatedAt = DateTime.now();
     await laporan.save();
   }
 
