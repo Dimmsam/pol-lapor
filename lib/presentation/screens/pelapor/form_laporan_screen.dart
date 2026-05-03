@@ -19,21 +19,41 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _datasource = HiveLocalDatasource();
   final _syncService = SyncService();
   final _uuid = const Uuid();
+  static const List<String> _lokasiPerbaikanOptions = [
+    'Gedung A',
+    'Gedung B',
+    'Gedung C',
+    'Gedung D',
+    'Gedung E',
+    'Gedung F',
+    'Gedung G',
+    'Gedung H',
+    'Gedung Lab Teknik Refrigerasi dan Tata Udara',
+    'Gedung Lab Teknik Mesin',
+    'Gedung Lab Teknik Kimia',
+    'Gedung Lab Teknik Sipil',
+    'Hanggar Aero',
+    'Student Center',
+    'Gedung Serba Guna AN',
+    'Gedung Direktorat',
+    'Pendopo Tony Soewandito',
+    'Gedung P2T',
+  ];
+
   bool _isSubmitting = false;
 
   // Controller untuk menangkap input
   final TextEditingController _judulController = TextEditingController();
   final TextEditingController _deskripsiController = TextEditingController();
-  final TextEditingController _lokasiController = TextEditingController();
   final TextEditingController _nomorInventarisController =
       TextEditingController(); // Sesuai aturan Polban
+  String? _lokasiPerbaikan;
   String? _fotoPath;
 
   @override
   void dispose() {
     _judulController.dispose();
     _deskripsiController.dispose();
-    _lokasiController.dispose();
     _nomorInventarisController.dispose();
     super.dispose();
   }
@@ -83,6 +103,46 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     );
   }
 
+  InputDecoration _selectorDecoration({required String hintText}) {
+    return _fieldDecoration(hintText: hintText).copyWith(
+      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+      suffixIconColor: const Color(0xFF1565C0),
+    );
+  }
+
+  Widget _lokasiSelector() {
+    return DropdownButtonFormField<String>(
+      value: _lokasiPerbaikan,
+      isExpanded: true,
+      menuMaxHeight: 340,
+      icon: const SizedBox.shrink(),
+      decoration: _selectorDecoration(hintText: 'Pilih lokasi perbaikan'),
+      hint: Text(
+        'Pilih lokasi perbaikan',
+        style: TextStyle(color: Colors.grey.shade600),
+      ),
+      items: _lokasiPerbaikanOptions
+          .map(
+            (lokasi) => DropdownMenuItem<String>(
+              value: lokasi,
+              child: Text(lokasi, maxLines: 2, overflow: TextOverflow.ellipsis),
+            ),
+          )
+          .toList(),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Lokasi harus diisi';
+        }
+        return null;
+      },
+      onChanged: _isSubmitting
+          ? null
+          : (value) {
+              setState(() => _lokasiPerbaikan = value);
+            },
+    );
+  }
+
   void _showSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -111,7 +171,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
         formulirId: _uuid.v4(),
         namaSarana: _judulController.text.trim(),
         keteranganKerusakan: _deskripsiController.text.trim(),
-        lokasiPerbaikan: _lokasiController.text.trim(),
+        lokasiPerbaikan: _lokasiPerbaikan!.trim(),
         fotoLokalPath: _fotoPath!,
         nomorInventaris: _nomorInventarisController.text.trim().isEmpty
             ? null
@@ -144,10 +204,10 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     _formKey.currentState?.reset();
     _judulController.clear();
     _deskripsiController.clear();
-    _lokasiController.clear();
     _nomorInventarisController.clear();
     setState(() {
       _isSubmitting = false;
+      _lokasiPerbaikan = null;
       _fotoPath = null;
     });
 
@@ -230,18 +290,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                   const SizedBox(height: 12),
 
                   _sectionLabel('Lokasi Perbaikan', required: true),
-                  TextFormField(
-                    controller: _lokasiController,
-                    textInputAction: TextInputAction.next,
-                    decoration: _fieldDecoration(
-                      hintText: 'Contoh: Gedung J Lantai 2',
-                    ),
-                    validator: (value) {
-                      final text = value?.trim() ?? '';
-                      if (text.isEmpty) return 'Lokasi harus diisi';
-                      return null;
-                    },
-                  ),
+                  _lokasiSelector(),
                   const SizedBox(height: 12),
 
                   _sectionLabel('Keterangan Kerusakan', required: true),
