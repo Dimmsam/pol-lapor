@@ -13,6 +13,12 @@ class SyncService {
 
   // 1. FUNGSI UTAMA: Pemicu Sinkronisasi
   Future<void> syncUnsyncedData() async {
+    final authUser = supabase.auth.currentUser;
+    if (authUser == null) {
+      debugPrint('Sync dibatalkan: user belum login di Supabase Auth.');
+      return;
+    }
+
     // Cek koneksi internet
     final connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.none)) {
@@ -30,7 +36,8 @@ class SyncService {
       try {
         // Step A: Upload foto fisik ke Supabase Storage dulu (jika ada)
         String? cloudImageUrl;
-        if (laporan.fotoLokalPath != null && laporan.fotoLokalPath!.isNotEmpty) {
+        if (laporan.fotoLokalPath != null &&
+            laporan.fotoLokalPath!.isNotEmpty) {
           cloudImageUrl = await _uploadFotoToSupabase(
             laporan.fotoLokalPath!,
             laporan.formulirId,
@@ -43,6 +50,15 @@ class SyncService {
         // Step C: Jika sukses tanpa error, tandai laporan lokal sebagai synced
         await _hiveService.markSynced(laporan.formulirId);
         debugPrint('Laporan ${laporan.formulirId} berhasil di-sync.');
+      } on StorageException catch (e) {
+        debugPrint(
+          'Gagal upload storage laporan ${laporan.formulirId}: ${e.message} '
+          '(status: ${e.statusCode}, error: ${e.error}).',
+        );
+        debugPrint(
+          'Pastikan policy INSERT/UPDATE storage.objects untuk bucket '
+          'bukti_laporan sudah dibuat.',
+        );
       } catch (e) {
         debugPrint('Gagal sync laporan ${laporan.formulirId}: $e');
         // Error di satu laporan tidak akan menghentikan loop laporan lainnya
@@ -95,8 +111,9 @@ class SyncService {
       'keterangan_kerusakan': laporan.keteranganKerusakan,
       'lokasi_perbaikan': laporan.lokasiPerbaikan,
       'nomor_inventaris': laporan.nomorInventaris,
-      'foto_kerusakan_url': imageUrl ?? laporan.fotoKerusakanUrl, // Masukkan URL publik
-      'status': laporan.status, 
+      'foto_kerusakan_url':
+          imageUrl ?? laporan.fotoKerusakanUrl, // Masukkan URL publik
+      'status': laporan.status,
       'tanda_tangan_pelapor': laporan.tandaTanganPelapor,
       'tanggal_tanda_tangan_pelapor': laporan.createdAt.toIso8601String(),
       'is_synced': true, // Di cloud pasti true
