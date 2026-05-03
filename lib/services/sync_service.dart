@@ -82,9 +82,15 @@ class SyncService {
     String? imageUrl,
   ) async {
     // Menggunakan .upsert() sangat penting untuk Prinsip Idempotensi!
+    // Pastikan kita punya pelapor_id (user_id dari tabel pengguna)
+    String pelaporId = laporan.pelaporId;
+    if (pelaporId.isEmpty) {
+      pelaporId = await _getMyUserId();
+    }
+
     await supabase.from('formulir_laporan').upsert({
       'formulir_id': laporan.formulirId, // Sesuai kolom primary key di Supabase
-      'pelapor_id': laporan.pelaporId,
+      'pelapor_id': pelaporId,
       'nama_sarana': laporan.namaSarana,
       'keterangan_kerusakan': laporan.keteranganKerusakan,
       'lokasi_perbaikan': laporan.lokasiPerbaikan,
@@ -97,5 +103,23 @@ class SyncService {
       'created_at': laporan.createdAt.toIso8601String(),
       'updated_at': laporan.updatedAt.toIso8601String(),
     });
+  }
+
+  // Helper: ambil user_id (pelapor_id) dari tabel pengguna berdasarkan auth uid
+  Future<String> _getMyUserId() async {
+    final authUser = supabase.auth.currentUser;
+    if (authUser == null) throw Exception('User tidak terautentikasi');
+
+    final resp = await supabase
+        .from('pengguna')
+        .select('user_id')
+        .eq('auth_id', authUser.id)
+        .single();
+
+    if (resp['user_id'] == null) {
+      throw Exception('Profil pengguna tidak ditemukan di tabel pengguna');
+    }
+
+    return resp['user_id'] as String;
   }
 }
