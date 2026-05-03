@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../../data/datasources/local/hive_local_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../logic/providers/home_provider.dart';
+import '../../../services/sync_service.dart';
 import '../../widgets/pelapor/laporan_photo_field.dart';
 
 class FormLaporanScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class FormLaporanScreen extends StatefulWidget {
 class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _formKey = GlobalKey<FormState>();
   final _datasource = HiveLocalDatasource();
+  final _syncService = SyncService();
   final _uuid = const Uuid();
   bool _isSubmitting = false;
 
@@ -25,17 +27,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final TextEditingController _lokasiController = TextEditingController();
   final TextEditingController _nomorInventarisController =
       TextEditingController(); // Sesuai aturan Polban
-
-  String? _selectedKategori;
-  String? _selectedTingkatKerusakan;
   String? _fotoPath;
-  final List<String> _kategoriList = [
-    'AC/Kipas',
-    'Proyektor',
-    'Listrik',
-    'Jalan',
-    'Lainnya',
-  ];
 
   @override
   void dispose() {
@@ -112,31 +104,32 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       return;
     }
 
-    if (_selectedKategori == null || _selectedTingkatKerusakan == null) {
-      _showSnackBar('Lengkapi kategori dan tingkat kerusakan.');
-      return;
-    }
-
     setState(() => _isSubmitting = true);
 
     try {
       final laporan = LaporanLokal(
-        laporanId: _uuid.v4(),
-        judul: _judulController.text.trim(),
-        deskripsi: _deskripsiController.text.trim(),
-        kategori: _selectedKategori!,
-        lokasi: _lokasiController.text.trim(),
-        tingkatKerusakan: _selectedTingkatKerusakan!,
+        formulirId: _uuid.v4(),
+        namaSarana: _judulController.text.trim(),
+        keteranganKerusakan: _deskripsiController.text.trim(),
+        lokasiPerbaikan: _lokasiController.text.trim(),
         fotoLokalPath: _fotoPath!,
         nomorInventaris: _nomorInventarisController.text.trim().isEmpty
             ? null
             : _nomorInventarisController.text.trim(),
         pelaporId: context.read<HomeProvider>().session?.userId ?? '',
+        tandaTanganPelapor: true,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
       await _datasource.saveLaporan(laporan);
-    } catch (_) {
+
+      // Tetap offline-first: simpan lokal dulu, lalu coba sync ke cloud.
+      try {
+        await _syncService.syncUnsyncedData();
+      } catch (_) {
+        // Gagal sync tidak membatalkan simpan lokal.
+      }
+    } catch (e) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
       _showSnackBar('Gagal menyimpan laporan lokal.');
@@ -155,8 +148,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     _nomorInventarisController.clear();
     setState(() {
       _isSubmitting = false;
-      _selectedKategori = null;
-      _selectedTingkatKerusakan = null;
       _fotoPath = null;
     });
 
@@ -211,7 +202,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  _sectionLabel('Judul Laporan', required: true),
+                  _sectionLabel('Nama Sarana', required: true),
                   TextFormField(
                     controller: _judulController,
                     textInputAction: TextInputAction.next,
@@ -221,95 +212,12 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                     ).copyWith(counterText: ''),
                     validator: (value) {
                       final text = value?.trim() ?? '';
-                      if (text.isEmpty) return 'Judul tidak boleh kosong';
+                      if (text.isEmpty) return 'Nama sarana tidak boleh kosong';
                       if (text.length < 6) return 'Minimal 6 karakter';
                       return null;
                     },
                   ),
                   const SizedBox(height: 12),
-
-                  _sectionLabel('Kategori Fasilitas', required: true),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedKategori,
-                    items: _kategoriList
-                        .map(
-                          (kat) => DropdownMenuItem<String>(
-                            value: kat,
-                            child: Text(kat),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _isSubmitting
-                        ? null
-                        : (val) => setState(() => _selectedKategori = val),
-                    decoration: _fieldDecoration(hintText: 'Pilih kategori'),
-                    validator: (value) =>
-                        value == null ? 'Pilih kategori' : null,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _sectionLabel('Tingkat Kerusakan', required: true),
-                  FormField<String>(
-                    initialValue: _selectedTingkatKerusakan,
-                    validator: (value) =>
-                        value == null ? 'Pilih tingkat kerusakan' : null,
-                    builder: (state) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SegmentedButton<String>(
-                            segments: const [
-                              ButtonSegment<String>(
-                                value: 'Ringan',
-                                label: Text('Ringan'),
-                              ),
-                              ButtonSegment<String>(
-                                value: 'Berat',
-                                label: Text('Berat'),
-                              ),
-                            ],
-                            selected: state.value == null
-                                ? <String>{}
-                                : <String>{state.value!},
-                            emptySelectionAllowed: true,
-                            onSelectionChanged: _isSubmitting
-                                ? null
-                                : (values) {
-                                    final selected = values.isEmpty
-                                        ? null
-                                        : values.first;
-                                    state.didChange(selected);
-                                    setState(() {
-                                      _selectedTingkatKerusakan = selected;
-                                    });
-                                  },
-                            showSelectedIcon: false,
-                            style: ButtonStyle(
-                              visualDensity: VisualDensity.compact,
-                              padding: WidgetStateProperty.all(
-                                const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (state.hasError)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8, left: 12),
-                              child: Text(
-                                state.errorText!,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
 
                   _sectionLabel('Nomor Inventaris'),
                   TextFormField(
@@ -321,7 +229,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  _sectionLabel('Lokasi Gedung/Area', required: true),
+                  _sectionLabel('Lokasi Perbaikan', required: true),
                   TextFormField(
                     controller: _lokasiController,
                     textInputAction: TextInputAction.next,
@@ -336,7 +244,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  _sectionLabel('Deskripsi Kerusakan', required: true),
+                  _sectionLabel('Keterangan Kerusakan', required: true),
                   TextFormField(
                     controller: _deskripsiController,
                     minLines: 3,

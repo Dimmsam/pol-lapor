@@ -1,8 +1,9 @@
 import 'package:hive/hive.dart';
 import '/data/models/laporan_lokal.dart'; // Sesuaikan jika nama filenya berbeda
+import '../core/constants/app_constants.dart';
 
 class HiveService {
-  static const String boxName = 'laporanBox';
+  static const String boxName = AppConstants.boxLaporan;
 
   // Fungsi helper untuk membuka box
   Future<Box<LaporanLokal>> get _box async => await Hive.openBox<LaporanLokal>(boxName);
