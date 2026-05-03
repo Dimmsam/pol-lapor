@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/datasources/local/auth_local_datasource.dart';
+import '../../data/datasources/remote/auth_remote_datasource.dart';
 import '../../data/models/user_session.dart';
-import '../../core/constants/app_constants.dart';
 
 enum LoginStatus { idle, loading, success, error }
 
 class LoginProvider extends ChangeNotifier {
-  final AuthLocalDatasource _auth = AuthLocalDatasource();
+  final AuthLocalDatasource _localAuth = AuthLocalDatasource();
+  final AuthRemoteDatasource _remoteAuth = AuthRemoteDatasource();
 
   LoginStatus _status = LoginStatus.idle;
   String? _errorMessage;
@@ -17,123 +19,66 @@ class LoginProvider extends ChangeNotifier {
   UserSession? get session => _session;
   bool get isLoading => _status == LoginStatus.loading;
 
-  // ── Cek session saat splash screen ───────────────────────────────────────
-  bool isLoggedIn() => _auth.isLoggedIn();
+  // ── Cek session lokal saat splash ────────────────────────────────────────
+  bool isLoggedIn() => _localAuth.isLoggedIn();
 
-  UserSession? getExistingSession() => _auth.getSession();
+  UserSession? getExistingSession() => _localAuth.getSession();
 
-  // ── Login ─────────────────────────────────────────────────────────────────
-  // Untuk MVP: validasi lokal dengan kredensial hardcode per role.
-  // Milestone 2: ganti dengan hit MongoDB langsung.
+  // ── Login via Supabase Auth ───────────────────────────────────────────────
   Future<void> login(String email, String password) async {
     _status = LoginStatus.loading;
     _errorMessage = null;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 500)); // simulasi proses
-
     try {
-      final mockUsers = _getMockUsers();
-      final matched = mockUsers.where(
-        (u) => u['email'] == email && u['password'] == password,
-      );
+      // Hit Supabase Auth → ambil JWT + profil dari tabel pengguna
+      final session = await _remoteAuth.login(email, password);
 
-      if (matched.isEmpty) {
-        _status = LoginStatus.error;
-        _errorMessage = 'Email atau password salah.';
-        notifyListeners();
-        return;
-      }
-
-      final user = matched.first;
-      final session = UserSession(
-        userId: user['userId']!,
-        nama: user['nama']!,
-        email: user['email']!,
-        role: user['role']!,
-        token: 'mock-token-${user['userId']}', // diganti token nyata di M2
-      );
-
-      await _auth.saveSession(session);
+      // Simpan ke Hive lokal untuk offline session
+      await _localAuth.saveSession(session);
       _session = session;
       _status = LoginStatus.success;
-      notifyListeners();
+    } on AuthException catch (e) {
+      _status = LoginStatus.error;
+      _errorMessage = _mapAuthError(e.message);
     } catch (e) {
       _status = LoginStatus.error;
-      _errorMessage = 'Terjadi kesalahan. Coba lagi.';
-      notifyListeners();
+      _errorMessage = 'Terjadi kesalahan. Periksa koneksi internet kamu.';
     }
+
+    notifyListeners();
   }
 
   // ── Logout ────────────────────────────────────────────────────────────────
   Future<void> logout() async {
-    await _auth.clearSession();
+    await _remoteAuth.logout();
+    await _localAuth.clearSession();
     _session = null;
     _status = LoginStatus.idle;
     notifyListeners();
   }
 
-  // ── Reset state error ─────────────────────────────────────────────────────
+  // ── Reset error ───────────────────────────────────────────────────────────
   void resetError() {
     _errorMessage = null;
     _status = LoginStatus.idle;
     notifyListeners();
   }
 
-  // ── Mock users untuk MVP (sebelum MongoDB auth siap) ─────────────────────
-  List<Map<String, String>> _getMockUsers() {
-  return [
-    {
-      'userId': 'user-001',
-      'nama': 'Budi Mahasiswa',
-      'email': 'mahasiswa@polban.ac.id',
-      'password': 'password123',
-      'role': AppConstants.roleMahasiswa,
-    },
-    {
-      'userId': 'user-002',
-      'nama': 'Rudi Teknisi Jurusan',
-      'email': 'teknisi.jurusan@polban.ac.id',
-      'password': 'password123',
-      'role': AppConstants.roleTeknisiJurusan,
-      'unitGedung': 'Jurusan Teknik Informatika',
-    },
-    {
-      'userId': 'user-003',
-      'nama': 'Sari Admin Jurusan',
-      'email': 'admin.jurusan@polban.ac.id',
-      'password': 'password123',
-      'role': AppConstants.roleAdminJurusan,
-      'unitGedung': 'Jurusan Teknik Informatika',
-    },
-    {
-      'userId': 'user-004',
-      'nama': 'Dr. Ahmad Kajur',
-      'email': 'kajur@polban.ac.id',
-      'password': 'password123',
-      'role': AppConstants.roleKajur,
-    },
-    {
-      'userId': 'user-005',
-      'nama': 'Dewi Admin UPT PP',
-      'email': 'admin.upt@polban.ac.id',
-      'password': 'password123',
-      'role': AppConstants.roleAdminUptPp,
-    },
-    {
-      'userId': 'user-006',
-      'nama': 'Dr. Budi Ketua UPT PP',
-      'email': 'ketua.upt@polban.ac.id',
-      'password': 'password123',
-      'role': AppConstants.roleKetuaUptPp,
-    },
-    {
-      'userId': 'user-007',
-      'nama': 'Joko Teknisi UPT PP',
-      'email': 'teknisi.upt@polban.ac.id',
-      'password': 'password123',
-      'role': AppConstants.roleTeknisiUptPp,
-    },
-  ];
+  // ── Map pesan error Supabase → bahasa Indonesia ───────────────────────────
+  String _mapAuthError(String message) {
+    if (message.contains('Invalid login credentials')) {
+      return 'Email atau password salah.';
+    }
+    if (message.contains('Email not confirmed')) {
+      return 'Email belum dikonfirmasi. Cek inbox kamu.';
+    }
+    if (message.contains('Too many requests')) {
+      return 'Terlalu banyak percobaan. Tunggu beberapa saat.';
+    }
+    if (message.contains('network') || message.contains('connect')) {
+      return 'Tidak ada koneksi internet.';
+    }
+    return 'Login gagal: $message';
   }
 }
