@@ -30,21 +30,21 @@ class SyncService {
       try {
         // Step A: Upload foto fisik ke Supabase Storage dulu (jika ada)
         String? cloudImageUrl;
-        if (laporan.fotoPath != null && laporan.fotoPath!.isNotEmpty) {
+        if (laporan.fotoLokalPath != null && laporan.fotoLokalPath!.isNotEmpty) {
           cloudImageUrl = await _uploadFotoToSupabase(
-            laporan.fotoPath!,
-            laporan.laporanId,
+            laporan.fotoLokalPath!,
+            laporan.formulirId,
           );
         }
 
-        // Step B: Simpan data teks & URL foto ke tabel 'laporans'
+        // Step B: Simpan data teks & URL foto ke tabel 'formulir_laporan'
         await _upsertDataToSupabase(laporan, cloudImageUrl);
 
         // Step C: Jika sukses tanpa error, tandai laporan lokal sebagai synced
-        await _hiveService.markSynced(laporan.laporanId);
-        debugPrint('Laporan ${laporan.laporanId} berhasil di-sync.');
+        await _hiveService.markSynced(laporan.formulirId);
+        debugPrint('Laporan ${laporan.formulirId} berhasil di-sync.');
       } catch (e) {
-        debugPrint('Gagal sync laporan ${laporan.laporanId}: $e');
+        debugPrint('Gagal sync laporan ${laporan.formulirId}: $e');
         // Error di satu laporan tidak akan menghentikan loop laporan lainnya
       }
     }
@@ -53,16 +53,16 @@ class SyncService {
   // 2. FUNGSI BANTUAN: Upload Foto ke Supabase Storage
   Future<String?> _uploadFotoToSupabase(
     String filePath,
-    String laporanId,
+    String formulirId,
   ) async {
     final file = File(filePath);
     if (!await file.exists()) return null;
 
     final fileExt = filePath.split('.').last;
-    final fileName = 'laporan_$laporanId.$fileExt';
+    final fileName = 'formulir_$formulirId.$fileExt';
 
     // Asumsi nama bucket di Supabase kamu adalah 'bukti_laporan'
-    final pathTujuan = 'laporan_kerusakan/$fileName';
+    final pathTujuan = 'foto_kerusakan/$fileName';
 
     // Upload file (upsert: true untuk menimpa jika kebetulan file sudah ada)
     await supabase.storage
@@ -82,20 +82,20 @@ class SyncService {
     String? imageUrl,
   ) async {
     // Menggunakan .upsert() sangat penting untuk Prinsip Idempotensi!
-    // Jika laporanId sudah ada di database, data akan di-update (bukan diduplikat).
-    await supabase.from('laporans').upsert({
-      'id': laporan.laporanId, // Sesuai kolom primary key di Supabase
+    await supabase.from('formulir_laporan').upsert({
+      'formulir_id': laporan.formulirId, // Sesuai kolom primary key di Supabase
       'pelapor_id': laporan.pelaporId,
-      'judul': laporan.judul,
-      'deskripsi': laporan.deskripsi,
-      'kategori_kerusakan': laporan.kategori,
-      'lokasi': laporan.lokasi,
-      'tingkat_kerusakan': laporan.tingkatKerusakan,
+      'nama_sarana': laporan.namaSarana,
+      'keterangan_kerusakan': laporan.keteranganKerusakan,
+      'lokasi_perbaikan': laporan.lokasiPerbaikan,
       'nomor_inventaris': laporan.nomorInventaris,
-      'foto_bukti': imageUrl, // Masukkan URL publik dari Storage
+      'foto_kerusakan_url': imageUrl ?? laporan.fotoKerusakanUrl, // Masukkan URL publik
+      'status': laporan.status, 
+      'tanda_tangan_pelapor': laporan.tandaTanganPelapor,
+      'tanggal_tanda_tangan_pelapor': laporan.createdAt.toIso8601String(),
       'is_synced': true, // Di cloud pasti true
-      'status': laporan.status, // Kirim status terkini (menunggu)
       'created_at': laporan.createdAt.toIso8601String(),
+      'updated_at': laporan.updatedAt.toIso8601String(),
     });
   }
 }
