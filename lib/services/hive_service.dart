@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import '/data/models/laporan_lokal.dart'; // Sesuaikan jika nama filenya laporan_model.dart
+import '/data/models/laporan_lokal.dart'; // Sesuaikan jika nama filenya berbeda
 
 class HiveService {
   static const String boxName = 'laporanBox';
@@ -8,10 +8,10 @@ class HiveService {
   Future<Box<LaporanLokal>> get _box async => await Hive.openBox<LaporanLokal>(boxName);
 
   // 1. CREATE / UPDATE
-  // Menggunakan laporanId sebagai key agar konsisten dengan Controller
+  // Menggunakan formulirId sebagai key agar konsisten dengan Controller
   Future<void> saveLaporan(LaporanLokal laporan) async {
     final box = await _box;
-    await box.put(laporan.laporanId, laporan);
+    await box.put(laporan.formulirId, laporan);
   }
 
   // 2. READ ALL
