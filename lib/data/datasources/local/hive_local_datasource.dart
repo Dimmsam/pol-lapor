@@ -7,7 +7,7 @@ class HiveLocalDatasource {
 
   // ── CREATE ────────────────────────────────────────────────────────────────
   Future<void> saveLaporan(LaporanLokal laporan) async {
-    await _box.put(laporan.laporanId, laporan);
+    await _box.put(laporan.formulirId, laporan);
   }
 
   // ── READ ALL ──────────────────────────────────────────────────────────────
@@ -23,34 +23,36 @@ class HiveLocalDatasource {
   }
 
   // ── READ BY ID ────────────────────────────────────────────────────────────
-  LaporanLokal? getLaporanById(String laporanId) {
-    return _box.get(laporanId);
+  LaporanLokal? getLaporanById(String formulirId) {
+    return _box.get(formulirId);
   }
 
   // ── UPDATE ────────────────────────────────────────────────────────────────
   Future<void> updateLaporan(LaporanLokal laporan) async {
-    await _box.put(laporan.laporanId, laporan);
+    await _box.put(laporan.formulirId, laporan);
   }
 
   // ── DELETE ────────────────────────────────────────────────────────────────
-  Future<void> deleteLaporan(String laporanId) async {
-    await _box.delete(laporanId);
+  Future<void> deleteLaporan(String formulirId) async {
+    await _box.delete(formulirId);
   }
 
   // ── MARK SYNCED ───────────────────────────────────────────────────────────
-  Future<void> markAsSynced(String laporanId, String fotoCloudUrl) async {
-    final laporan = _box.get(laporanId);
+  Future<void> markAsSynced(String formulirId, String fotoCloudUrl) async {
+    final laporan = _box.get(formulirId);
     if (laporan == null) return;
+    
     laporan.isSynced = true;
-    laporan.fotoUrl = fotoCloudUrl;
+    laporan.fotoKerusakanUrl = fotoCloudUrl; 
     laporan.updatedAt = DateTime.now();
-    await laporan.save(); // HiveObject.save() langsung update tanpa put ulang
+    await laporan.save(); 
   }
 
   // ── UPDATE STATUS ─────────────────────────────────────────────────────────
-  Future<void> updateStatus(String laporanId, String statusBaru) async {
-    final laporan = _box.get(laporanId);
+  Future<void> updateStatus(String formulirId, String statusBaru) async {
+    final laporan = _box.get(formulirId);
     if (laporan == null) return;
+    
     laporan.status = statusBaru;
     laporan.updatedAt = DateTime.now();
     await laporan.save();
