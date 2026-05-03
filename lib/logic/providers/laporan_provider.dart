@@ -5,7 +5,7 @@ import 'package:uuid/uuid.dart';
 
 class LaporanController {
   static const String boxName = 'laporanBox';
-  final _uuid = Uuid();
+  final _uuid = const Uuid();
 
   // 1. Ambil Semua Laporan untuk ditampilkan di Dashboard
   Future<List<LaporanLokal>> getAllLaporan() async {
