@@ -90,7 +90,7 @@ class _LaporanCard extends StatelessWidget {
           // Footer (status + tanggal)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: const <Widget>[
               _StatusBadge(status: 'Proses'),
               Text(
                 '12 Mei 2025',

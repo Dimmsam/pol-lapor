@@ -1,7 +1,6 @@
-// lib/presentation/screens/splash/splash_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../logic/providers/login_provider.dart';
+import '../../../data/datasources/remote/auth_remote_datasource.dart';
+import '../../../data/datasources/local/auth_local_datasource.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,16 +17,26 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkSession() async {
-    // Beri sedikit waktu untuk splash ditampilkan
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 1200));
     if (!mounted) return;
 
-    final isLoggedIn = context.read<LoginProvider>().isLoggedIn();
-    if (isLoggedIn) {
+    // 1. Cek apakah Supabase masih punya session aktif (JWT belum expired)
+    final remoteAuth = AuthRemoteDatasource();
+    final supabaseSession = await remoteAuth.getSessionFromSupabase();
+
+    if (supabaseSession != null) {
+      // Session Supabase masih valid → update lokal dan lanjut ke home
+      final localAuth = AuthLocalDatasource();
+      await localAuth.saveSession(supabaseSession);
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      Navigator.pushReplacementNamed(context, '/login');
+      return;
     }
+
+    // 2. Tidak ada session Supabase → ke login
+    await AuthLocalDatasource().clearSession();
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
