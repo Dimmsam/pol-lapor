@@ -10,118 +10,192 @@ import '../../../logic/providers/login_provider.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  static const Color _primaryBlue = Color(0xFF0D47A1);
+  static const Color _bgColor = Color(0xFFF4F6FA);
+
   @override
   Widget build(BuildContext context) {
     final home = context.watch<HomeProvider>();
 
+    return Scaffold(
+      backgroundColor: _bgColor,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                // 1. BACKGROUND BIRU DENGAN LENGKUNGAN
+                Container(
+                  width: double.infinity,
+                  height: 240,
+                  decoration: const BoxDecoration(
+                    color: _primaryBlue,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(30),
+                      bottomRight: Radius.circular(30),
+                    ),
+                  ),
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 10),
+                        _buildTopNav(),
+                        _buildUserInfo(home),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 2. CARD STATISTIK (FLOATING)
+                Positioned(
+                  bottom: -50,
+                  child: _buildStatCard(home),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 70), // Memberi ruang untuk card floating
+
+            // 3. DAFTAR MENU
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionTitle("AKUN"),
+                  _buildMenuContainer([
+                    _ProfileMenuItem(
+                      icon: Icons.person_outline_rounded,
+                      iconColor: Colors.blue,
+                      iconBg: Colors.blue.shade50,
+                      title: 'Edit Profil',
+                      subtitle: 'Nama, foto, dan info pribadi',
+                      onTap: () => _showEditProfile(context, home),
+                    ),
+                    const Divider(height: 1, indent: 60),
+                    _ProfileMenuItem(
+                      icon: Icons.lock_outline_rounded,
+                      iconColor: Colors.orange,
+                      iconBg: Colors.orange.shade50,
+                      title: 'Ubah Password',
+                      subtitle: 'Perbarui kata sandi akun',
+                      onTap: () => _showChangePassword(context),
+                    ),
+                  ]),
+
+                  const SizedBox(height: 20),
+
+                  _buildSectionTitle("LAINNYA"),
+                  _buildMenuContainer([
+                    _ProfileMenuItem(
+                      icon: Icons.access_time_rounded,
+                      iconColor: Colors.green,
+                      iconBg: Colors.green.shade50,
+                      title: 'Tentang Aplikasi',
+                      subtitle: 'Versi, lisensi, dan developer',
+                      onTap: () => _showAboutApp(context),
+                    ),
+                    const Divider(height: 1, indent: 60),
+                    _ProfileMenuItem(
+                      icon: Icons.bar_chart_rounded,
+                      iconColor: Colors.indigo,
+                      iconBg: Colors.indigo.shade50,
+                      title: 'Versi Aplikasi',
+                      subtitle: 'v1.0.0 · Build 2026',
+                      onTap: () {},
+                      showArrow: false,
+                    ),
+                  ]),
+
+                  const SizedBox(height: 25),
+
+                  // 4. TOMBOL KELUAR
+                  _buildLogoutButton(context),
+                  
+                  const SizedBox(height: 20),
+                  const Center(
+                    child: Text(
+                      "PolLapor © 2026 · Politeknik Negeri Bandung",
+                      style: TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- WIDGET HELPER ---
+
+  Widget _buildTopNav() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            "Profil",
+            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.settings_outlined, color: Colors.white, size: 22),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserInfo(HomeProvider home) {
     return Column(
       children: [
-        // Header — nama & email dari session nyata
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0D47A1), Color(0xD90D47A1)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        const SizedBox(height: 15),
+        Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white24, width: 2),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                "BS",
+                style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-          child: Column(
-            children: [
-              const CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.person, size: 40, color: Color(0xFF0D47A1)),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                home.namaUser,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                home.emailUser,
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                home.roleUser,
-                style: const TextStyle(color: Colors.white60, fontSize: 12),
-              ),
-            ],
-          ),
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
+              child: const Icon(Icons.edit, color: Colors.white, size: 14),
+            )
+          ],
         ),
-
-        const SizedBox(height: 20),
-
-        // Menu profil
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: const [
-              _ProfileItem(icon: Icons.person_outline, title: 'Edit Profil'),
-              _ProfileItem(icon: Icons.lock_outline, title: 'Ubah Password'),
-              _ProfileItem(icon: Icons.info_outline, title: 'Tentang Aplikasi'),
-              SizedBox(height: 20),
-              _LogoutButton(),
-            ],
+        const SizedBox(height: 12),
+        Text(home.namaUser, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(home.emailUser, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(20),
           ),
-        ),
+          child: Text(home.roleUser, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+        )
       ],
     );
   }
-}
-
-class _ProfileItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-
-  const _ProfileItem({required this.icon, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tileColor: Colors.white,
-        leading: Icon(icon, color: const Color(0xFF0D47A1)),
-        title: Text(title, style: const TextStyle(fontSize: 14)),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-        onTap: () {},
-      ),
-    );
-  }
-}
-
-class _LogoutButton extends StatelessWidget {
-  const _LogoutButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFF8F00),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        onPressed: () async {
-          // Logout via LoginProvider (hapus session dari Hive)
-          await context.read<LoginProvider>().logout();
-          if (context.mounted) {
-            Navigator.pushReplacementNamed(context, '/login');
-          }
-        },
-        child: const Text('Logout', style: TextStyle(color: Colors.white)),
-      ),
-    );
-  }
-}
