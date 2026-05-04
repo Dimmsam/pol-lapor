@@ -3,6 +3,11 @@
 // File: laporan_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+import '../../../services/hive_service.dart';
+import '../../../data/models/laporan_lokal.dart';
+import 'package:flutter/foundation.dart';
 
 class LaporanScreen extends StatelessWidget {
   const LaporanScreen({super.key});
@@ -34,13 +39,40 @@ class LaporanScreen extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // List laporan
+        // REALTIME LIST
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: 10,
-            itemBuilder: (context, index) {
-              return const _LaporanCard();
+          child: FutureBuilder<ValueListenable<Box<LaporanLokal>>>(
+            future: HiveService().listenLaporan(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+
+              final listenable = snapshot.data!;
+
+              return ValueListenableBuilder<Box<LaporanLokal>>(
+                valueListenable: listenable,
+                builder: (context, box, _) {
+                  final data = box.values.toList().reversed.toList();
+
+                  if (data.isEmpty) {
+                    return const Center(
+                      child: Text('Belum ada laporan'),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: data.length,
+                    itemBuilder: (context, index) {
+                      final laporan = data[index];
+                      return _LaporanCard(laporan: laporan);
+                    },
+                  );
+                },
+              );
             },
           ),
         ),
@@ -50,7 +82,9 @@ class LaporanScreen extends StatelessWidget {
 }
 
 class _LaporanCard extends StatelessWidget {
-  const _LaporanCard();
+  final LaporanLokal laporan;
+
+  const _LaporanCard({required this.laporan});
 
   @override
   Widget build(BuildContext context) {
@@ -71,33 +105,55 @@ class _LaporanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Judul laporan
-          const Text(
-            'Kerusakan AC di Ruang Kelas',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          // Judul
+          Text(
+            laporan.namaSarana,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
 
           const SizedBox(height: 6),
 
-          // Deskripsi singkat
-          const Text(
-            'AC tidak dingin dan mengeluarkan suara berisik.',
-            style: TextStyle(fontSize: 12, color: Colors.black54),
+          // Deskripsi
+          Text(
+            laporan.keteranganKerusakan,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black54,
+            ),
           ),
 
           const SizedBox(height: 10),
 
-          // Footer (status + tanggal)
+          // Footer
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const <Widget>[
-              _StatusBadge(status: 'Proses'),
+            children: [
+              _StatusBadge(status: laporan.status),
               Text(
-                '12 Mei 2025',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+                '${laporan.createdAt.day}/${laporan.createdAt.month}/${laporan.createdAt.year}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey,
+                ),
               ),
             ],
           ),
+
+          // Label unsynced
+          if (!laporan.isSynced)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                'Belum Tersinkron',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 11,
+                ),
+              ),
+            )
         ],
       ),
     );
@@ -115,11 +171,11 @@ class _StatusBadge extends StatelessWidget {
     Color textColor;
 
     switch (status) {
-      case 'Selesai':
+      case 'selesai':
         bgColor = const Color(0x1A4CAF50);
         textColor = const Color(0xFF2E7D32);
         break;
-      case 'Proses':
+      case 'diproses':
         bgColor = const Color(0x1AFF8F00);
         textColor = const Color(0xFFFF8F00);
         break;
