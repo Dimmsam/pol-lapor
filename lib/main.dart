@@ -13,6 +13,8 @@ import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/login/login_screen.dart';
 import 'presentation/screens/pelapor/form_laporan_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
+import 'logic/providers/teknisi_upt_provider.dart';
+import 'logic/providers/riwayat_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +48,8 @@ class PolLaporApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => LoginProvider()),
         ChangeNotifierProvider(create: (_) => HomeProvider()),
+        ChangeNotifierProvider(create: (_) => TeknisiUptProvider()),
+        ChangeNotifierProvider(create: (_) => RiwayatProvider()),
       ],
       child: MaterialApp(
         title: 'PolLapor',
@@ -59,6 +63,9 @@ class PolLaporApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/home': (context) => const HomeScreen(),
           '/form': (context) => const FormLaporanScreen(),
+          '/teknisi/dashboard': (context) => const TeknisiDashboardScreen(),
+          '/teknisi/tugas':     (context) => const DaftarTugasScreen(),
+          '/teknisi/riwayat':   (context) => const RiwayatPekerjaanScreen(),
         },
         home: const SplashScreen(),
       ),
