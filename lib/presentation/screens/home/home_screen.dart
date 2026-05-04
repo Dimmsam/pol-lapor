@@ -20,7 +20,12 @@ import '../pelapor/form_laporan_screen.dart';
 import '../../screens/home/bottom_nav_bar.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int initialIndex; // TAMBAHAN
+
+  const HomeScreen({
+    super.key,
+    this.initialIndex = 0, // default tetap 0
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -42,6 +47,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    // TAMBAHAN: set index awal dari luar (misal dari form)
+    currentIndex = widget.initialIndex;
+
     // Inisialisasi session & statistik laporan saat home pertama dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HomeProvider>().init();
@@ -58,7 +67,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: SafeArea(child: screens[currentIndex]),
+      body: SafeArea(
+        child: IndexedStack( // TAMBAHAN: biar state tiap tab tidak reset
+          index: currentIndex,
+          children: screens,
+        ),
+      ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: currentIndex,
         onTap: onTabTapped,

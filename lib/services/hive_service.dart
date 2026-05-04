@@ -1,6 +1,7 @@
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '/data/models/laporan_lokal.dart'; // Sesuaikan jika nama filenya berbeda
 import '../core/constants/app_constants.dart';
+import 'package:flutter/foundation.dart';
 
 class HiveService {
   static const String boxName = AppConstants.boxLaporan;
@@ -48,5 +49,11 @@ class HiveService {
   Future<void> deleteAllData() async {
     final box = await _box;
     await box.clear();
+  }
+
+  // ── LISTENABLE (REALTIME UI) 
+  Future<ValueListenable<Box<LaporanLokal>>> listenLaporan() async {
+    final box = await _box;
+    return box.listenable();
   }
 }

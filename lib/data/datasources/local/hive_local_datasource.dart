@@ -1,6 +1,7 @@
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/laporan_lokal.dart';
 import '../../../core/constants/app_constants.dart';
+import 'package:flutter/foundation.dart';
 
 class HiveLocalDatasource {
   Box<LaporanLokal> get _box => Hive.box<LaporanLokal>(AppConstants.boxLaporan);
@@ -59,6 +60,17 @@ class HiveLocalDatasource {
   }
 
   // ── COUNT ─────────────────────────────────────────────────────────────────
-  int countAll() => _box.length;
-  int countUnsynced() => _box.values.where((l) => !l.isSynced).length;
+  int countAll() =>
+      Hive.box<LaporanLokal>(AppConstants.boxLaporan).length;
+
+  int countUnsynced() =>
+      Hive.box<LaporanLokal>(AppConstants.boxLaporan)
+          .values
+          .where((l) => !l.isSynced)
+          .length;
+
+  // ── LISTENABLE (REALTIME UI) ─────────────────────────────────────────
+  ValueListenable<Box<LaporanLokal>> listenable() {
+    return Hive.box<LaporanLokal>(AppConstants.boxLaporan).listenable();
+  }
 }

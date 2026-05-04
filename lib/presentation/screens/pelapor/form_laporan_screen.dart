@@ -1,3 +1,4 @@
+import '../../screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -150,69 +151,76 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _submitForm() async {
-    FocusScope.of(context).unfocus();
+ Future<void> _submitForm() async {
+  FocusScope.of(context).unfocus();
 
-    final isValid = _formKey.currentState?.validate() ?? false;
-    if (!isValid) {
-      _showSnackBar('Form belum lengkap. Cek lagi field yang wajib diisi.');
-      return;
-    }
+  final isValid = _formKey.currentState?.validate() ?? false;
+  if (!isValid) {
+    _showSnackBar('Form belum lengkap. Cek lagi field yang wajib diisi.');
+    return;
+  }
 
-    if (_fotoPath == null || _fotoPath!.isEmpty) {
-      _showSnackBar('Foto bukti wajib diambil langsung dari kamera.');
-      return;
-    }
+  if (_fotoPath == null || _fotoPath!.isEmpty) {
+    _showSnackBar('Foto bukti wajib diambil langsung dari kamera.');
+    return;
+  }
 
-    setState(() => _isSubmitting = true);
+  setState(() => _isSubmitting = true);
+
+  try {
+    final laporan = LaporanLokal(
+      formulirId: _uuid.v4(),
+      namaSarana: _judulController.text.trim(),
+      keteranganKerusakan: _deskripsiController.text.trim(),
+      lokasiPerbaikan: _lokasiPerbaikan!.trim(),
+      fotoLokalPath: _fotoPath!,
+      nomorInventaris: _nomorInventarisController.text.trim().isEmpty
+          ? null
+          : _nomorInventarisController.text.trim(),
+      pelaporId: context.read<HomeProvider>().session?.userId ?? '',
+      tandaTanganPelapor: true,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    await _datasource.saveLaporan(laporan);
 
     try {
-      final laporan = LaporanLokal(
-        formulirId: _uuid.v4(),
-        namaSarana: _judulController.text.trim(),
-        keteranganKerusakan: _deskripsiController.text.trim(),
-        lokasiPerbaikan: _lokasiPerbaikan!.trim(),
-        fotoLokalPath: _fotoPath!,
-        nomorInventaris: _nomorInventarisController.text.trim().isEmpty
-            ? null
-            : _nomorInventarisController.text.trim(),
-        pelaporId: context.read<HomeProvider>().session?.userId ?? '',
-        tandaTanganPelapor: true,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      await _datasource.saveLaporan(laporan);
-
-      // Tetap offline-first: simpan lokal dulu, lalu coba sync ke cloud.
-      try {
-        await _syncService.syncUnsyncedData();
-      } catch (_) {
-        // Gagal sync tidak membatalkan simpan lokal.
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isSubmitting = false);
-      _showSnackBar('Gagal menyimpan laporan lokal.');
-      return;
-    }
-
+      await _syncService.syncUnsyncedData();
+    } catch (_) {}
+  } catch (e) {
     if (!mounted) return;
-
-    // Refresh statistik di HomeProvider
-    context.read<HomeProvider>().onReturnFromForm();
-
-    _formKey.currentState?.reset();
-    _judulController.clear();
-    _deskripsiController.clear();
-    _nomorInventarisController.clear();
-    setState(() {
-      _isSubmitting = false;
-      _lokasiPerbaikan = null;
-      _fotoPath = null;
-    });
-
-    _showSnackBar('Laporan berhasil disimpan secara offline.');
+    setState(() => _isSubmitting = false);
+    _showSnackBar('Gagal menyimpan laporan lokal.');
+    return;
   }
+
+  if (!mounted) return;
+
+  context.read<HomeProvider>().onReturnFromForm();
+
+  _formKey.currentState?.reset();
+  _judulController.clear();
+  _deskripsiController.clear();
+  _nomorInventarisController.clear();
+
+  setState(() {
+    _isSubmitting = false;
+    _lokasiPerbaikan = null;
+    _fotoPath = null;
+  });
+
+  _showSnackBar('Laporan berhasil disimpan secara offline.');
+
+  // NAVIGASI 
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const HomeScreen(initialIndex: 1),
+    ),
+    (route) => false,
+  );
+}
 
   @override
   Widget build(BuildContext context) {

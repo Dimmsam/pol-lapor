@@ -1,20 +1,29 @@
 import 'package:hive/hive.dart';
 
-part 'laporan_lokal.g.dart'; // Jangan lupa jalankan build_runner lagi nanti
+part 'laporan_lokal.g.dart';
+
+// ======================
+// STATUS CONSTANT 
+// ======================
+class StatusLaporan {
+  static const String menungguKlasifikasi = 'menunggu_klasifikasi';
+  static const String diproses = 'diproses';
+  static const String selesai = 'selesai';
+}
 
 @HiveType(typeId: 0)
 class LaporanLokal extends HiveObject {
   @HiveField(0)
-  final String formulirId; // Dulu laporanId
+  final String formulirId;
 
   @HiveField(1)
-  final String namaSarana; // Gabungan/pengganti judul & kategori
+  final String namaSarana;
 
   @HiveField(2)
-  final String keteranganKerusakan; // Dulu deskripsi
+  final String keteranganKerusakan;
 
   @HiveField(3)
-  final String lokasiPerbaikan; // Dulu lokasi
+  final String lokasiPerbaikan;
 
   @HiveField(4)
   final String? nomorInventaris;
@@ -23,7 +32,7 @@ class LaporanLokal extends HiveObject {
   String? fotoLokalPath;
 
   @HiveField(6)
-  String? fotoKerusakanUrl; // Dulu fotoUrl
+  String? fotoKerusakanUrl;
 
   @HiveField(7)
   String status;
@@ -35,7 +44,7 @@ class LaporanLokal extends HiveObject {
   bool isSynced;
 
   @HiveField(10)
-  bool tandaTanganPelapor; // Tambahan dari ERD baru
+  bool tandaTanganPelapor;
 
   @HiveField(11)
   final DateTime createdAt;
@@ -54,10 +63,62 @@ class LaporanLokal extends HiveObject {
     String? status,
     required this.pelaporId,
     this.isSynced = false,
-    this.tandaTanganPelapor = true, // Asumsi pelapor setuju saat submit
+    this.tandaTanganPelapor = true,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) : status = status ?? 'menunggu_klasifikasi',
-       createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? createdAt ?? DateTime.now();
+  })  : status = status ?? StatusLaporan.menungguKlasifikasi,
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? createdAt ?? DateTime.now();
+
+  // ======================
+  // HELPER
+  // ======================
+  bool get isBelumSync => !isSynced;
+
+  String get statusDisplay {
+    switch (status) {
+      case StatusLaporan.menungguKlasifikasi:
+        return 'Menunggu';
+      case StatusLaporan.diproses:
+        return 'Proses';
+      case StatusLaporan.selesai:
+        return 'Selesai';
+      default:
+        return status;
+    }
+  }
+
+  // ======================
+  // COPY WITH
+  // ======================
+  LaporanLokal copyWith({
+    String? namaSarana,
+    String? keteranganKerusakan,
+    String? lokasiPerbaikan,
+    String? nomorInventaris,
+    String? fotoLokalPath,
+    String? fotoKerusakanUrl,
+    String? status,
+    bool? isSynced,
+    bool? tandaTanganPelapor,
+    DateTime? updatedAt,
+  }) {
+    return LaporanLokal(
+      formulirId: formulirId,
+      namaSarana: namaSarana ?? this.namaSarana,
+      keteranganKerusakan:
+          keteranganKerusakan ?? this.keteranganKerusakan,
+      lokasiPerbaikan: lokasiPerbaikan ?? this.lokasiPerbaikan,
+      nomorInventaris: nomorInventaris ?? this.nomorInventaris,
+      fotoLokalPath: fotoLokalPath ?? this.fotoLokalPath,
+      fotoKerusakanUrl: fotoKerusakanUrl ?? this.fotoKerusakanUrl,
+      status: status ?? this.status,
+      pelaporId: pelaporId,
+      isSynced: isSynced ?? this.isSynced,
+      tandaTanganPelapor:
+          tandaTanganPelapor ?? this.tandaTanganPelapor,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? DateTime.now(),
+    );
+  }
 }
