@@ -78,4 +78,93 @@ class _LaporanScreenState extends State<LaporanScreen> {
       ),
     );
   }
-}
+
+  // ─── SEARCH BAR ───────────────────────────────────────────────────────────
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE9ECEF), width: 0.5),
+        ),
+        child: TextField(
+          controller: _searchCtrl,
+          onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+          style: const TextStyle(fontSize: 13, color: Color(0xFF111827)),
+          decoration: const InputDecoration(
+            hintText: 'Cari laporan...',
+            hintStyle: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+            prefixIcon: Icon(
+              Icons.search_rounded,
+              color: Color(0xFF9CA3AF),
+              size: 20,
+            ),
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(vertical: 11),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── FILTER CHIPS ─────────────────────────────────────────────────────────
+
+  Widget _buildFilterChips() {
+    final filters = ['semua', 'menunggu', 'diproses', 'selesai'];
+    final labels = {
+      'semua': 'Semua',
+      'menunggu': 'Menunggu',
+      'diproses': 'Diproses',
+      'selesai': 'Selesai',
+    };
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 0, 10),
+      child: SizedBox(
+        height: 34,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: filters.map((f) {
+            final isActive = _filterStatus == f;
+            return GestureDetector(
+              onTap: () => setState(() => _filterStatus = f),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? const Color(0xFF0D47A1)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isActive
+                        ? const Color(0xFF0D47A1)
+                        : const Color(0xFFE9ECEF),
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  labels[f]!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isActive
+                        ? Colors.white
+                        : const Color(0xFF6B7280),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
