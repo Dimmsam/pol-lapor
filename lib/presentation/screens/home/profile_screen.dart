@@ -199,3 +199,35 @@ class ProfileScreen extends StatelessWidget {
       ],
     );
   }
+
+  Widget _buildStatCard(HomeProvider home) {
+    final int selesai = home.totalLaporan - home.totalUnsynced;
+    return Container(
+      width: 340,
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _statItem(home.totalLaporan.toString(), "Total"),
+          const VerticalDivider(width: 1),
+          _statItem(home.totalUnsynced.toString(), "Diproses"),
+          const VerticalDivider(width: 1),
+          _statItem(selesai.toString(), "Selesai"),
+        ],
+      ),
+    );
+  }
+
+  Widget _statItem(String value, String label) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _primaryBlue)),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+    );
+  }
