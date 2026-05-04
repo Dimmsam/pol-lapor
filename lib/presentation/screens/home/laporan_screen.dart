@@ -168,3 +168,56 @@ class _LaporanScreenState extends State<LaporanScreen> {
     );
   }
 
+  // ─── LIST ─────────────────────────────────────────────────────────────────
+
+  Widget _buildList() {
+    return FutureBuilder<ValueListenable<Box<LaporanLokal>>>(
+      future: HiveService().listenLaporan(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Color(0xFF0D47A1),
+            ),
+          );
+        }
+
+        return ValueListenableBuilder<Box<LaporanLokal>>(
+          valueListenable: snapshot.data!,
+          builder: (context, box, _) {
+            var data = box.values.toList().reversed.toList();
+
+            // Filter status
+            if (_filterStatus != 'semua') {
+              data = data
+                  .where((l) => l.status.toLowerCase() == _filterStatus)
+                  .toList();
+            }
+
+            // Filter search
+            if (_searchQuery.isNotEmpty) {
+              data = data
+                  .where((l) =>
+                      l.namaSarana
+                          .toLowerCase()
+                          .contains(_searchQuery) ||
+                      l.keteranganKerusakan
+                          .toLowerCase()
+                          .contains(_searchQuery))
+                  .toList();
+            }
+
+            if (data.isEmpty) return _buildEmpty();
+
+            return ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+              itemCount: data.length,
+              itemBuilder: (context, index) =>
+                  _LaporanCard(laporan: data[index]),
+            );
+          },
+        );
+      },
+    );
+  }
