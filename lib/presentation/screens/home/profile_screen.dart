@@ -328,3 +328,51 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _showAboutApp(BuildContext context) {
+    showAboutDialog(
+      context: context,
+      applicationName: "PolLapor",
+      applicationVersion: "1.0.0",
+      applicationIcon: const Icon(Icons.campaign_rounded, color: _primaryBlue, size: 40),
+      children: const [Text("PolLapor adalah aplikasi pelaporan kerusakan fasilitas di lingkungan Politeknik Negeri Bandung.")],
+    );
+  }
+}
+
+// --- CUSTOM MENU ITEM ---
+
+class _ProfileMenuItem extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBg;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool showArrow;
+
+  const _ProfileMenuItem({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBg,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.showArrow = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
+        child: Icon(icon, color: iconColor, size: 20),
+      ),
+      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      trailing: showArrow ? const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20) : null,
+    );
+  }
+}
