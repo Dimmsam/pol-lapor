@@ -126,9 +126,7 @@ class _TopBar extends StatelessWidget {
                 onPressed: () {
                   // reset notif
                   context.read<HomeProvider>().clearNotification();
-
-                  // TODO: pindah ke notif screen
-                  // Navigator.pushNamed(context, '/notif');
+                  Navigator.pushNamed(context, '/notif');
                 },
               ),
 
@@ -531,12 +529,6 @@ extension TopBarNotifExtension on BuildContext {
 // TRIGGER NOTIF GLOBAL
 // ======================
 
-void triggerDashboardNotif(BuildContext context) {
-  try {
-    context.read<HomeProvider>().addNotification();
-  } catch (_) {}
-}
-
 void clearDashboardNotif(BuildContext context) {
   try {
     context.read<HomeProvider>().clearNotification();
@@ -592,7 +584,7 @@ class _RecentSection extends StatelessWidget {
                         icon: Icons.report_problem_outlined,
                         title: laporan.namaSarana,
                         location: laporan.lokasiPerbaikan,
-                        status: laporan.isSynced ? 'selesai' : 'diproses',
+                        status: laporan.status,
                       ),
                       const SizedBox(height: 9),
                     ],
