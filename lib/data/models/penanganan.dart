@@ -106,6 +106,7 @@ class StatusPenanganan {
   static const String mulaiDikerjakan = 'mulai_dikerjakan';
   static const String sedangDikerjakan = 'sedang_dikerjakan';
   static const String selesai = 'selesai';
+  static const String menungguEskalasi = 'menunggu_eskalasi_jurusan';
 
   static String toLabel(String status) {
     switch (status) {
@@ -115,6 +116,8 @@ class StatusPenanganan {
         return 'Sedang Dikerjakan';
       case selesai:
         return 'Selesai';
+      case menungguEskalasi:
+        return 'Menunggu Eskalasi';
       default:
         return 'Tidak Diketahui';
     }
