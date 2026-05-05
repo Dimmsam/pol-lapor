@@ -50,8 +50,7 @@ class HiveService {
     final box = await _box;
     await box.clear();
   }
-
-  // ── LISTENABLE (REALTIME UI) 
+// ── LISTENABLE (REALTIME UI) 
   Future<ValueListenable<Box<LaporanLokal>>> listenLaporan() async {
     final box = await _box;
     return box.listenable();

@@ -497,8 +497,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       ),
     );
   }
-
-  Future<void> _openCamera() async {
+Future<void> _openCamera() async {
     final pickedPath = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => CameraPickerScreen(initialImagePath: _fotoPath),
