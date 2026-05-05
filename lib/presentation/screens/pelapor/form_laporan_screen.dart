@@ -7,6 +7,10 @@ import '../../../data/models/laporan_lokal.dart';
 import '../../../logic/providers/home_provider.dart';
 import '../../../services/sync_service.dart';
 import '../../widgets/pelapor/laporan_photo_field.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+import 'dart:async';
+
 
 class FormLaporanScreen extends StatefulWidget {
   const FormLaporanScreen({super.key});
@@ -20,6 +24,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _datasource = HiveLocalDatasource();
   final _syncService = SyncService();
   final _uuid = const Uuid();
+
+  StreamSubscription? _laporanListener;
+
   static const List<String> _lokasiPerbaikanOptions = [
     'Gedung A',
     'Gedung B',
@@ -51,8 +58,24 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   String? _lokasiPerbaikan;
   String? _fotoPath;
 
+  // INIT REALTIME
+  @override
+  void initState() {
+    super.initState();
+
+    final box = Hive.box<LaporanLokal>('laporan_box');
+
+    _laporanListener = box.watch().listen((event) {
+      if (!mounted) return;
+
+      // trigger update home realtime
+      context.read<HomeProvider>().onReturnFromForm();
+    });
+  }
+
   @override
   void dispose() {
+    _laporanListener?.cancel();
     _judulController.dispose();
     _deskripsiController.dispose();
     _nomorInventarisController.dispose();
@@ -185,6 +208,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
 
     await _datasource.saveLaporan(laporan);
 
+    // trigger update home langsung
+    context.read<HomeProvider>().onReturnFromForm();
+
     try {
       await _syncService.syncUnsyncedData();
     } catch (_) {}
@@ -210,7 +236,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     _fotoPath = null;
   });
 
-  _showSnackBar('Laporan berhasil disimpan secara offline.');
+  _showSnackBar('✅ Laporan berhasil dikirim & langsung update dashboard');
 
   // NAVIGASI 
   Navigator.pushAndRemoveUntil(
