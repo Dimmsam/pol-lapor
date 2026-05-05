@@ -17,6 +17,9 @@ import 'presentation/screens/pelapor/form_laporan_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import '/services/sync_service.dart'; // Pastikan path ini sesuai dengan letak SyncService kamu
 
+// NOTIF SCREEN
+import 'presentation/screens/home/notif_screen.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
@@ -35,8 +38,16 @@ Future<void> main() async {
     Hive.registerAdapter(UserSessionAdapter());
   }
 
+  // REGISTER ADAPTER NOTIF
+  if (!Hive.isAdapterRegistered(2)) {
+    Hive.registerAdapter(NotifikasiLaporanAdapter());
+  }
+
   await Hive.openBox<LaporanLokal>(AppConstants.boxLaporan);
   await Hive.openBox<UserSession>(AppConstants.boxUser);
+
+  // TAMBAHAN: OPEN BOX NOTIF
+  await Hive.openBox<NotifikasiLaporan>('box_notifikasi');
 
   runApp(const PolLaporApp());
 }
@@ -84,7 +95,15 @@ class _PolLaporAppState extends State<PolLaporApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LoginProvider()),
-        ChangeNotifierProvider(create: (_) => HomeProvider()),
+
+        // INIT HOME PROVIDER (REALTIME)
+        ChangeNotifierProvider(
+          create: (_) {
+            final p = HomeProvider();
+            p.init(); // penting biar realtime jalan
+            return p;
+          },
+        ),
       ],
       child: MaterialApp(
         title: 'PolLapor',
@@ -98,6 +117,9 @@ class _PolLaporAppState extends State<PolLaporApp> {
           '/login': (context) => const LoginScreen(),
           '/home': (context) => const HomeScreen(),
           '/form': (context) => const FormLaporanScreen(),
+
+          // TAMBAHAN ROUTE NOTIF
+          '/notif': (context) => const NotifScreen(),
         },
         home: const SplashScreen(),
       ),
