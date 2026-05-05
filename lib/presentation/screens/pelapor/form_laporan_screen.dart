@@ -26,8 +26,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _syncService = SyncService();
   final _uuid = const Uuid();
 
-  StreamSubscription? _laporanListener;
-
   static const List<String> _lokasiPerbaikanOptions = [
     'Gedung A',
     'Gedung B',
@@ -60,32 +58,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   String? _fotoPath;
 
   // INIT REALTIME
-@override
-void initState() {
-  super.initState();
-
-  final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
-
-  _laporanListener = box.watch().listen((event) {
-    if (!mounted) return;
-
-    // hanya trigger jika data baru ditambahkan
-    if (event.deleted == false && event.value != null) {
-      debugPrint('📡 Realtime: laporan baru masuk');
-
-      context.read<HomeProvider>().onReturnFromForm();
-    }
-  });
-}
-
-  @override
-  void dispose() {
-    _laporanListener?.cancel();
-    _judulController.dispose();
-    _deskripsiController.dispose();
-    _nomorInventarisController.dispose();
-    super.dispose();
-  }
 
   InputDecoration _fieldDecoration({required String hintText}) {
     return InputDecoration(
@@ -214,12 +186,12 @@ void initState() {
     await _datasource.saveLaporan(laporan);
     debugPrint('✅ Laporan tersimpan: ${laporan.formulirId}');
 
-    // trigger update home langsung
-    context.read<HomeProvider>().onReturnFromForm();
+    // ✅ Panggil hanya SEKALI di sini
+    if (mounted) context.read<HomeProvider>().onReturnFromForm();
 
-    try {
-      await _syncService.syncUnsyncedData();
-    } catch (_) {}
+    // Sync di background, tidak perlu tunggu
+    _syncService.syncUnsyncedData().catchError((_) {});
+
   } catch (e) {
     if (!mounted) return;
     setState(() => _isSubmitting = false);
@@ -229,22 +201,19 @@ void initState() {
 
   if (!mounted) return;
 
-  context.read<HomeProvider>().onReturnFromForm();
-
+  // Reset form
   _formKey.currentState?.reset();
   _judulController.clear();
   _deskripsiController.clear();
   _nomorInventarisController.clear();
-
   setState(() {
     _isSubmitting = false;
     _lokasiPerbaikan = null;
     _fotoPath = null;
   });
 
-  _showSnackBar('✅ Laporan berhasil dikirim & langsung update dashboard');
+  _showSnackBar('✅ Laporan berhasil dikirim!');
 
-  // NAVIGASI 
   Navigator.pushAndRemoveUntil(
     context,
     MaterialPageRoute(

@@ -281,42 +281,59 @@ class _StatSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final synced = provider.totalLaporan - provider.totalUnsynced;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: _StatCard(
-              icon: Icons.description_outlined,
-              iconColor: const Color(0xFF4F46E5),
-              iconBg: const Color(0xFFEEF2FF),
-              value: provider.totalLaporan.toString(),
-              label: 'Total',
-            ),
+    final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
+
+    return ValueListenableBuilder(
+      valueListenable: box.listenable(),
+      builder: (context, Box<LaporanLokal> box, _) {
+        final semua = box.values.toList();
+        final total = semua.length;
+        final diproses = semua
+            .where((l) =>
+                l.status == StatusLaporan.diproses ||
+                l.status == StatusLaporan.menungguKlasifikasi)
+            .length;
+        final selesai = semua
+            .where((l) => l.status == StatusLaporan.selesai)
+            .length;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.description_outlined,
+                  iconColor: const Color(0xFF4F46E5),
+                  iconBg: const Color(0xFFEEF2FF),
+                  value: total.toString(),
+                  label: 'Total',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.schedule_outlined,
+                  iconColor: const Color(0xFFD97706),
+                  iconBg: const Color(0xFFFEF3C7),
+                  value: diproses.toString(),
+                  label: 'Diproses',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.check_circle_outline_rounded,
+                  iconColor: const Color(0xFF059669),
+                  iconBg: const Color(0xFFD1FAE5),
+                  value: selesai.toString(),
+                  label: 'Selesai',
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _StatCard(
-              icon: Icons.schedule_outlined,
-              iconColor: const Color(0xFFD97706),
-              iconBg: const Color(0xFFFEF3C7),
-              value: provider.totalUnsynced.toString(),
-              label: 'Diproses',
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _StatCard(
-              icon: Icons.check_circle_outline_rounded,
-              iconColor: const Color(0xFF059669),
-              iconBg: const Color(0xFFD1FAE5),
-              value: synced.toString(),
-              label: 'Selesai',
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

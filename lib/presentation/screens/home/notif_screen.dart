@@ -153,15 +153,17 @@ class _NotifItem extends StatelessWidget {
   }
 
   String _buildTitle() {
-    switch (laporan.status) {
-      case 'selesai':
-        return 'Laporan Selesai';
-      case 'diproses':
-        return 'Laporan Diproses';
-      default:
-        return 'Laporan Baru';
-    }
+  switch (laporan.status) {
+    case 'selesai':
+      return 'Laporan Selesai';
+    case 'diproses':
+      return 'Laporan Diproses';
+    case 'menunggu_klasifikasi':
+      return 'Laporan Baru Masuk';
+    default:
+      return 'Laporan Baru';
   }
+}
 
   // =======================================================
   // FORMAT TIME AGO
