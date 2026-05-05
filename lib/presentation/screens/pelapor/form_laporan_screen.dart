@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/datasources/local/hive_local_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../logic/providers/home_provider.dart';
 import '../../../services/sync_service.dart';
 import '../../widgets/pelapor/laporan_photo_field.dart';
@@ -59,19 +60,23 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   String? _fotoPath;
 
   // INIT REALTIME
-  @override
-  void initState() {
-    super.initState();
+@override
+void initState() {
+  super.initState();
 
-    final box = Hive.box<LaporanLokal>('laporan_box');
+  final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
 
-    _laporanListener = box.watch().listen((event) {
-      if (!mounted) return;
+  _laporanListener = box.watch().listen((event) {
+    if (!mounted) return;
 
-      // trigger update home realtime
+    // hanya trigger jika data baru ditambahkan
+    if (event.deleted == false && event.value != null) {
+      debugPrint('📡 Realtime: laporan baru masuk');
+
       context.read<HomeProvider>().onReturnFromForm();
-    });
-  }
+    }
+  });
+}
 
   @override
   void dispose() {
@@ -207,6 +212,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     );
 
     await _datasource.saveLaporan(laporan);
+    debugPrint('✅ Laporan tersimpan: ${laporan.formulirId}');
 
     // trigger update home langsung
     context.read<HomeProvider>().onReturnFromForm();

@@ -51,28 +51,35 @@ class HomeProvider extends ChangeNotifier {
   void onReturnFromForm() {
     _refresh();
 
-    // trigger notif saat ada laporan baru
-    addNotification();
-  }
-
   // =========================================================
-  // REALTIME LISTENER (FIXED)
-  // =========================================================
+// REALTIME LISTENER (FIXED & CLEAN)
+// =========================================================
 
-  ValueListenable<Box<LaporanLokal>>? _listenable;
-  VoidCallback? _listener;
+ValueListenable<Box<LaporanLokal>>? _listenable;
+VoidCallback? _listener;
 
-  void _listenRealtimeLaporan() {
-    _listenable = Hive.box<LaporanLokal>(AppConstants.boxLaporan).listenable();
+void _listenRealtimeLaporan() {
+  // ambil box dari konstanta (lebih aman)
+  final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
 
-    // IMPORTANT: simpan reference listener
-    _listener = () {
-      debugPrint('📡 Laporan berubah (Realtime)');
-      _refresh();
-    };
+  _listenable = box.listenable();
 
-    _listenable!.addListener(_listener!);
-  }
+  // IMPORTANT: simpan reference listener biar bisa di-remove
+  _listener = () {
+    debugPrint('📡 Laporan berubah (Realtime)');
+
+    // update statistik
+    _totalLaporan = _hive.countAll();
+    _totalUnsynced = _hive.countUnsynced();
+
+    // update notif dari data real (sinkron)
+    _unreadNotif = box.values.where((l) => !l.isSynced).length;
+
+    notifyListeners();
+  };
+
+  _listenable!.addListener(_listener!);
+}
 
   // =========================================================
   // NOTIFICATION SYSTEM
