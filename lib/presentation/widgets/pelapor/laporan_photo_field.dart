@@ -20,68 +20,73 @@ class LaporanPhotoField extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasImage = imagePath != null && imagePath!.isNotEmpty;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: enabled
-          ? () async {
-              final pickedPath = await Navigator.of(context).push<String>(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      CameraPickerScreen(initialImagePath: imagePath),
-                ),
-              );
-
-              if (pickedPath == null) return;
-              onChanged(pickedPath);
-            }
-          : null,
-      child: Container(
-        height: 126,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          border: Border.all(color: const Color(0xFFD1D5DB)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: hasImage
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.file(File(imagePath!), fit: BoxFit.cover),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        color: Colors.black.withValues(alpha: 0.42),
-                        child: const Center(
-                          child: Text(
-                            'Tap untuk ambil ulang (kamera live)',
-                            style: TextStyle(color: Colors.white, fontSize: 12),
-                          ),
-                        ),
-                      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 160,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            border: Border.all(color: const Color(0xFFD1D5DB)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: hasImage
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(File(imagePath!), fit: BoxFit.cover),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(
+                      Icons.camera_alt_outlined,
+                      size: 34,
+                      color: Color(0xFF6B7280),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Belum ada foto terpilih',
+                      style: TextStyle(color: Color(0xFF6B7280), fontSize: 13),
                     ),
                   ],
                 ),
-              )
-            : const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.camera_alt_outlined,
-                    size: 30,
-                    color: Color(0xFF6B7280),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Tap untuk ambil foto live',
-                    style: TextStyle(color: Color(0xFF6B7280), fontSize: 13),
-                  ),
-                ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 46,
+          child: ElevatedButton.icon(
+            onPressed: enabled
+                ? () async {
+                    final pickedPath = await Navigator.of(context).push<String>(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            CameraPickerScreen(initialImagePath: imagePath),
+                      ),
+                    );
+
+                    if (pickedPath == null) return;
+                    onChanged(pickedPath);
+                  }
+                : null,
+            icon: const Icon(Icons.camera_alt_outlined),
+            label: const Text('Ambil Foto'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0D47A1),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
-      ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Ambil foto langsung dari lokasi kerusakan untuk akurasi data.',
+          style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+        ),
+      ],
     );
   }
 }
