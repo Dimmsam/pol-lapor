@@ -4,6 +4,7 @@ import '../../data/datasources/local/hive_local_datasource.dart';
 import '../../data/models/user_session.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../data/models/laporan_lokal.dart';
+import '../../core/constants/app_constants.dart';
 
 class HomeProvider extends ChangeNotifier {
   final AuthLocalDatasource _auth = AuthLocalDatasource();
@@ -31,6 +32,10 @@ class HomeProvider extends ChangeNotifier {
     _listenRealtimeLaporan();
   }
 
+  // init notif awal
+    _initNotif();
+  }
+
   // ── Refresh statistik laporan ─────────────────────────────────────────────
   void _refresh() {
     _totalLaporan = _hive.countAll();
@@ -41,6 +46,9 @@ class HomeProvider extends ChangeNotifier {
   // ── Dipanggil saat kembali dari FormLaporan (laporan baru ditambah) ───────
   void onReturnFromForm() {
     _refresh();
+
+   // trigger notif saat ada laporan baru
+    addNotification();
   }
 
   // =========================================================
@@ -48,9 +56,17 @@ class HomeProvider extends ChangeNotifier {
   // =========================================================
 
   ValueListenable<Box<LaporanLokal>>? _listenable;
+   // simpan reference listener biar bisa dihapus
+  VoidCallback? _listener;
 
   void _listenRealtimeLaporan() {
     _listenable = Hive.box<LaporanLokal>('laporan_box').listenable();
+
+    // gunakan listener yang bisa diremove
+    _listener = () {
+      debugPrint('📡 Laporan berubah (Realtime)');
+      _refresh();
+    };
 
     _listenable!.addListener(() {
       debugPrint('📡 Laporan berubah (Realtime)');
@@ -62,18 +78,42 @@ class HomeProvider extends ChangeNotifier {
   // NOTIF COUNT (untuk badge di dashboard)
   // =========================================================
 
+   int _unreadNotif = 0;
+
+  int get unreadNotifCount => _unreadNotif;
+
   int get totalNotif {
-    final box = Hive.box<LaporanLokal>('laporan_box');
+    final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
     return box.values.where((l) => !l.isSynced).length;
+  }
+
+  // init notif dari data lama
+  void _initNotif() {
+    _unreadNotif = totalNotif;
+  }
+
+  // tambah notif
+  void addNotification() {
+    _unreadNotif++;
+    notifyListeners();
+  }
+
+  // clear notif
+  void clearNotification() {
+    _unreadNotif = 0;
+    notifyListeners();
   }
 
   // =========================================================
   // CLEANUP (BEST PRACTICE)
   // =========================================================
 
-  @override
+ @override
   void dispose() {
-    _listenable?.removeListener(_refresh);
+    // FIX: remove listener yang benar
+    if (_listenable != null && _listener != null) {
+      _listenable!.removeListener(_listener!);
+    }
+
     super.dispose();
   }
-}
