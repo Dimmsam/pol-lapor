@@ -34,11 +34,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
 
-  final List<Widget> screens = const [
-    DashboardScreen(),
-    LaporanScreen(),
+  final List<Widget> screens = [
+    const DashboardScreen(),
+    const LaporanScreen(),
     FormLaporanScreen(),
-    ProfileScreen(),
+    const ProfileScreen(),
   ];
 
   final Color primaryBlue = const Color(0xFF0D47A1);
@@ -68,7 +68,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: SafeArea(
-        child: IndexedStack( // TAMBAHAN: biar state tiap tab tidak reset
+        child: IndexedStack(
+          // TAMBAHAN: biar state tiap tab tidak reset
           index: currentIndex,
           children: screens,
         ),
