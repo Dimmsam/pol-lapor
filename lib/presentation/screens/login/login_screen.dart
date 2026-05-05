@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../logic/providers/login_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -46,7 +47,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (provider.status == LoginStatus.success) {
-      Navigator.pushReplacementNamed(context, '/home');
+      final role = provider.session?.role;
+      final route = switch (role) {
+        AppConstants.roleTeknisiJurusan => '/teknisi-jurusan-home',
+        AppConstants.roleTeknisiUptPp => '/teknisi-upt-home',
+        _ => '/home',
+      };
+      Navigator.pushReplacementNamed(context, route);
     }
   }
 
@@ -60,11 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF0D47A1),
-              Color(0xD90D47A1),
-              Color(0xB3FF8F00),
-            ],
+            colors: [Color(0xFF0D47A1), Color(0xD90D47A1), Color(0xB3FF8F00)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -112,10 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const Text(
                     'Sistem Pelaporan Fasilitas Kampus',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.black54,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
                   ),
 
                   const SizedBox(height: 24),
@@ -135,8 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: Color(0xFF0D47A1)),
+                        borderSide: const BorderSide(color: Color(0xFF0D47A1)),
                       ),
                     ),
                   ),
@@ -158,8 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: Color(0xFF0D47A1)),
+                        borderSide: const BorderSide(color: Color(0xFF0D47A1)),
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -221,10 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   Text(
                     'Politeknik Negeri Bandung',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
               ),

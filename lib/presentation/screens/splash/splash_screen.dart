@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../data/datasources/remote/auth_remote_datasource.dart';
 import '../../../data/datasources/local/auth_local_datasource.dart';
 
@@ -29,7 +30,12 @@ class _SplashScreenState extends State<SplashScreen> {
       final localAuth = AuthLocalDatasource();
       await localAuth.saveSession(supabaseSession);
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
+      final route = switch (supabaseSession.role) {
+        AppConstants.roleTeknisiJurusan => '/teknisi-jurusan-home',
+        AppConstants.roleTeknisiUptPp => '/teknisi-upt-home',
+        _ => '/home',
+      };
+      Navigator.pushReplacementNamed(context, route);
       return;
     }
 
