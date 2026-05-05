@@ -23,62 +23,62 @@ class HomeProvider extends ChangeNotifier {
   String get roleUser => _session?.role ?? '-';
   String get emailUser => _session?.email ?? '-';
 
-  // ── Load data saat HomeScreen pertama dibuka ──────────────────────────────
+  // =========================================================
+  // INIT
+  // =========================================================
+
   void init() {
     _session = _auth.getSession();
     _refresh();
+
+    // init notif awal
+    _initNotif();
 
     // aktifkan realtime listener
     _listenRealtimeLaporan();
   }
 
-  // init notif awal
-    _initNotif();
-  }
+  // =========================================================
+  // REFRESH DATA
+  // =========================================================
 
-  // ── Refresh statistik laporan ─────────────────────────────────────────────
   void _refresh() {
     _totalLaporan = _hive.countAll();
     _totalUnsynced = _hive.countUnsynced();
     notifyListeners();
   }
 
-  // ── Dipanggil saat kembali dari FormLaporan (laporan baru ditambah) ───────
   void onReturnFromForm() {
     _refresh();
 
-   // trigger notif saat ada laporan baru
+    // trigger notif saat ada laporan baru
     addNotification();
   }
 
   // =========================================================
-  // REALTIME LISTENER (AUTO UPDATE HOME)
+  // REALTIME LISTENER (FIXED)
   // =========================================================
 
   ValueListenable<Box<LaporanLokal>>? _listenable;
-   // simpan reference listener biar bisa dihapus
   VoidCallback? _listener;
 
   void _listenRealtimeLaporan() {
-    _listenable = Hive.box<LaporanLokal>('laporan_box').listenable();
+    _listenable = Hive.box<LaporanLokal>(AppConstants.boxLaporan).listenable();
 
-    // gunakan listener yang bisa diremove
+    // IMPORTANT: simpan reference listener
     _listener = () {
       debugPrint('📡 Laporan berubah (Realtime)');
       _refresh();
     };
 
-    _listenable!.addListener(() {
-      debugPrint('📡 Laporan berubah (Realtime)');
-      _refresh();
-    });
+    _listenable!.addListener(_listener!);
   }
 
   // =========================================================
-  // NOTIF COUNT (untuk badge di dashboard)
+  // NOTIFICATION SYSTEM
   // =========================================================
 
-   int _unreadNotif = 0;
+  int _unreadNotif = 0;
 
   int get unreadNotifCount => _unreadNotif;
 
@@ -87,33 +87,30 @@ class HomeProvider extends ChangeNotifier {
     return box.values.where((l) => !l.isSynced).length;
   }
 
-  // init notif dari data lama
   void _initNotif() {
     _unreadNotif = totalNotif;
+    notifyListeners();
   }
 
-  // tambah notif
   void addNotification() {
     _unreadNotif++;
     notifyListeners();
   }
 
-  // clear notif
   void clearNotification() {
     _unreadNotif = 0;
     notifyListeners();
   }
 
   // =========================================================
-  // CLEANUP (BEST PRACTICE)
+  // CLEANUP (FIX MEMORY LEAK)
   // =========================================================
 
- @override
+  @override
   void dispose() {
-    // FIX: remove listener yang benar
     if (_listenable != null && _listener != null) {
       _listenable!.removeListener(_listener!);
     }
-
     super.dispose();
   }
+}
