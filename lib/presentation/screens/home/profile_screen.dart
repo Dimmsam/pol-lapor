@@ -482,3 +482,86 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  // ─── TENTANG APLIKASI ─────────────────────────────────────────────────────
+
+  void _showTentangAplikasi(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _BottomSheetWrapper(
+        title: 'Tentang Aplikasi',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D47A1),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(Icons.apartment_rounded,
+                  color: Colors.white, size: 32),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'PolLapor',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0D1B3E),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Versi 1.0.0',
+              style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 16),
+            const Divider(thickness: 0.5),
+            const SizedBox(height: 12),
+            _aboutRow('Developer', 'Kelompok B6'),
+            _aboutRow('Prodi', 'D3 Teknik Informatika'),
+            _aboutRow('Institusi', 'Politeknik Negeri Bandung'),
+            _aboutRow('Tahun', '2026'),
+            const SizedBox(height: 12),
+            const Text(
+              'Aplikasi pelaporan kerusakan fasilitas kampus berbasis mobile dengan sinkronisasi cloud.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Color(0xFF9CA3AF),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _aboutRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF111827),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
