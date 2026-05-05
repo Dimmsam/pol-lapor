@@ -122,3 +122,99 @@ class LaporanLokal extends HiveObject {
     );
   }
 }
+
+// ======================
+// ENUM STATUS (SAFE TYPE)
+// ======================
+enum StatusLaporanEnum {
+  menunggu,
+  diproses,
+  selesai,
+}
+
+// ======================
+// EXTENSION STATUS PARSER
+// ======================
+extension StatusLaporanExtension on String {
+  StatusLaporanEnum toStatusEnum() {
+    switch (this) {
+      case StatusLaporan.menungguKlasifikasi:
+        return StatusLaporanEnum.menunggu;
+      case StatusLaporan.diproses:
+        return StatusLaporanEnum.diproses;
+      case StatusLaporan.selesai:
+        return StatusLaporanEnum.selesai;
+      default:
+        return StatusLaporanEnum.menunggu;
+    }
+  }
+}
+
+// ======================
+// HELPER STATUS (UNTUK UI & PROVIDER)
+// ======================
+extension LaporanStatusHelper on LaporanLokal {
+  bool get isMenunggu =>
+      status == StatusLaporan.menungguKlasifikasi;
+
+  bool get isDiproses =>
+      status == StatusLaporan.diproses;
+
+  bool get isSelesai =>
+      status == StatusLaporan.selesai;
+}
+
+// ======================
+// FORMAT TANGGAL
+// ======================
+extension DateFormatHelper on DateTime {
+  String toFormatted() {
+    return '${day.toString().padLeft(2, '0')}/'
+        '${month.toString().padLeft(2, '0')}/'
+        '$year';
+  }
+}
+
+// ======================
+// MODEL NOTIFIKASI
+// ======================
+@HiveType(typeId: 2)
+class NotifikasiLaporan extends HiveObject {
+  @HiveField(0)
+  final String id;
+
+  @HiveField(1)
+  final String judul;
+
+  @HiveField(2)
+  final String pesan;
+
+  @HiveField(3)
+  final DateTime createdAt;
+
+  @HiveField(4)
+  bool isRead;
+
+  NotifikasiLaporan({
+    required this.id,
+    required this.judul,
+    required this.pesan,
+    DateTime? createdAt,
+    this.isRead = false,
+  }) : createdAt = createdAt ?? DateTime.now();
+}
+
+// ======================
+// GENERATE NOTIF OTOMATIS
+// ======================
+extension LaporanNotification on LaporanLokal {
+  List<NotifikasiLaporan> generateNotifikasi() {
+    return [
+      NotifikasiLaporan(
+        id: 'notif_$formulirId',
+        judul: 'Update Laporan',
+        pesan: 'Status laporan "$namaSarana" menjadi $statusDisplay',
+      )
+    ];
+  }
+}
