@@ -316,4 +316,169 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-}
+
+  // ─── UBAH PASSWORD ────────────────────────────────────────────────────────
+
+  void _showUbahPassword(BuildContext context) {
+    final oldCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    bool obscureOld = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => _BottomSheetWrapper(
+          title: 'Ubah Password',
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _passwordField(
+                  controller: oldCtrl,
+                  label: 'Password Lama',
+                  obscure: obscureOld,
+                  onToggle: () =>
+                      setModalState(() => obscureOld = !obscureOld),
+                ),
+                const SizedBox(height: 12),
+                _passwordField(
+                  controller: newCtrl,
+                  label: 'Password Baru',
+                  obscure: obscureNew,
+                  onToggle: () =>
+                      setModalState(() => obscureNew = !obscureNew),
+                ),
+                const SizedBox(height: 12),
+                _passwordField(
+                  controller: confirmCtrl,
+                  label: 'Konfirmasi Password Baru',
+                  obscure: obscureConfirm,
+                  onToggle: () =>
+                      setModalState(() => obscureConfirm = !obscureConfirm),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0D47A1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      if (newCtrl.text != confirmCtrl.text) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password baru tidak cocok'),
+                          ),
+                        );
+                        return;
+                      }
+                      if (newCtrl.text.length < 6) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password minimal 6 karakter'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Supabase update password
+                      try {
+                        await supabaseUpdatePassword(newCtrl.text);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Password berhasil diubah'),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Gagal: $e')),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text(
+                      'Simpan Password',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _passwordField({
+    required TextEditingController controller,
+    required String label,
+    required bool obscure,
+    required VoidCallback onToggle,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          style: const TextStyle(fontSize: 14),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: const Color(0xFFF4F6FA),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14, vertical: 12,
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                size: 18,
+                color: const Color(0xFF9CA3AF),
+              ),
+              onPressed: onToggle,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Panggil Supabase update password
+  Future<void> supabaseUpdatePassword(String newPassword) async {
+    await Supabase.instance.client.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
+  }
+
