@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../logic/providers/home_provider.dart';
 
+import 'package:hive_flutter/hive_flutter.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../data/models/laporan_lokal.dart';
+
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
@@ -435,6 +439,86 @@ class _NotifSection extends StatelessWidget {
       ],
     );
   }
+}
+
+// ======================
+// REALTIME EXTENSION
+// ======================
+
+extension DashboardRealtime on DashboardScreen {
+  Widget withRealtime(BuildContext context, Widget child) {
+    final provider = context.read<HomeProvider>();
+
+    return ValueListenableBuilder(
+      valueListenable: Hive.box<LaporanLokal>(AppConstants.boxLaporan).listenable(),
+      builder: (context, box, _) {
+        // trigger refresh provider setiap ada perubahan
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          provider.onReturnFromForm();
+        });
+
+        return child;
+      },
+    );
+  }
+}
+
+// ======================
+// NOTIFICATION BADGE EXTENSION
+// ======================
+
+extension TopBarNotifExtension on BuildContext {
+  Widget buildNotifBadge(Widget icon) {
+    final provider = watch<HomeProvider>();
+    final count = provider.unreadNotifCount;
+
+    return Stack(
+      children: [
+        icon,
+
+        if (count > 0)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              child: Center(
+                child: Text(
+                  count > 9 ? '9+' : count.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ======================
+// TRIGGER NOTIF GLOBAL
+// ======================
+
+void triggerDashboardNotif(BuildContext context) {
+  try {
+    context.read<HomeProvider>().addNotification();
+  } catch (_) {}
+}
+
+void clearDashboardNotif(BuildContext context) {
+  try {
+    context.read<HomeProvider>().clearNotification();
+  } catch (_) {}
 }
 
 // ─── LAPORAN TERBARU ───────────────────────────────────────────────────────
