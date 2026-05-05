@@ -19,6 +19,7 @@ import '/services/sync_service.dart'; // Pastikan path ini sesuai dengan letak S
 
 // NOTIF SCREEN
 import 'presentation/screens/home/notif_screen.dart';
+import 'data/models/notifikasi_laporan.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
