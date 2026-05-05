@@ -5,9 +5,14 @@ import 'package:uuid/uuid.dart';
 import 'dart:io';
 import '../../../data/datasources/local/hive_local_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../logic/providers/home_provider.dart';
 import '../../../services/sync_service.dart';
-import '../pelapor/camera_picker_screen.dart';
+import '../../widgets/pelapor/laporan_photo_field.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+import 'dart:async';
+
 
 class FormLaporanScreen extends StatefulWidget {
   const FormLaporanScreen({super.key});
@@ -21,6 +26,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _datasource = HiveLocalDatasource();
   final _syncService = SyncService();
   final _uuid = const Uuid();
+
   static const List<String> _lokasiPerbaikanOptions = [
     'Gedung A',
     'Gedung B',
@@ -52,13 +58,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   String? _lokasiPerbaikan;
   String? _fotoPath;
 
-  @override
-  void dispose() {
-    _judulController.dispose();
-    _deskripsiController.dispose();
-    _nomorInventarisController.dispose();
-    super.dispose();
-  }
+  // INIT REALTIME
 
   InputDecoration _fieldDecoration({required String hintText}) {
     return InputDecoration(
@@ -227,44 +227,45 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
         updatedAt: DateTime.now(),
       );
 
-      await _datasource.saveLaporan(laporan);
+    await _datasource.saveLaporan(laporan);
+    debugPrint('✅ Laporan tersimpan: ${laporan.formulirId}');
 
-      try {
-        await _syncService.syncUnsyncedData();
-      } catch (_) {}
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isSubmitting = false);
-      _showSnackBar('Gagal menyimpan laporan lokal.');
-      return;
-    }
+    // ✅ Panggil hanya SEKALI di sini
+    if (mounted) context.read<HomeProvider>().onReturnFromForm();
+
+    // Sync di background, tidak perlu tunggu
+    _syncService.syncUnsyncedData().catchError((_) {});
+
+  } catch (e) {
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    _showSnackBar('Gagal menyimpan laporan lokal.');
+    return;
+  }
 
     if (!mounted) return;
 
-    context.read<HomeProvider>().onReturnFromForm();
+  // Reset form
+  _formKey.currentState?.reset();
+  _judulController.clear();
+  _deskripsiController.clear();
+  _nomorInventarisController.clear();
+  setState(() {
+    _isSubmitting = false;
+    _lokasiPerbaikan = null;
+    _fotoPath = null;
+  });
 
-    _formKey.currentState?.reset();
-    _judulController.clear();
-    _deskripsiController.clear();
-    _nomorInventarisController.clear();
+  _showSnackBar('✅ Laporan berhasil dikirim!');
 
-    setState(() {
-      _isSubmitting = false;
-      _lokasiPerbaikan = null;
-      _fotoPath = null;
-    });
-
-    _showSnackBar('Laporan berhasil disimpan secara offline.');
-
-    // NAVIGASI
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const HomeScreen(initialIndex: 1),
-      ),
-      (route) => false,
-    );
-  }
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const HomeScreen(initialIndex: 1),
+    ),
+    (route) => false,
+  );
+}
 
   @override
   Widget build(BuildContext context) {

@@ -23,6 +23,10 @@ import 'logic/providers/teknisi_upt_provider.dart';
 import 'logic/providers/riwayat_provider.dart';
 import '/services/sync_service.dart'; // Pastikan path ini sesuai dengan letak SyncService kamu
 
+// NOTIF SCREEN
+import 'presentation/screens/home/notif_screen.dart';
+import 'data/models/notifikasi_laporan.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
@@ -40,13 +44,9 @@ Future<void> main() async {
   if (!Hive.isAdapterRegistered(1)) {
     Hive.registerAdapter(UserSessionAdapter());
   }
-  if (!Hive.isAdapterRegistered(2)) {
-    Hive.registerAdapter(TugasTeknisiLokalAdapter());
-  }
 
   await Hive.openBox<LaporanLokal>(AppConstants.boxLaporan);
   await Hive.openBox<UserSession>(AppConstants.boxUser);
-  await Hive.openBox<TugasTeknisiLokal>('tugasTeknisiBox');
 
   runApp(const PolLaporApp());
 }
@@ -99,10 +99,6 @@ class _PolLaporAppState extends State<PolLaporApp> {
       providers: [
         ChangeNotifierProvider(create: (_) => LoginProvider()),
         ChangeNotifierProvider(create: (_) => HomeProvider()),
-        ChangeNotifierProvider(create: (_) => TeknisiJurusanProvider()),
-        ChangeNotifierProvider(create: (_) => TeknisiUptProvider()),
-        ChangeNotifierProvider(create: (_) => TugasDetailProvider()),
-        ChangeNotifierProvider(create: (_) => RiwayatProvider()),
       ],
       child: MaterialApp(
         title: 'PolLapor',
@@ -117,6 +113,9 @@ class _PolLaporAppState extends State<PolLaporApp> {
           '/home': (context) => const HomeScreen(),
           '/teknisi-upt-home': (context) => const TeknisiUptHomeScreen(),
           '/form': (context) => const FormLaporanScreen(),
+
+          // TAMBAHAN ROUTE NOTIF
+          '/notif': (context) => const NotifScreen(),
         },
         home: const SplashScreen(),
       ),
