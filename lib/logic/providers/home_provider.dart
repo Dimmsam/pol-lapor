@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import '../../data/datasources/local/auth_local_datasource.dart';
 import '../../data/datasources/local/hive_local_datasource.dart';
 import '../../data/models/user_session.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../../data/models/laporan_lokal.dart';
 
 class HomeProvider extends ChangeNotifier {
   final AuthLocalDatasource _auth = AuthLocalDatasource();
@@ -24,6 +26,9 @@ class HomeProvider extends ChangeNotifier {
   void init() {
     _session = _auth.getSession();
     _refresh();
+
+    // aktifkan realtime listener
+    _listenRealtimeLaporan();
   }
 
   // ── Refresh statistik laporan ─────────────────────────────────────────────
@@ -36,5 +41,39 @@ class HomeProvider extends ChangeNotifier {
   // ── Dipanggil saat kembali dari FormLaporan (laporan baru ditambah) ───────
   void onReturnFromForm() {
     _refresh();
+  }
+
+  // =========================================================
+  // REALTIME LISTENER (AUTO UPDATE HOME)
+  // =========================================================
+
+  ValueListenable<Box<LaporanLokal>>? _listenable;
+
+  void _listenRealtimeLaporan() {
+    _listenable = Hive.box<LaporanLokal>('laporan_box').listenable();
+
+    _listenable!.addListener(() {
+      debugPrint('📡 Laporan berubah (Realtime)');
+      _refresh();
+    });
+  }
+
+  // =========================================================
+  // NOTIF COUNT (untuk badge di dashboard)
+  // =========================================================
+
+  int get totalNotif {
+    final box = Hive.box<LaporanLokal>('laporan_box');
+    return box.values.where((l) => !l.isSynced).length;
+  }
+
+  // =========================================================
+  // CLEANUP (BEST PRACTICE)
+  // =========================================================
+
+  @override
+  void dispose() {
+    _listenable?.removeListener(_refresh);
+    super.dispose();
   }
 }
