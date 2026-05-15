@@ -25,7 +25,6 @@ class TeknisiJurusanProvider extends ChangeNotifier {
       // Bikin objek Penanganan baru
       final penangananBaru = Penanganan(
         penangananId: const Uuid().v4(), // Generate UUID baru
-        suratKerjaId: null, // KUNCI: Dibiarkan null karena ini Teknisi Jurusan
         formulirId: formulirId,
         teknisiId: teknisiId,
         statusPenanganan: StatusPenanganan.sedangDikerjakan,
@@ -102,7 +101,7 @@ class TeknisiJurusanProvider extends ChangeNotifier {
       // 1. Tutup Penanganan Lokal (Tugas Teknisi Jurusan dianggap selesai sebatas 'mengecek')
       final updatedPenanganan = _daftarPenangananLokal[index].copyWith(
         statusPenanganan: StatusPenanganan.selesai, // Atau bisa buat status baru 'dieskalasi'
-        catatanProgres: 'Diteruskan ke Kajur/UPT: $catatanPengecekanAwal',
+        catatanProgres: 'Diteruskan ke Pusat: $catatanPengecekanAwal',
         tanggalSelesai: DateTime.now(),
       );
 
