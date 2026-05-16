@@ -3,7 +3,6 @@
 
 class Penanganan {
   final String penangananId;
-  final String suratKerjaId;
   final String formulirId;
   final String teknisiId;
   final String statusPenanganan; // enum: mulai_dikerjakan | sedang_dikerjakan | selesai
@@ -17,7 +16,6 @@ class Penanganan {
 
   const Penanganan({
     required this.penangananId,
-    required this.suratKerjaId,
     required this.formulirId,
     required this.teknisiId,
     required this.statusPenanganan,
@@ -40,7 +38,6 @@ class Penanganan {
 
     return Penanganan(
       penangananId: json['penanganan_id'] as String,
-      suratKerjaId: json['surat_kerja_id'] as String,
       formulirId: json['formulir_id'] as String,
       teknisiId: json['teknisi_id'] as String,
       statusPenanganan:
@@ -61,7 +58,6 @@ class Penanganan {
 
   Map<String, dynamic> toJson() => {
         'penanganan_id': penangananId,
-        'surat_kerja_id': suratKerjaId,
         'formulir_id': formulirId,
         'teknisi_id': teknisiId,
         'status_penanganan': statusPenanganan,
@@ -86,7 +82,6 @@ class Penanganan {
   }) {
     return Penanganan(
       penangananId: penangananId,
-      suratKerjaId: suratKerjaId,
       formulirId: formulirId,
       teknisiId: teknisiId,
       statusPenanganan: statusPenanganan ?? this.statusPenanganan,
@@ -106,6 +101,7 @@ class StatusPenanganan {
   static const String mulaiDikerjakan = 'mulai_dikerjakan';
   static const String sedangDikerjakan = 'sedang_dikerjakan';
   static const String selesai = 'selesai';
+  static const String menungguEskalasi = 'menunggu_eskalasi_jurusan';
 
   static String toLabel(String status) {
     switch (status) {
@@ -115,6 +111,8 @@ class StatusPenanganan {
         return 'Sedang Dikerjakan';
       case selesai:
         return 'Selesai';
+      case menungguEskalasi:
+        return 'Menunggu Eskalasi';
       default:
         return 'Tidak Diketahui';
     }

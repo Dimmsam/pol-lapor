@@ -83,7 +83,6 @@ class TugasDetailProvider extends ChangeNotifier {
         // Buat Penanganan lengkap dari PenangananRingkas (untuk update form)
         _penanganan = Penanganan(
           penangananId: p.penangananId,
-          suratKerjaId: suratKerjaId,
           formulirId: _suratKerja!.formulirId,
           teknisiId: teknisiId,
           statusPenanganan: p.statusPenanganan,

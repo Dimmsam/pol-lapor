@@ -12,7 +12,7 @@ import 'data/models/laporan_lokal.dart';
 import 'data/models/user_session.dart';
 import 'logic/providers/home_provider.dart';
 import 'logic/providers/login_provider.dart';
-import 'logic/providers/teknisi_provider.dart';
+import 'logic/providers/teknisi_jurusan_provider.dart';
 import 'logic/providers/tugas_detail_provider.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/login/login_screen.dart';
@@ -99,7 +99,7 @@ class _PolLaporAppState extends State<PolLaporApp> {
       providers: [
         ChangeNotifierProvider(create: (_) => LoginProvider()),
         ChangeNotifierProvider(create: (_) => HomeProvider()),
-        ChangeNotifierProvider(create: (_) => TeknisiProvider()),
+        ChangeNotifierProvider(create: (_) => TeknisiJurusanProvider()),
         ChangeNotifierProvider(create: (_) => TeknisiUptProvider()),
         ChangeNotifierProvider(create: (_) => TugasDetailProvider()),
         ChangeNotifierProvider(create: (_) => RiwayatProvider()),
