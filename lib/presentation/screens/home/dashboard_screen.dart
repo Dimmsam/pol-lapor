@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../logic/providers/home_provider.dart';
 
+import 'package:hive_flutter/hive_flutter.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../data/models/laporan_lokal.dart';
+
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
@@ -13,10 +17,12 @@ class DashboardScreen extends StatelessWidget {
   static const Color _bg = Color(0xFFF4F6FA);
 
   @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<HomeProvider>();
+Widget build(BuildContext context) {
+  final provider = context.watch<HomeProvider>();
 
-    return Scaffold(
+  return withRealtime(
+    context,
+    Scaffold(
       backgroundColor: _bg,
       body: SafeArea(
         child: Column(
@@ -32,7 +38,9 @@ class DashboardScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     _StatSection(provider: provider),
                     const SizedBox(height: 16),
-                    const _NotifSection(),
+
+                    _NotifSection(),
+
                     const SizedBox(height: 20),
                     const _RecentSection(),
                     const SizedBox(height: 24),
@@ -43,8 +51,9 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // ─── TOP BAR ───────────────────────────────────────────────────────────────
@@ -62,19 +71,23 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<HomeProvider>();
+    final notifCount = provider.unreadNotifCount;
+
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       child: Row(
         children: [
+          // ─── AVATAR ─────────────────────────────
           Container(
             width: 34,
             height: 34,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: const Color(0xFF0D47A1),
               borderRadius: BorderRadius.circular(10),
             ),
-            alignment: Alignment.center,
             child: Text(
               _initials,
               style: const TextStyle(
@@ -84,7 +97,10 @@ class _TopBar extends StatelessWidget {
               ),
             ),
           ),
+
           const SizedBox(width: 10),
+
+          // ─── TITLE ─────────────────────────────
           const Text(
             'PolLapor',
             style: TextStyle(
@@ -94,29 +110,54 @@ class _TopBar extends StatelessWidget {
               letterSpacing: -0.3,
             ),
           ),
+
           const Spacer(),
+
+          // ─── NOTIFICATION ──────────────────────
           Stack(
+            clipBehavior: Clip.none,
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined,
-                    color: Color(0xFF374151), size: 24),
-                onPressed: () {},
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Color(0xFF374151),
+                  size: 24,
+                ),
+                onPressed: () {
+                  // reset notif
+                  context.read<HomeProvider>().clearNotification();
+                  Navigator.pushNamed(context, '/notif');
+                },
               ),
-              Positioned(
-                top: 6,
-                right: 6,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
+
+              // BADGE REALTIME
+              if (notifCount > 0)
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    child: Center(
+                      child: Text(
+                        notifCount > 9 ? '9+' : notifCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ],
@@ -240,42 +281,59 @@ class _StatSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final synced = provider.totalLaporan - provider.totalUnsynced;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: _StatCard(
-              icon: Icons.description_outlined,
-              iconColor: const Color(0xFF4F46E5),
-              iconBg: const Color(0xFFEEF2FF),
-              value: provider.totalLaporan.toString(),
-              label: 'Total',
-            ),
+    final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
+
+    return ValueListenableBuilder(
+      valueListenable: box.listenable(),
+      builder: (context, Box<LaporanLokal> box, _) {
+        final semua = box.values.toList();
+        final total = semua.length;
+        final diproses = semua
+            .where((l) =>
+                l.status == StatusLaporan.diproses ||
+                l.status == StatusLaporan.menungguKlasifikasi)
+            .length;
+        final selesai = semua
+            .where((l) => l.status == StatusLaporan.selesai)
+            .length;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.description_outlined,
+                  iconColor: const Color(0xFF4F46E5),
+                  iconBg: const Color(0xFFEEF2FF),
+                  value: total.toString(),
+                  label: 'Total',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.schedule_outlined,
+                  iconColor: const Color(0xFFD97706),
+                  iconBg: const Color(0xFFFEF3C7),
+                  value: diproses.toString(),
+                  label: 'Diproses',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.check_circle_outline_rounded,
+                  iconColor: const Color(0xFF059669),
+                  iconBg: const Color(0xFFD1FAE5),
+                  value: selesai.toString(),
+                  label: 'Selesai',
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _StatCard(
-              icon: Icons.schedule_outlined,
-              iconColor: const Color(0xFFD97706),
-              iconBg: const Color(0xFFFEF3C7),
-              value: provider.totalUnsynced.toString(),
-              label: 'Diproses',
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _StatCard(
-              icon: Icons.check_circle_outline_rounded,
-              iconColor: const Color(0xFF059669),
-              iconBg: const Color(0xFFD1FAE5),
-              value: synced.toString(),
-              label: 'Selesai',
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -343,10 +401,13 @@ class _StatCard extends StatelessWidget {
 // ─── NOTIFIKASI ────────────────────────────────────────────────────────────
 
 class _NotifSection extends StatelessWidget {
-  const _NotifSection();
+  const _NotifSection({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<HomeProvider>();
+    final count = provider.unreadNotifCount;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -362,79 +423,133 @@ class _NotifSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE9ECEF), width: 0.5),
+
+        if (count == 0)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text("Tidak ada notifikasi"),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text("$count notifikasi baru"),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.notifications_active_outlined,
-                  color: Color(0xFF4F46E5),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pembaruan Laporan',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Laporan AC di Gedung D sedang diperbaiki',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                        height: 1.4,
-                      ),
-                    ),
-                    SizedBox(height: 5),
-                    Text(
-                      '2 menit yang lalu',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Color(0xFF9CA3AF),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.only(top: 4),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF3B82F6),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
+}
+
+class NotifSectionDynamic extends StatelessWidget {
+  const NotifSectionDynamic({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<HomeProvider>();
+    final count = provider.unreadNotifCount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 18),
+          child: Text(
+            'Notifikasi',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0D1B3E),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        if (count == 0)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text("Tidak ada notifikasi"),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text("$count notifikasi baru"),
+          ),
+      ],
+    );
+  }
+}
+
+// ======================
+// REALTIME EXTENSION
+// ======================
+
+extension DashboardRealtime on DashboardScreen {
+  Widget withRealtime(BuildContext context, Widget child) {
+    final provider = context.read<HomeProvider>();
+
+    return ValueListenableBuilder(
+      valueListenable: Hive.box<LaporanLokal>(AppConstants.boxLaporan).listenable(),
+      builder: (context, box, _) {
+        // trigger refresh provider setiap ada perubahan
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          provider.onReturnFromForm();
+        });
+
+        return child;
+      },
+    );
+  }
+}
+
+// ======================
+// NOTIFICATION BADGE EXTENSION
+// ======================
+
+extension TopBarNotifExtension on BuildContext {
+  Widget buildNotifBadge(Widget icon) {
+    final provider = watch<HomeProvider>();
+    final count = provider.unreadNotifCount;
+
+    return Stack(
+      children: [
+        icon,
+
+        if (count > 0)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              child: Center(
+                child: Text(
+                  count > 9 ? '9+' : count.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ======================
+// TRIGGER NOTIF GLOBAL
+// ======================
+
+void clearDashboardNotif(BuildContext context) {
+  try {
+    context.read<HomeProvider>().clearNotification();
+  } catch (_) {}
 }
 
 // ─── LAPORAN TERBARU ───────────────────────────────────────────────────────
@@ -444,62 +559,59 @@ class _RecentSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Laporan Terbaru',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0D1B3E),
+    final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
+
+    return ValueListenableBuilder(
+      valueListenable: box.listenable(),
+      builder: (context, Box<LaporanLokal> box, _) {
+        final data = box.values.toList().reversed.toList();
+
+        if (data.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text("Belum ada laporan"),
+          );
+        }
+
+        return Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 18),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Laporan Terbaru',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0D1B3E),
+                  ),
                 ),
               ),
-              Text(
-                'Lihat Semua',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: const Color(0xFF0D47A1).withOpacity(0.9),
-                  fontWeight: FontWeight.w600,
-                ),
+            ),
+            const SizedBox(height: 10),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: data.take(3).map((laporan) {
+                  return Column(
+                    children: [
+                      _ReportItem(
+                        icon: Icons.report_problem_outlined,
+                        title: laporan.namaSarana,
+                        location: laporan.lokasiPerbaikan,
+                        status: laporan.status,
+                      ),
+                      const SizedBox(height: 9),
+                    ],
+                  );
+                }).toList(),
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        // Di M2 ganti dengan data nyata dari provider/Hive
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              _ReportItem(
-                icon: Icons.air_outlined,
-                title: 'AC Rusak',
-                location: 'Gedung D · Ruang 2.1',
-                status: 'diproses',
-              ),
-              SizedBox(height: 9),
-              _ReportItem(
-                icon: Icons.lightbulb_outline_rounded,
-                title: 'Lampu Mati',
-                location: 'Perpustakaan · Lt. 1',
-                status: 'menunggu',
-              ),
-              SizedBox(height: 9),
-              _ReportItem(
-                icon: Icons.door_back_door_outlined,
-                title: 'Pintu Lepas',
-                location: 'Gedung E · Ruang 3.5',
-                status: 'selesai',
-              ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -579,12 +691,12 @@ class _StatusBadge extends StatelessWidget {
     String label;
 
     switch (status) {
-      case 'selesai':
+      case StatusLaporan.selesai:
         bg = const Color(0xFFD1FAE5);
         fg = const Color(0xFF065F46);
         label = 'Selesai';
         break;
-      case 'diproses':
+      case StatusLaporan.diproses:
         bg = const Color(0xFFFEF3C7);
         fg = const Color(0xFFB45309);
         label = 'Diproses';

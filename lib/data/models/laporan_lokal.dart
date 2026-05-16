@@ -122,3 +122,55 @@ class LaporanLokal extends HiveObject {
     );
   }
 }
+
+// ======================
+// ENUM STATUS (SAFE TYPE)
+// ======================
+enum StatusLaporanEnum {
+  menunggu,
+  diproses,
+  selesai,
+}
+
+// ======================
+// EXTENSION STATUS PARSER
+// ======================
+extension StatusLaporanExtension on String {
+  StatusLaporanEnum toStatusEnum() {
+    switch (this) {
+      case StatusLaporan.menungguKlasifikasi:
+        return StatusLaporanEnum.menunggu;
+      case StatusLaporan.diproses:
+        return StatusLaporanEnum.diproses;
+      case StatusLaporan.selesai:
+        return StatusLaporanEnum.selesai;
+      default:
+        return StatusLaporanEnum.menunggu;
+    }
+  }
+}
+
+// ======================
+// HELPER STATUS (UNTUK UI & PROVIDER)
+// ======================
+extension LaporanStatusHelper on LaporanLokal {
+  bool get isMenunggu =>
+      status == StatusLaporan.menungguKlasifikasi;
+
+  bool get isDiproses =>
+      status == StatusLaporan.diproses;
+
+  bool get isSelesai =>
+      status == StatusLaporan.selesai;
+}
+
+// ======================
+// FORMAT TANGGAL
+// ======================
+extension DateFormatHelper on DateTime {
+  String toFormatted() {
+    return '${day.toString().padLeft(2, '0')}/'
+        '${month.toString().padLeft(2, '0')}/'
+        '$year';
+  }
+}

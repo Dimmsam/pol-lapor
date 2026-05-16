@@ -3,9 +3,8 @@
 // File: laporan_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../../../services/hive_service.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../data/models/laporan_lokal.dart';
 
 class LaporanScreen extends StatefulWidget {
@@ -43,15 +42,13 @@ class _LaporanScreenState extends State<LaporanScreen> {
     );
   }
 
-  // ─── TOP BAR ──────────────────────────────────────────────────────────────
-
   Widget _buildTopBar() {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-      child: Row(
+      child: const Row(
         children: [
-          const Text(
+          Text(
             'Daftar Laporan',
             style: TextStyle(
               fontSize: 17,
@@ -60,26 +57,10 @@ class _LaporanScreenState extends State<LaporanScreen> {
               letterSpacing: -0.3,
             ),
           ),
-          const Spacer(),
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F6FA),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.tune_rounded,
-              color: Color(0xFF374151),
-              size: 18,
-            ),
-          ),
         ],
       ),
     );
   }
-
-  // ─── SEARCH BAR ───────────────────────────────────────────────────────────
 
   Widget _buildSearchBar() {
     return Padding(
@@ -92,7 +73,8 @@ class _LaporanScreenState extends State<LaporanScreen> {
         ),
         child: TextField(
           controller: _searchCtrl,
-          onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+          onChanged: (val) =>
+              setState(() => _searchQuery = val.toLowerCase()),
           style: const TextStyle(fontSize: 13, color: Color(0xFF111827)),
           decoration: const InputDecoration(
             hintText: 'Cari laporan...',
@@ -110,16 +92,14 @@ class _LaporanScreenState extends State<LaporanScreen> {
     );
   }
 
-  // ─── FILTER CHIPS ─────────────────────────────────────────────────────────
-
   Widget _buildFilterChips() {
-    final filters = ['semua', 'menunggu', 'diproses', 'selesai'];
-    final labels = {
-      'semua': 'Semua',
-      'menunggu': 'Menunggu',
-      'diproses': 'Diproses',
-      'selesai': 'Selesai',
-    };
+    // key = value filter internal, label = teks yang ditampilkan
+    final filters = <Map<String, String>>[
+      {'key': 'semua', 'label': 'Semua'},
+      {'key': StatusLaporan.menungguKlasifikasi, 'label': 'Menunggu'},
+      {'key': StatusLaporan.diproses, 'label': 'Diproses'},
+      {'key': StatusLaporan.selesai, 'label': 'Selesai'},
+    ];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 0, 10),
@@ -128,9 +108,9 @@ class _LaporanScreenState extends State<LaporanScreen> {
         child: ListView(
           scrollDirection: Axis.horizontal,
           children: filters.map((f) {
-            final isActive = _filterStatus == f;
+            final isActive = _filterStatus == f['key'];
             return GestureDetector(
-              onTap: () => setState(() => _filterStatus = f),
+              onTap: () => setState(() => _filterStatus = f['key']!),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 margin: const EdgeInsets.only(right: 8),
@@ -151,13 +131,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
                   ),
                 ),
                 child: Text(
-                  labels[f]!,
+                  f['label']!,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isActive
-                        ? Colors.white
-                        : const Color(0xFF6B7280),
+                    color: isActive ? Colors.white : const Color(0xFF6B7280),
                   ),
                 ),
               ),
@@ -168,63 +146,58 @@ class _LaporanScreenState extends State<LaporanScreen> {
     );
   }
 
-  // ─── LIST ─────────────────────────────────────────────────────────────────
-
   Widget _buildList() {
-    return FutureBuilder<ValueListenable<Box<LaporanLokal>>>(
-      future: HiveService().listenLaporan(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Color(0xFF0D47A1),
-            ),
-          );
+    final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
+
+    return ValueListenableBuilder<Box<LaporanLokal>>(
+      valueListenable: box.listenable(),
+      builder: (context, box, _) {
+        var data = box.values.toList().reversed.toList();
+
+        // Filter status — cocokkan dengan StatusLaporan constants
+        if (_filterStatus != 'semua') {
+          data = data
+              .where((l) => l.status == _filterStatus)
+              .toList();
         }
 
-        return ValueListenableBuilder<Box<LaporanLokal>>(
-          valueListenable: snapshot.data!,
-          builder: (context, box, _) {
-            var data = box.values.toList().reversed.toList();
+        // Filter search
+        if (_searchQuery.isNotEmpty) {
+          data = data
+              .where((l) =>
+                  l.namaSarana.toLowerCase().contains(_searchQuery) ||
+                  l.keteranganKerusakan.toLowerCase().contains(_searchQuery) ||
+                  l.lokasiPerbaikan.toLowerCase().contains(_searchQuery))
+              .toList();
+        }
 
-            // Filter status
-            if (_filterStatus != 'semua') {
-              data = data
-                  .where((l) => l.status.toLowerCase() == _filterStatus)
-                  .toList();
-            }
+        if (data.isEmpty) return _buildEmpty();
 
-            // Filter search
-            if (_searchQuery.isNotEmpty) {
-              data = data
-                  .where((l) =>
-                      l.namaSarana
-                          .toLowerCase()
-                          .contains(_searchQuery) ||
-                      l.keteranganKerusakan
-                          .toLowerCase()
-                          .contains(_searchQuery))
-                  .toList();
-            }
-
-            if (data.isEmpty) return _buildEmpty();
-
-            return ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-              itemCount: data.length,
-              itemBuilder: (context, index) =>
-                  _LaporanCard(laporan: data[index]),
-            );
-          },
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          itemCount: data.length,
+          itemBuilder: (context, index) =>
+              _LaporanCard(laporan: data[index]),
         );
       },
     );
   }
 
-  // ─── EMPTY STATE ──────────────────────────────────────────────────────────
-
   Widget _buildEmpty() {
+    String message = 'Belum ada laporan';
+    String sub = 'Laporan yang dibuat akan muncul di sini';
+
+    if (_filterStatus == StatusLaporan.menungguKlasifikasi) {
+      message = 'Tidak ada laporan menunggu';
+      sub = 'Semua laporan sudah diproses';
+    } else if (_filterStatus == StatusLaporan.diproses) {
+      message = 'Tidak ada laporan diproses';
+      sub = 'Belum ada laporan yang sedang diproses';
+    } else if (_filterStatus == StatusLaporan.selesai) {
+      message = 'Belum ada laporan selesai';
+      sub = 'Laporan yang selesai akan muncul di sini';
+    }
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -243,18 +216,19 @@ class _LaporanScreenState extends State<LaporanScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Belum ada laporan',
-            style: TextStyle(
+          Text(
+            message,
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: Color(0xFF374151),
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Laporan yang dibuat akan muncul di sini',
-            style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+          Text(
+            sub,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -262,7 +236,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
   }
 }
 
-// ─── LAPORAN CARD ─────────────────────────────────────────────────────────
+// ─── LAPORAN CARD ──────────────────────────────────────────────────────────
 
 class _LaporanCard extends StatelessWidget {
   final LaporanLokal laporan;
@@ -270,17 +244,11 @@ class _LaporanCard extends StatelessWidget {
 
   IconData get _icon {
     final nama = laporan.namaSarana.toLowerCase();
-    if (nama.contains('ac') || nama.contains('kipas')) {
-      return Icons.air_outlined;
-    } else if (nama.contains('lampu') || nama.contains('listrik')) {
-      return Icons.lightbulb_outline_rounded;
-    } else if (nama.contains('pintu') || nama.contains('jendela')) {
-      return Icons.door_back_door_outlined;
-    } else if (nama.contains('proyektor') || nama.contains('komputer')) {
-      return Icons.monitor_outlined;
-    } else if (nama.contains('toilet') || nama.contains('wc')) {
-      return Icons.wc_outlined;
-    }
+    if (nama.contains('ac') || nama.contains('kipas')) return Icons.air_outlined;
+    if (nama.contains('lampu') || nama.contains('listrik')) return Icons.lightbulb_outline_rounded;
+    if (nama.contains('pintu') || nama.contains('jendela')) return Icons.door_back_door_outlined;
+    if (nama.contains('proyektor') || nama.contains('komputer')) return Icons.monitor_outlined;
+    if (nama.contains('toilet') || nama.contains('wc')) return Icons.wc_outlined;
     return Icons.construction_outlined;
   }
 
@@ -298,7 +266,6 @@ class _LaporanCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -309,8 +276,7 @@ class _LaporanCard extends StatelessWidget {
                     color: const Color(0xFFF0F4FF),
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(_icon,
-                      color: const Color(0xFF0D47A1), size: 19),
+                  child: Icon(_icon, color: const Color(0xFF0D47A1), size: 19),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -327,7 +293,7 @@ class _LaporanCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        laporan.keteranganKerusakan,
+                        laporan.lokasiPerbaikan,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -342,14 +308,10 @@ class _LaporanCard extends StatelessWidget {
                 _StatusBadge(status: laporan.status),
               ],
             ),
-
-            // Divider
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 11),
               child: Divider(height: 0, thickness: 0.5, color: Color(0xFFF3F4F6)),
             ),
-
-            // Deskripsi
             Text(
               laporan.keteranganKerusakan,
               style: const TextStyle(
@@ -358,32 +320,22 @@ class _LaporanCard extends StatelessWidget {
                 height: 1.5,
               ),
             ),
-
             const SizedBox(height: 10),
-
-            // Footer
             Row(
               children: [
-                const Icon(
-                  Icons.calendar_today_outlined,
-                  size: 12,
-                  color: Color(0xFF9CA3AF),
-                ),
+                const Icon(Icons.calendar_today_outlined,
+                    size: 12, color: Color(0xFF9CA3AF)),
                 const SizedBox(width: 5),
                 Text(
                   '${laporan.createdAt.day.toString().padLeft(2, '0')}/'
                   '${laporan.createdAt.month.toString().padLeft(2, '0')}/'
                   '${laporan.createdAt.year}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF9CA3AF),
-                  ),
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
                 ),
                 if (!laporan.isSynced) ...[
                   const Spacer(),
                   Container(
-                    width: 6,
-                    height: 6,
+                    width: 6, height: 6,
                     decoration: const BoxDecoration(
                       color: Color(0xFFEF4444),
                       shape: BoxShape.circle,
@@ -408,7 +360,7 @@ class _LaporanCard extends StatelessWidget {
   }
 }
 
-// ─── STATUS BADGE ─────────────────────────────────────────────────────────
+// ─── STATUS BADGE ──────────────────────────────────────────────────────────
 
 class _StatusBadge extends StatelessWidget {
   final String status;
@@ -420,18 +372,18 @@ class _StatusBadge extends StatelessWidget {
     Color fg;
     String label;
 
-    switch (status.toLowerCase()) {
-      case 'selesai':
+    switch (status) {
+      case StatusLaporan.selesai:
         bg = const Color(0xFFD1FAE5);
         fg = const Color(0xFF065F46);
         label = 'Selesai';
         break;
-      case 'diproses':
+      case StatusLaporan.diproses:
         bg = const Color(0xFFFEF3C7);
         fg = const Color(0xFFB45309);
         label = 'Diproses';
         break;
-      default:
+      default: // menunggu_klasifikasi
         bg = const Color(0xFFF3F4F6);
         fg = const Color(0xFF6B7280);
         label = 'Menunggu';
