@@ -211,7 +211,7 @@ class SyncService {
     final resp = await supabase
         .from('pengguna')
         .select('user_id')
-        .eq('auth_id', authUser.id)
+        .eq('user_id', authUser.id)
         .single();
 
     if (resp['user_id'] == null) {

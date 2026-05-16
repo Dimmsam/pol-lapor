@@ -22,24 +22,20 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _syncService = SyncService();
   final _uuid = const Uuid();
   static const List<String> _lokasiPerbaikanOptions = [
-    'Gedung A',
-    'Gedung B',
-    'Gedung C',
-    'Gedung D',
-    'Gedung E',
-    'Gedung F',
-    'Gedung G',
-    'Gedung H',
-    'Gedung Lab Teknik Refrigerasi dan Tata Udara',
-    'Gedung Lab Teknik Mesin',
-    'Gedung Lab Teknik Kimia',
-    'Gedung Lab Teknik Sipil',
-    'Hanggar Aero',
-    'Student Center',
-    'Gedung Serba Guna AN',
-    'Gedung Direktorat',
-    'Pendopo Tony Soewandito',
-    'Gedung P2T',
+    'D101 - Kelas: Ruang kelas Gedung D, Lantai 1',
+    'D102 - Lab. MT: Laboratorium Multimedia dan Teknologi, Lantai 1',
+    'D105 - Kelas: Ruang kelas Gedung D, Lantai 1',
+    'D106 - Lab. SDB: Laboratorium Sistem Database, Lantai 1',
+    'D107 - Lab. RPL: LaboratoriuFm Rekayasa Perangkat Lunak, Lantai 1',
+    'D108 - Kelas: Ruang kelas Gedung D, Lantai 1',
+    'D111 - Kelas: Ruang kelas Gedung D, Lantai 1',
+    'D112 - Kelas: Ruang kelas Gedung D, Lantai 1',
+    'D115 - Lab. PjBL-1: Laboratorium Project-Based Learning 1, Lantai 1',
+    'D116 - Lab. PjBL-2: Laboratorium Project-Based Learning 2, Lantai 1',
+    'D217 - Kelas: Ruang kelas Gedung D, Lantai 2',
+    'D219 - Kelas: Ruang kelas Gedung D, Lantai 2',
+    'D223 - Kelas: Ruang kelas Gedung D, Lantai 2',
+    'D224 - Kelas: Ruang kelas Gedung D, Lantai 2',
   ];
 
   bool _isSubmitting = false;
@@ -146,45 +142,175 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   }
 
   Widget _lokasiSelector() {
-    return DropdownButtonFormField<String>(
-      value: _lokasiPerbaikan,
-      isExpanded: true,
-      menuMaxHeight: 340,
-      icon: const SizedBox.shrink(),
-      decoration: _fieldDecoration(hintText: 'Pilih Gedung & Ruangan').copyWith(
-        prefixIcon: const Icon(
-          Icons.location_on_outlined,
-          color: Color(0xFF6B7280),
-        ),
-        suffixIcon: const Icon(
-          Icons.expand_more_rounded,
-          color: Color(0xFF0D47A1),
-        ),
-        suffixIconColor: const Color(0xFF0D47A1),
-      ),
-      hint: Text(
-        'Pilih Gedung & Ruangan',
-        style: TextStyle(color: Colors.grey.shade600),
-      ),
-      items: _lokasiPerbaikanOptions
-          .map(
-            (lokasi) => DropdownMenuItem<String>(
-              value: lokasi,
-              child: Text(lokasi, maxLines: 2, overflow: TextOverflow.ellipsis),
-            ),
-          )
-          .toList(),
+    return FormField<String>(
+      initialValue: _lokasiPerbaikan,
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return 'Lokasi harus diisi';
         }
         return null;
       },
-      onChanged: _isSubmitting
-          ? null
-          : (value) {
-              setState(() => _lokasiPerbaikan = value);
-            },
+      builder: (state) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: _isSubmitting
+                  ? null
+                  : () async {
+                      final selected = await _showLocationPicker();
+                      if (selected != null) {
+                        setState(() => _lokasiPerbaikan = selected);
+                        state.didChange(selected);
+                      }
+                    },
+              child: InputDecorator(
+                decoration: _fieldDecoration(hintText: 'Pilih Ruangan')
+                    .copyWith(
+                      prefixIcon: const Icon(
+                        Icons.location_on_outlined,
+                        color: Color(0xFF6B7280),
+                      ),
+                      suffixIcon: const Icon(
+                        Icons.expand_more_rounded,
+                        color: Color(0xFF0D47A1),
+                      ),
+                    ),
+                child: Text(
+                  _lokasiPerbaikan ?? 'Pilih Gedung & Ruangan',
+                  style: TextStyle(
+                    color: _lokasiPerbaikan == null
+                        ? Colors.grey.shade600
+                        : Colors.black,
+                  ),
+                ),
+              ),
+            ),
+            if (state.hasError)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 12),
+                child: Text(
+                  state.errorText ?? '',
+                  style: const TextStyle(
+                    color: Color(0xFFDC2626),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<String?> _showLocationPicker() async {
+    final floor1 = _lokasiPerbaikanOptions.take(10).toList();
+    final floor2 = _lokasiPerbaikanOptions.skip(10).toList();
+
+    return await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            String query = '';
+            List<String> filter(List<String> src) {
+              if (query.isEmpty) return src;
+              return src
+                  .where((s) => s.toLowerCase().contains(query.toLowerCase()))
+                  .toList();
+            }
+
+            return StatefulBuilder(
+              builder: (c, setModalState) {
+                final f1 = filter(floor1);
+                final f2 = filter(floor2);
+
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: TextField(
+                          decoration: const InputDecoration(
+                            hintText: 'Cari lokasi...',
+                            prefixIcon: Icon(Icons.search),
+                          ),
+                          onChanged: (v) => setModalState(() => query = v),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: ListView(
+                          controller: scrollController,
+                          children: [
+                            if (f1.isNotEmpty) ...[
+                              const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  'Lantai 1',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              ...f1.map(
+                                (lok) => ListTile(
+                                  title: Text(lok),
+                                  onTap: () => Navigator.of(context).pop(lok),
+                                ),
+                              ),
+                            ],
+                            if (f2.isNotEmpty) ...[
+                              const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  'Lantai 2',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              ...f2.map(
+                                (lok) => ListTile(
+                                  title: Text(lok),
+                                  onTap: () => Navigator.of(context).pop(lok),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -497,7 +623,8 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       ),
     );
   }
-Future<void> _openCamera() async {
+
+  Future<void> _openCamera() async {
     final pickedPath = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => CameraPickerScreen(initialImagePath: _fotoPath),

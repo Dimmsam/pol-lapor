@@ -41,9 +41,11 @@ class LoginProvider extends ChangeNotifier {
     } on AuthException catch (e) {
       _status = LoginStatus.error;
       _errorMessage = _mapAuthError(e.message);
-    } catch (e) {
+    } catch (e, st) {
       _status = LoginStatus.error;
-      _errorMessage = 'Terjadi kesalahan. Periksa koneksi internet kamu.';
+      _errorMessage = 'Terjadi kesalahan: ${e.toString()}';
+      debugPrint('LoginProvider unexpected error: $e');
+      debugPrint('$st');
     }
 
     notifyListeners();

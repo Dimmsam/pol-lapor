@@ -13,11 +13,11 @@ class AuthRemoteDatasource {
       throw Exception('Login gagal: user tidak ditemukan');
     }
 
-    // Ambil data profil dari tabel pengguna menggunakan auth_id
+    // Ambil data profil dari tabel pengguna menggunakan user_id (auth id disimpan di kolom user_id)
     final profil = await SupabaseService.db
         .from('pengguna')
         .select()
-        .eq('auth_id', response.user!.id)
+        .eq('user_id', response.user!.id)
         .single();
 
     return UserSession(
@@ -45,7 +45,7 @@ class AuthRemoteDatasource {
       final profil = await SupabaseService.db
           .from('pengguna')
           .select()
-          .eq('auth_id', supabaseSession.user.id)
+          .eq('user_id', supabaseSession.user.id)
           .single();
 
       return UserSession(

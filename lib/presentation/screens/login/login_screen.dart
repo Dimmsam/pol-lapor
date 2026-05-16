@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final role = provider.session?.role;
       final route = switch (role) {
         AppConstants.roleTeknisiJurusan => '/teknisi-jurusan-home',
-        AppConstants.roleTeknisiUptPp => '/teknisi-upt-home',
+        AppConstants.roleTeknisiUptPp => '/home',
         _ => '/home',
       };
       Navigator.pushReplacementNamed(context, route);

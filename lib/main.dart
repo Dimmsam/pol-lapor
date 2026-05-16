@@ -17,9 +17,8 @@ import 'logic/providers/tugas_detail_provider.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/login/login_screen.dart';
 import 'presentation/screens/pelapor/form_laporan_screen.dart';
-import 'presentation/screens/teknisi_upt/home_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
-import 'logic/providers/teknisi_upt_provider.dart';
+
 import 'logic/providers/riwayat_provider.dart';
 import '/services/sync_service.dart'; // Pastikan path ini sesuai dengan letak SyncService kamu
 
@@ -100,7 +99,6 @@ class _PolLaporAppState extends State<PolLaporApp> {
         ChangeNotifierProvider(create: (_) => LoginProvider()),
         ChangeNotifierProvider(create: (_) => HomeProvider()),
         ChangeNotifierProvider(create: (_) => TeknisiJurusanProvider()),
-        ChangeNotifierProvider(create: (_) => TeknisiUptProvider()),
         ChangeNotifierProvider(create: (_) => TugasDetailProvider()),
         ChangeNotifierProvider(create: (_) => RiwayatProvider()),
       ],
@@ -115,7 +113,7 @@ class _PolLaporAppState extends State<PolLaporApp> {
         routes: {
           '/login': (context) => const LoginScreen(),
           '/home': (context) => const HomeScreen(),
-          '/teknisi-upt-home': (context) => const TeknisiUptHomeScreen(),
+
           '/form': (context) => const FormLaporanScreen(),
         },
         home: const SplashScreen(),
