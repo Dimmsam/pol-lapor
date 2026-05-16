@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart'; // Tambahan untuk cek sinyal
 
-import 'core/constants/app_constants.dart'; 
+import 'core/constants/app_constants.dart';
 import 'data/models/laporan_lokal.dart';
 import 'data/models/user_session.dart';
 import 'logic/providers/home_provider.dart';
@@ -14,6 +14,7 @@ import 'logic/providers/login_provider.dart';
 import 'logic/providers/teknisi_jurusan_provider.dart';
 import 'logic/providers/tugas_detail_provider.dart';
 import 'logic/providers/riwayat_provider.dart';
+import 'logic/providers/tracking_provider.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/login/login_screen.dart';
 import 'presentation/screens/pelapor/form_laporan_screen.dart';
@@ -27,14 +28,14 @@ import 'data/models/notifikasi_laporan.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  
+
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
-  
+
   await Hive.initFlutter();
-  
+
   if (!Hive.isAdapterRegistered(0)) {
     Hive.registerAdapter(LaporanLokalAdapter());
   }
@@ -74,13 +75,17 @@ class _PolLaporAppState extends State<PolLaporApp> {
   @override
   void initState() {
     super.initState();
-    
+
     // Mengaktifkan CCTV sinyal saat aplikasi pertama kali dijalankan
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      List<ConnectivityResult> results,
+    ) {
       // Jika hasilnya BUKAN 'none', berarti internet baru saja nyala
       if (!results.contains(ConnectivityResult.none)) {
-        debugPrint('🌐 Sinyal terdeteksi secara global! Menjalankan Auto-Sync...');
-        
+        debugPrint(
+          '🌐 Sinyal terdeteksi secara global! Menjalankan Auto-Sync...',
+        );
+
         // Panggil fungsi sync secara otomatis
         _syncService.syncUnsyncedData();
       }
@@ -112,6 +117,7 @@ class _PolLaporAppState extends State<PolLaporApp> {
         ChangeNotifierProvider(create: (_) => TeknisiJurusanProvider()),
         ChangeNotifierProvider(create: (_) => TugasDetailProvider()),
         ChangeNotifierProvider(create: (_) => RiwayatProvider()),
+        ChangeNotifierProvider(create: (_) => TrackingProvider()),
       ],
       child: MaterialApp(
         title: 'PolLapor',

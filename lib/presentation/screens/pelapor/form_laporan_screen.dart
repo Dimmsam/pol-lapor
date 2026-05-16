@@ -4,12 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/datasources/local/hive_local_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../logic/providers/home_provider.dart';
 import '../../../services/sync_service.dart';
 import '../../widgets/pelapor/laporan_photo_field.dart';
-import 'camera_picker_screen.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import 'dart:async';
 
@@ -97,13 +94,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  InputDecoration _selectorDecoration({required String hintText}) {
-    return _fieldDecoration(hintText: hintText).copyWith(
-      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
-      suffixIconColor: const Color(0xFF1565C0),
     );
   }
 
@@ -363,168 +353,252 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Buat Laporan Kerusakan'),
-        backgroundColor: Colors.blue.shade800,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Form Laporan',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Isi data utama lalu kirim laporan.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '* wajib diisi',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFFDC2626),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  _sectionLabel('Nama Sarana', required: true),
-                  TextFormField(
-                    controller: _judulController,
-                    textInputAction: TextInputAction.next,
-                    maxLength: 80,
-                    decoration: _fieldDecoration(
-                      hintText: 'Contoh: AC Mati di Ruang 201',
-                    ).copyWith(counterText: ''),
-                    validator: (value) {
-                      final text = value?.trim() ?? '';
-                      if (text.isEmpty) return 'Nama sarana tidak boleh kosong';
-                      if (text.length < 6) return 'Minimal 6 karakter';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  _sectionLabel('Nomor Inventaris'),
-                  TextFormField(
-                    controller: _nomorInventarisController,
-                    textInputAction: TextInputAction.next,
-                    decoration: _fieldDecoration(
-                      hintText: 'Lihat stiker pada barang',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  _sectionLabel('Lokasi Perbaikan', required: true),
-                  _lokasiSelector(),
-                  const SizedBox(height: 12),
-
-                  _sectionLabel('Keterangan Kerusakan', required: true),
-                  TextFormField(
-                    controller: _deskripsiController,
-                    minLines: 3,
-                    maxLines: 5,
-                    maxLength: 500,
-                    decoration: _fieldDecoration(
-                      hintText: 'Jelaskan detail kerusakan yang terlihat...',
-                    ).copyWith(counterText: ''),
-                    validator: (value) {
-                      final text = value?.trim() ?? '';
-                      if (text.isEmpty) return 'Deskripsi harus diisi';
-                      if (text.length < 12) return 'Minimal 12 karakter';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  _sectionLabel('Foto Bukti Kerusakan', required: true),
-                  LaporanPhotoField(
-                    imagePath: _fotoPath,
-                    enabled: !_isSubmitting,
-                    onChanged: (value) {
-                      setState(() => _fotoPath = value);
-                    },
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Wajib: ambil foto live dari kamera.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFFDC2626),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _isSubmitting ? null : _submitForm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1565C0),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 220),
-                        child: _isSubmitting
-                            ? const SizedBox(
-                                key: ValueKey('loading'),
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.4,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                            : const Text(
-                                'Kirim Laporan',
-                                key: ValueKey('idle'),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ),
-                ],
+      backgroundColor: const Color(0xFFF2F6FC),
+      body: Stack(
+        children: [
+          Container(
+            height: 255,
+            decoration: const BoxDecoration(
+              color: Color(0xFF0D47A1),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(28),
+                bottomRight: Radius.circular(28),
               ),
             ),
           ),
-        ),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.16),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.school_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'PolLapor',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(
+                          Icons.notifications_none_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Buat Laporan\nKerusakan',
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          height: 1.05,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Laporkan kerusakan fasilitas kampus dengan cepat dan rapi.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withOpacity(0.92),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned.fill(
+            top: 190,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x1A0F172A),
+                      blurRadius: 30,
+                      offset: Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Form(
+                  key: _formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Form Laporan',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF111827),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              '* wajib diisi',
+                              style: TextStyle(
+                                color: Color(0xFFDC2626),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Isi data utama lalu kirim laporan.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+
+                        _sectionLabel('Nama Sarana', required: true),
+                        TextFormField(
+                          controller: _judulController,
+                          textInputAction: TextInputAction.next,
+                          maxLength: 80,
+                          decoration: _fieldDecoration(
+                            hintText: 'Contoh: AC Mati di Ruang 201',
+                          ).copyWith(counterText: ''),
+                          validator: (value) {
+                            final text = value?.trim() ?? '';
+                            if (text.isEmpty) {
+                              return 'Nama sarana tidak boleh kosong';
+                            }
+                            if (text.length < 6) return 'Minimal 6 karakter';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+
+                        _sectionLabel('Nomor Inventaris'),
+                        TextFormField(
+                          controller: _nomorInventarisController,
+                          textInputAction: TextInputAction.next,
+                          decoration: _fieldDecoration(
+                            hintText: 'Lihat stiker pada barang',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        _sectionLabel('Lokasi Perbaikan', required: true),
+                        _lokasiSelector(),
+                        const SizedBox(height: 12),
+
+                        _sectionLabel('Keterangan Kerusakan', required: true),
+                        TextFormField(
+                          controller: _deskripsiController,
+                          minLines: 4,
+                          maxLines: 6,
+                          maxLength: 500,
+                          decoration: _fieldDecoration(
+                            hintText: 'Jelaskan detail kerusakan yang terlihat...',
+                          ).copyWith(counterText: ''),
+                          validator: (value) {
+                            final text = value?.trim() ?? '';
+                            if (text.isEmpty) return 'Deskripsi harus diisi';
+                            if (text.length < 12) return 'Minimal 12 karakter';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        _sectionLabel('Foto Bukti Kerusakan', required: true),
+                        LaporanPhotoField(
+                          imagePath: _fotoPath,
+                          enabled: !_isSubmitting,
+                          onChanged: (value) {
+                            setState(() => _fotoPath = value);
+                          },
+                        ),
+                        const SizedBox(height: 18),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _isSubmitting ? null : _submitForm,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1565C0),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      key: ValueKey('loading'),
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.4,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Kirim Laporan',
+                                      key: ValueKey('idle'),
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _openCamera() async {
-    final pickedPath = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => CameraPickerScreen(initialImagePath: _fotoPath),
-      ),
-    );
-    if (pickedPath == null) return;
-    setState(() => _fotoPath = pickedPath);
-  }
 }

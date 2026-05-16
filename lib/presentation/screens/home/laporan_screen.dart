@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/constants/app_constants.dart';
+import '../pelapor/detail_laporan_screen.dart';
 import '../../../data/models/laporan_lokal.dart';
 
 class LaporanScreen extends StatefulWidget {
@@ -73,8 +74,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
         ),
         child: TextField(
           controller: _searchCtrl,
-          onChanged: (val) =>
-              setState(() => _searchQuery = val.toLowerCase()),
+          onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
           style: const TextStyle(fontSize: 13, color: Color(0xFF111827)),
           decoration: const InputDecoration(
             hintText: 'Cari laporan...',
@@ -119,9 +119,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: isActive
-                      ? const Color(0xFF0D47A1)
-                      : Colors.white,
+                  color: isActive ? const Color(0xFF0D47A1) : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isActive
@@ -156,18 +154,20 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
         // Filter status — cocokkan dengan StatusLaporan constants
         if (_filterStatus != 'semua') {
-          data = data
-              .where((l) => l.status == _filterStatus)
-              .toList();
+          data = data.where((l) => l.status == _filterStatus).toList();
         }
 
         // Filter search
         if (_searchQuery.isNotEmpty) {
           data = data
-              .where((l) =>
-                  l.namaSarana.toLowerCase().contains(_searchQuery) ||
-                  l.keteranganKerusakan.toLowerCase().contains(_searchQuery) ||
-                  l.lokasiPerbaikan.toLowerCase().contains(_searchQuery))
+              .where(
+                (l) =>
+                    l.namaSarana.toLowerCase().contains(_searchQuery) ||
+                    l.keteranganKerusakan.toLowerCase().contains(
+                      _searchQuery,
+                    ) ||
+                    l.lokasiPerbaikan.toLowerCase().contains(_searchQuery),
+              )
               .toList();
         }
 
@@ -176,8 +176,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
           itemCount: data.length,
-          itemBuilder: (context, index) =>
-              _LaporanCard(laporan: data[index]),
+          itemBuilder: (context, index) => _LaporanCard(laporan: data[index]),
         );
       },
     );
@@ -244,116 +243,145 @@ class _LaporanCard extends StatelessWidget {
 
   IconData get _icon {
     final nama = laporan.namaSarana.toLowerCase();
-    if (nama.contains('ac') || nama.contains('kipas')) return Icons.air_outlined;
-    if (nama.contains('lampu') || nama.contains('listrik')) return Icons.lightbulb_outline_rounded;
-    if (nama.contains('pintu') || nama.contains('jendela')) return Icons.door_back_door_outlined;
-    if (nama.contains('proyektor') || nama.contains('komputer')) return Icons.monitor_outlined;
-    if (nama.contains('toilet') || nama.contains('wc')) return Icons.wc_outlined;
+    if (nama.contains('ac') || nama.contains('kipas'))
+      return Icons.air_outlined;
+    if (nama.contains('lampu') || nama.contains('listrik'))
+      return Icons.lightbulb_outline_rounded;
+    if (nama.contains('pintu') || nama.contains('jendela'))
+      return Icons.door_back_door_outlined;
+    if (nama.contains('proyektor') || nama.contains('komputer'))
+      return Icons.monitor_outlined;
+    if (nama.contains('toilet') || nama.contains('wc'))
+      return Icons.wc_outlined;
     return Icons.construction_outlined;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE9ECEF), width: 0.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F4FF),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Icon(_icon, color: const Color(0xFF0D47A1), size: 19),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        laporan.namaSarana,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF111827),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        laporan.lokasiPerbaikan,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF9CA3AF),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _StatusBadge(status: laporan.status),
-              ],
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 11),
-              child: Divider(height: 0, thickness: 0.5, color: Color(0xFFF3F4F6)),
-            ),
-            Text(
-              laporan.keteranganKerusakan,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF6B7280),
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today_outlined,
-                    size: 12, color: Color(0xFF9CA3AF)),
-                const SizedBox(width: 5),
-                Text(
-                  '${laporan.createdAt.day.toString().padLeft(2, '0')}/'
-                  '${laporan.createdAt.month.toString().padLeft(2, '0')}/'
-                  '${laporan.createdAt.year}',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
-                ),
-                if (!laporan.isSynced) ...[
-                  const Spacer(),
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DetailLaporanScreen(laporan: laporan),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE9ECEF), width: 0.5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Container(
-                    width: 6, height: 6,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEF4444),
-                      shape: BoxShape.circle,
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F4FF),
+                      borderRadius: BorderRadius.circular(11),
                     ),
+                    child: Icon(
+                      _icon,
+                      color: const Color(0xFF0D47A1),
+                      size: 19,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          laporan.namaSarana,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          laporan.lokasiPerbaikan,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF9CA3AF),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _StatusBadge(status: laporan.status),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 11),
+                child: Divider(
+                  height: 0,
+                  thickness: 0.5,
+                  color: Color(0xFFF3F4F6),
+                ),
+              ),
+              Text(
+                laporan.keteranganKerusakan,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF6B7280),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 12,
+                    color: Color(0xFF9CA3AF),
                   ),
                   const SizedBox(width: 5),
-                  const Text(
-                    'Belum tersinkron',
-                    style: TextStyle(
+                  Text(
+                    '${laporan.createdAt.day.toString().padLeft(2, '0')}/'
+                    '${laporan.createdAt.month.toString().padLeft(2, '0')}/'
+                    '${laporan.createdAt.year}',
+                    style: const TextStyle(
                       fontSize: 11,
-                      color: Color(0xFFEF4444),
-                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF9CA3AF),
                     ),
                   ),
+                  if (!laporan.isSynced) ...[
+                    const Spacer(),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    const Text(
+                      'Belum tersinkron',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFFEF4444),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -397,11 +425,7 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: fg,
-        ),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg),
       ),
     );
   }
