@@ -13,7 +13,6 @@ class DetailLaporanScreen extends StatefulWidget {
   final LaporanLokal laporan;
 
   const DetailLaporanScreen({super.key, required this.laporan});
-
   @override
   State<DetailLaporanScreen> createState() => _DetailLaporanScreenState();
 }
@@ -346,7 +345,7 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
                 children: [
                   const Expanded(
                     child: Text(
-                      'Tracking Pengiriman',
+                      'Tracking ',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
