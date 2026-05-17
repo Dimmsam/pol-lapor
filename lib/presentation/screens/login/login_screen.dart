@@ -27,10 +27,9 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> handleLogin() async {
+Future<void> handleLogin() async {
     final provider = context.read<LoginProvider>();
 
-    // Validasi input kosong sebelum memanggil provider
     if (emailController.text.trim().isEmpty ||
         passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -48,14 +47,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (provider.status == LoginStatus.success) {
       final role = provider.session?.role;
-      final route = switch (role) {
-        AppConstants.roleTeknisiJurusan => '/teknisi-jurusan-home',
-        AppConstants.roleTeknisiUptPp => '/home',
-        _ => '/home',
-      };
-      Navigator.pushReplacementNamed(context, route);
+      final session = provider.session!;
+
+      if (role == AppConstants.roleTeknisiJurusan) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/dashboard-teknisi-jurusan',
+          arguments: session,
+        );
+      } else {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     }
-  }
+  } 
 
   @override
   Widget build(BuildContext context) {
