@@ -24,20 +24,20 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _uuid = const Uuid();
 
   static const List<String> _lokasiPerbaikanOptions = [
-    'D101 - Kelas: Ruang kelas Gedung D, Lantai 1',
-    'D102 - Lab. MT: Laboratorium Multimedia dan Teknologi, Lantai 1',
-    'D105 - Kelas: Ruang kelas Gedung D, Lantai 1',
-    'D106 - Lab. SDB: Laboratorium Sistem Database, Lantai 1',
-    'D107 - Lab. RPL: LaboratoriuFm Rekayasa Perangkat Lunak, Lantai 1',
-    'D108 - Kelas: Ruang kelas Gedung D, Lantai 1',
-    'D111 - Kelas: Ruang kelas Gedung D, Lantai 1',
-    'D112 - Kelas: Ruang kelas Gedung D, Lantai 1',
-    'D115 - Lab. PjBL-1: Laboratorium Project-Based Learning 1, Lantai 1',
-    'D116 - Lab. PjBL-2: Laboratorium Project-Based Learning 2, Lantai 1',
-    'D217 - Kelas: Ruang kelas Gedung D, Lantai 2',
-    'D219 - Kelas: Ruang kelas Gedung D, Lantai 2',
-    'D223 - Kelas: Ruang kelas Gedung D, Lantai 2',
-    'D224 - Kelas: Ruang kelas Gedung D, Lantai 2',
+    'D101',
+    'D102',
+    'D105',
+    'D106',
+    'D107',
+    'D108',
+    'D111',
+    'D112',
+    'D115',
+    'D116',
+    'D217',
+    'D219',
+    'D223',
+    'D224',
   ];
 
   bool _isSubmitting = false;
