@@ -5,7 +5,7 @@ class AppConstants {
 
   // Role pengguna (sesuai entitas baru)
   static const String roleMahasiswa = 'pelapor';
-  static const String roleTeknisiJurusan = 'teknisi_jurusan';
+  static const String roleTeknisiJurusan = 'teknisi';
   static const String roleAdminJurusan = 'admin_jurusan';
   static const String roleKajur = 'kajur';
   static const String roleAdminUptPp = 'admin_upt_pp';
