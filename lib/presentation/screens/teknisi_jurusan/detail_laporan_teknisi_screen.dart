@@ -13,6 +13,7 @@ import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
 import 'form_eskalasi_screen.dart';
+import 'update_laporan_screen.dart';
 
 class DetailLaporanTeknisiScreen extends StatefulWidget {
   final LaporanLokal laporan;
@@ -40,8 +41,9 @@ class _DetailLaporanTeknisiScreenState
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TeknisiJurusanProvider>();
-    final penanganan =
-        provider.getPenangananByFormulir(widget.laporan.formulirId);
+    final penanganan = provider.getPenangananByFormulir(
+      widget.laporan.formulirId,
+    );
     final sudahMulai = penanganan != null;
 
     return Scaffold(
@@ -193,8 +195,11 @@ class _DetailLaporanTeknisiScreenState
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined,
-                  size: 15, color: Colors.grey),
+              const Icon(
+                Icons.location_on_outlined,
+                size: 15,
+                color: Colors.grey,
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -219,8 +224,11 @@ class _DetailLaporanTeknisiScreenState
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.inventory_2_outlined,
-                    size: 15, color: Colors.grey),
+                const Icon(
+                  Icons.inventory_2_outlined,
+                  size: 15,
+                  color: Colors.grey,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Inventaris: ${widget.laporan.nomorInventaris}',
@@ -313,11 +321,13 @@ class _DetailLaporanTeknisiScreenState
               setState(() => _isStarting = false);
             }
             if (!mounted) return;
-            // TODO: Navigate ke FormPerbaikiSendiriScreen
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Form perbaiki sendiri — coming soon!'),
-                backgroundColor: Colors.green,
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => UpdateLaporanScreen(
+                  laporan: widget.laporan,
+                  userSession: widget.userSession,
+                ),
               ),
             );
           },
@@ -406,40 +416,37 @@ class _DetailLaporanTeknisiScreenState
             width: double.infinity,
             height: 44,
             child: isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
                 : tombolOutline
-                    ? OutlinedButton(
-                        onPressed: onTap,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: tombolColor,
-                          side: BorderSide(color: tombolColor),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          tombolLabel,
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      )
-                    : ElevatedButton(
-                        onPressed: onTap,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: tombolColor,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          tombolLabel,
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                ? OutlinedButton(
+                    onPressed: onTap,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: tombolColor,
+                      side: BorderSide(color: tombolColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                    ),
+                    child: Text(
+                      tombolLabel,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  )
+                : ElevatedButton(
+                    onPressed: onTap,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: tombolColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      tombolLabel,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
           ),
         ],
       ),

@@ -16,14 +16,12 @@ import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
 import 'widgets/bottom_nav_teknisi.dart';
 import 'detail_laporan_teknisi_screen.dart';
+import 'profil_teknisi_screen.dart';
 
 class DaftarTugasScreen extends StatefulWidget {
   final UserSession userSession;
 
-  const DaftarTugasScreen({
-    super.key,
-    required this.userSession,
-  });
+  const DaftarTugasScreen({super.key, required this.userSession});
 
   @override
   State<DaftarTugasScreen> createState() => _DaftarTugasScreenState();
@@ -43,8 +41,14 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
   // ─── Tab Filter ──────────────────────────────────────────────────────────
   final List<_TabFilter> _tabs = const [
     _TabFilter(label: 'Semua', filterStatus: null),
-    _TabFilter(label: 'Menunggu', filterStatus: StatusPenanganan.mulaiDikerjakan),
-    _TabFilter(label: 'Dikerjakan', filterStatus: StatusPenanganan.sedangDikerjakan),
+    _TabFilter(
+      label: 'Menunggu',
+      filterStatus: StatusPenanganan.mulaiDikerjakan,
+    ),
+    _TabFilter(
+      label: 'Dikerjakan',
+      filterStatus: StatusPenanganan.sedangDikerjakan,
+    ),
   ];
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────
@@ -54,9 +58,9 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
     _tabController = TabController(length: _tabs.length, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context
-          .read<TeknisiJurusanProvider>()
-          .loadDaftarTugas(teknisiId: widget.userSession.userId);
+      context.read<TeknisiJurusanProvider>().loadDaftarTugas(
+        teknisiId: widget.userSession.userId,
+      );
     });
   }
 
@@ -77,8 +81,15 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
           arguments: widget.userSession,
         );
         break;
-      case 3:
-        // TODO: Navigate ke ProfilScreen
+      case 1:
+        // already on Tugas
+        break;
+      case 2:
+        // Navigate to ProfilTeknisiScreen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ProfilTeknisiScreen()),
+        );
         break;
     }
   }
@@ -255,19 +266,34 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
     List<LaporanLokal> laporan,
     TeknisiJurusanProvider provider,
   ) {
-    if (laporan.isEmpty) return _buildEmptyState();
+    // Jika daftar kosong, tampilkan satu laporan dummy lokal untuk pengujian
+    final listToShow = laporan.isEmpty
+        ? [
+            LaporanLokal(
+              formulirId: 'DUMMY-0001',
+              namaSarana: 'Laboratorium Jaringan',
+              keteranganKerusakan: 'Port LAN tidak berfungsi pada meja 3',
+              lokasiPerbaikan: 'Gedung A - Lantai 2',
+              nomorInventaris: 'INV-12345',
+              fotoKerusakanUrl: null,
+              status: StatusLaporan.diproses,
+              pelaporId: 'pelapor-demo',
+            ),
+          ]
+        : laporan;
+
+    if (listToShow.isEmpty) return _buildEmptyState();
 
     return RefreshIndicator(
       color: _primaryColor,
-      onRefresh: () => provider.loadDaftarTugas(
-        teknisiId: widget.userSession.userId,
-      ),
+      onRefresh: () =>
+          provider.loadDaftarTugas(teknisiId: widget.userSession.userId),
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
-        itemCount: laporan.length,
+        itemCount: listToShow.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          final item = laporan[index];
+          final item = listToShow[index];
           final penanganan = provider.getPenangananByFormulir(item.formulirId);
           return _buildCardTugas(item, penanganan, provider);
         },
@@ -395,7 +421,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
                 ),
 
                 // Tombol Detail →
-                  ElevatedButton(
+                ElevatedButton(
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -451,10 +477,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
   }
 
   /// Badge prioritas (High / Medium / Low)
-  Widget _buildBadgePrioritas({
-    required String label,
-    required Color color,
-  }) {
+  Widget _buildBadgePrioritas({required String label, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -473,10 +496,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
   }
 
   /// Badge status penanganan (Menunggu / Dikerjakan / Selesai)
-  Widget _buildBadgeStatus({
-    required String label,
-    required Color color,
-  }) {
+  Widget _buildBadgeStatus({required String label, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
@@ -537,9 +557,8 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: () => provider.loadDaftarTugas(
-              teknisiId: widget.userSession.userId,
-            ),
+            onPressed: () =>
+                provider.loadDaftarTugas(teknisiId: widget.userSession.userId),
             style: ElevatedButton.styleFrom(
               backgroundColor: _primaryColor,
               foregroundColor: Colors.white,

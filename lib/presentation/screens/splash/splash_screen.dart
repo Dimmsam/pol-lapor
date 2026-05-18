@@ -31,11 +31,15 @@ class _SplashScreenState extends State<SplashScreen> {
       await localAuth.saveSession(supabaseSession);
       if (!mounted) return;
       final route = switch (supabaseSession.role) {
-        AppConstants.roleTeknisiJurusan => '/teknisi-jurusan-home',
-        AppConstants.roleTeknisiUptPp => '/teknisi-upt-home',
+        AppConstants.roleTeknisiJurusan => '/dashboard-teknisi-jurusan',
+        AppConstants.roleTeknisiUptPp => '/dashboard-teknisi-jurusan',
         _ => '/home',
       };
-      Navigator.pushReplacementNamed(context, route);
+      Navigator.pushReplacementNamed(
+        context,
+        route,
+        arguments: supabaseSession,
+      );
       return;
     }
 
