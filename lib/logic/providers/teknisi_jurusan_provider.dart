@@ -4,10 +4,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/laporan_lokal.dart';
 import '../../data/models/penanganan.dart';
 import '../../core/supabase/supabase_service.dart';
+import '../../services/tracking_service.dart';
 
 class TeknisiJurusanProvider extends ChangeNotifier {
   // ─── Supabase Client ─────────────────────────────────────────────────────
   SupabaseClient get _db => SupabaseService.db;
+  final TrackingService _trackingService = TrackingService();
 
   // ─── State ───────────────────────────────────────────────────────────────
   List<Penanganan> _daftarPenangananLokal = [];
@@ -258,6 +260,15 @@ class TeknisiJurusanProvider extends ChangeNotifier {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('formulir_id', formulirId);
+
+      // ── Catat tracking: Penanganan Dimulai ────────────────────────────
+      await _trackingService.catatTracking(
+        formulirId: formulirId,
+        aktorId: teknisiId,
+        statusLaporan: StatusLaporan.diproses,
+        pesanNarasi: 'Teknisi Jurusan memulai penanganan. '
+            'Status berubah dari Menunggu → Diproses.',
+      );
     } catch (e) {
       _errorMessage = 'Gagal memulai penanganan: $e';
       debugPrint('mulaiPenangananLangsung error: $e');
@@ -311,6 +322,16 @@ class TeknisiJurusanProvider extends ChangeNotifier {
           .from('formulir_laporan')
           .update({'status': StatusLaporan.selesai, 'updated_at': nowStr})
           .eq('formulir_id', formulirId);
+
+      // ── Catat tracking: Penanganan Selesai ────────────────────────────
+      final user = SupabaseService.auth.currentUser;
+      await _trackingService.catatTracking(
+        formulirId: formulirId,
+        aktorId: user?.id,
+        statusLaporan: StatusLaporan.selesai,
+        pesanNarasi: 'Penanganan selesai. '
+            'Deskripsi hasil: $deskripsiHasil',
+      );
     } catch (e) {
       _errorMessage = 'Gagal menyelesaikan penanganan: $e';
       debugPrint('selesaikanPenanganan error: $e');
@@ -415,6 +436,7 @@ class TeknisiJurusanProvider extends ChangeNotifier {
   }
 
   /// Insert log ke tabel `tracking` untuk audit trail (non-critical)
+  /// Menggunakan TrackingService agar format kolom konsisten.
   Future<void> _insertTrackingLog({
     required String formulirId,
     required String statusSebelumnya,
@@ -425,16 +447,134 @@ class TeknisiJurusanProvider extends ChangeNotifier {
       final user = SupabaseService.auth.currentUser;
       if (user == null) return;
 
-      await _db.from('tracking').insert({
-        'formulir_id': formulirId,
-        'status_sebelumnya': statusSebelumnya,
-        'status_baru': statusBaru,
-        'keterangan': keterangan,
-        'aktor_id': user.id,
-        'created_at': DateTime.now().toIso8601String(),
-      });
+      await _trackingService.catatTracking(
+        formulirId: formulirId,
+        aktorId: user.id,
+        statusLaporan: statusBaru,
+        pesanNarasi: keterangan,
+      );
     } catch (e) {
       debugPrint('_insertTrackingLog error (non-critical): $e');
+    }
+  }
+
+  // =========================================================================
+  // PENANGANAN — UPDATE PROGRES (untuk UpdateLaporanScreen)
+  // =========================================================================
+
+  /// Update progres penanganan: catatan, foto, dan status.
+  /// Digunakan oleh UpdateLaporanScreen.
+  Future<bool> updateProgresLaporan({
+    required String formulirId,
+    required String statusBaru,
+    String? catatanProgres,
+    String? fotoProgresUrl,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final penanganan = _mapPenanganan[formulirId];
+      if (penanganan == null) {
+        _errorMessage = 'Data penanganan tidak ditemukan';
+        return false;
+      }
+
+      final now = DateTime.now();
+      final nowStr = now.toIso8601String();
+
+      // Map status UI → status DB
+      final statusDb = _mapStatusUiToDb(statusBaru);
+
+      // Update tabel penanganan
+      final updateData = <String, dynamic>{
+        'updated_at': nowStr,
+      };
+
+      if (catatanProgres != null && catatanProgres.isNotEmpty) {
+        updateData['catatan_progres'] = catatanProgres;
+      }
+
+      if (statusDb == StatusPenanganan.selesai) {
+        updateData['status_penanganan'] = StatusPenanganan.selesai;
+        updateData['deskripsi_hasil'] = catatanProgres ?? '';
+        updateData['tanggal_selesai'] = nowStr;
+      } else {
+        updateData['status_penanganan'] = StatusPenanganan.sedangDikerjakan;
+      }
+
+      // Tambahkan foto progres jika ada
+      if (fotoProgresUrl != null && fotoProgresUrl.isNotEmpty) {
+        final updatedFotoList = [...penanganan.fotoProgresUrl, fotoProgresUrl];
+        updateData['foto_progres_url'] = updatedFotoList;
+      }
+
+      await _db
+          .from('penanganan')
+          .update(updateData)
+          .eq('penanganan_id', penanganan.penangananId);
+
+      // Update status formulir_laporan
+      final statusFormulir = statusDb == StatusPenanganan.selesai
+          ? StatusLaporan.selesai
+          : StatusLaporan.diproses;
+
+      await _db
+          .from('formulir_laporan')
+          .update({'status': statusFormulir, 'updated_at': nowStr})
+          .eq('formulir_id', formulirId);
+
+      // Update state lokal
+      final updatedPenanganan = penanganan.copyWith(
+        statusPenanganan: updateData['status_penanganan'] as String?,
+        catatanProgres: catatanProgres,
+        fotoProgresUrl: fotoProgresUrl != null
+            ? [...penanganan.fotoProgresUrl, fotoProgresUrl]
+            : null,
+        tanggalSelesai:
+            statusDb == StatusPenanganan.selesai ? now : null,
+      );
+      _mapPenanganan[formulirId] = updatedPenanganan;
+
+      final index = _daftarPenangananLokal
+          .indexWhere((p) => p.penangananId == penanganan.penangananId);
+      if (index != -1) {
+        _daftarPenangananLokal[index] = updatedPenanganan;
+      }
+      notifyListeners();
+
+      // Catat tracking
+      final user = SupabaseService.auth.currentUser;
+      final pesanNarasi = statusDb == StatusPenanganan.selesai
+          ? 'Penanganan diselesaikan oleh Teknisi. ${catatanProgres ?? ""}'
+          : 'Progres diperbarui oleh Teknisi. ${catatanProgres ?? ""}';
+
+      await _trackingService.catatTracking(
+        formulirId: formulirId,
+        aktorId: user?.id,
+        statusLaporan: statusFormulir,
+        pesanNarasi: pesanNarasi.trim(),
+      );
+
+      return true;
+    } catch (e) {
+      _errorMessage = 'Gagal memperbarui laporan: $e';
+      debugPrint('updateProgresLaporan error: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Map label status dari dropdown UI ke konstanta DB
+  String _mapStatusUiToDb(String statusUi) {
+    switch (statusUi.toLowerCase()) {
+      case 'selesai':
+        return StatusPenanganan.selesai;
+      case 'diproses':
+      case 'tunda':
+      default:
+        return StatusPenanganan.sedangDikerjakan;
     }
   }
 

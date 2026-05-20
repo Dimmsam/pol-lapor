@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/supabase/supabase_service.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/user_session.dart';
+import '../../../logic/providers/teknisi_jurusan_provider.dart';
 import 'widgets/bottom_nav_teknisi.dart';
 import 'profil_teknisi_screen.dart';
 import '../pelapor/camera_picker_screen.dart';
@@ -29,11 +33,85 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
   String _status = 'Diproses';
   final TextEditingController _catatanCtrl = TextEditingController();
   String? _pickedImagePath;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
     _catatanCtrl.dispose();
     super.dispose();
+  }
+
+  // ─── SUBMIT: Upload foto + update penanganan + catat tracking ───────────
+  Future<void> _submitUpdate() async {
+    final catatan = _catatanCtrl.text.trim();
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      String? fotoUrl;
+
+      // Upload foto ke Supabase Storage jika ada
+      if (_pickedImagePath != null && _pickedImagePath!.isNotEmpty) {
+        final file = File(_pickedImagePath!);
+        if (await file.exists()) {
+          final storage = SupabaseService.storage;
+          final ext = _pickedImagePath!.split('.').last;
+          final fileName =
+              'progres_${widget.laporan.formulirId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+          final path = 'foto_progres/$fileName';
+
+          await storage
+              .from('bukti_laporan')
+              .upload(path, file, fileOptions: const FileOptions(upsert: true));
+
+          fotoUrl = storage.from('bukti_laporan').getPublicUrl(path);
+        }
+      }
+
+      // Update via provider
+      if (!mounted) return;
+      final provider = context.read<TeknisiJurusanProvider>();
+      final success = await provider.updateProgresLaporan(
+        formulirId: widget.laporan.formulirId,
+        statusBaru: _status,
+        catatanProgres: catatan.isNotEmpty ? catatan : null,
+        fotoProgresUrl: fotoUrl,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Laporan berhasil diperbarui'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+        Navigator.pop(context, true); // Return true to indicate success
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              provider.errorMessage ?? 'Gagal memperbarui laporan',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -306,20 +384,24 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
+            SizedBox(
             width: double.infinity,
             height: 48,
             child: ElevatedButton.icon(
-              onPressed: () {
-                // Simulate save action
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Laporan diperbarui (demo)')),
-                );
-              },
-              icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-              label: const Text(
-                'Update Laporan & Simpan',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              onPressed: _isSubmitting ? null : _submitUpdate,
+              icon: _isSubmitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle_outline, color: Colors.white),
+              label: Text(
+                _isSubmitting ? 'Menyimpan...' : 'Update Laporan & Simpan',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryNavy,

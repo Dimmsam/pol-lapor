@@ -13,8 +13,6 @@ import 'data/models/notifikasi_laporan.dart';
 import 'logic/providers/home_provider.dart';
 import 'logic/providers/login_provider.dart';
 import 'logic/providers/teknisi_jurusan_provider.dart';
-import 'logic/providers/tugas_detail_provider.dart';
-import 'logic/providers/riwayat_provider.dart';
 import 'logic/providers/tracking_provider.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/home/notif_screen.dart';
@@ -106,8 +104,6 @@ class _PolLaporAppState extends State<PolLaporApp> {
         ),
 
         ChangeNotifierProvider(create: (_) => TeknisiJurusanProvider()),
-        ChangeNotifierProvider(create: (_) => TugasDetailProvider()),
-        ChangeNotifierProvider(create: (_) => RiwayatProvider()),
         ChangeNotifierProvider(create: (_) => TrackingProvider()),
       ],
       child: MaterialApp(

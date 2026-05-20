@@ -7,7 +7,6 @@ import '../../../data/datasources/local/auth_local_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/tracking.dart';
 import '../../../logic/providers/tracking_provider.dart';
-import '../../../services/tracking_service.dart';
 
 class DetailLaporanScreen extends StatefulWidget {
   final LaporanLokal laporan;
@@ -26,12 +25,15 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TrackingProvider>().fetchRiwayat(widget.laporan.formulirId);
+      final tp = context.read<TrackingProvider>();
+      tp.fetchRiwayat(widget.laporan.formulirId);
+      tp.startRealtimeListener(widget.laporan.formulirId);
     });
   }
 
   @override
   void dispose() {
+    context.read<TrackingProvider>().stopRealtimeListener();
     _catatanCtrl.dispose();
     super.dispose();
   }
@@ -45,22 +47,26 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      await TrackingService().catatTracking(
+      final success = await context.read<TrackingProvider>().catatTrackingDanRefresh(
         formulirId: widget.laporan.formulirId,
         aktorId: aktorId,
         statusLaporan: widget.laporan.status,
         pesanNarasi: text,
       );
 
-      await context.read<TrackingProvider>().fetchRiwayat(
-        widget.laporan.formulirId,
-      );
-
-      _catatanCtrl.clear();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Catatan berhasil ditambahkan')),
-        );
+      if (success) {
+        _catatanCtrl.clear();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Catatan berhasil ditambahkan')),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gagal menambahkan catatan')),
+          );
+        }
       }
     } catch (e) {
       if (context.mounted) {
