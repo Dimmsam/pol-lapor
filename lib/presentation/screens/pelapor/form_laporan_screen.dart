@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/datasources/local/hive_local_datasource.dart';
+import '../../../data/datasources/remote/laporan_remote_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../logic/providers/home_provider.dart';
 import '../../../services/sync_service.dart';
@@ -20,6 +21,7 @@ class FormLaporanScreen extends StatefulWidget {
 class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _formKey = GlobalKey<FormState>();
   final _datasource = HiveLocalDatasource();
+  final _remoteDs = LaporanRemoteDatasource();
   final _syncService = SyncService();
   final _uuid = const Uuid();
 
@@ -42,6 +44,10 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
 
   bool _isSubmitting = false;
 
+  // State peringatan laporan serupa
+  bool _isCheckingSerupa = false;
+  int _jumlahLaporanSerupa = 0;  // 0 = tidak ada / belum dicek
+
   // Controller untuk menangkap input
   final TextEditingController _judulController = TextEditingController();
   final TextEditingController _deskripsiController = TextEditingController();
@@ -50,7 +56,107 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   String? _lokasiPerbaikan;
   String? _fotoPath;
 
-  // INIT REALTIME
+  // ── CEK LAPORAN SERUPA ──────────────────────────────────────────────────
+  /// Dicek dari Hive dulu (offline-first), lalu diverifikasi ke Supabase.
+  Future<void> _checkLaporanSerupa(String lokasi) async {
+    setState(() {
+      _isCheckingSerupa = true;
+      _jumlahLaporanSerupa = 0;
+    });
+
+    // 1. Cek lokal dulu (selalu tersedia, bahkan offline)
+    final lokalSerupa = _datasource.getLaporanAktifByLokasi(lokasi);
+
+    // 2. Coba verifikasi ke Supabase (bisa null jika offline)
+    final countCloud = await _remoteDs.countLaporanAktifByLokasi(lokasi);
+
+    // Ambil angka terbesar antara lokal dan cloud
+    final jumlah = countCloud != null
+        ? countCloud
+        : lokalSerupa.length;
+
+    if (mounted) {
+      setState(() {
+        _jumlahLaporanSerupa = jumlah;
+        _isCheckingSerupa = false;
+      });
+    }
+  }
+
+  // ── BANNER PERINGATAN ────────────────────────────────────────────────────
+  Widget _buildWarningBanner() {
+    if (_isCheckingSerupa) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Memeriksa laporan serupa...',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_jumlahLaporanSerupa <= 0) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF8E1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFFC107), width: 1.2),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: Color(0xFFF59E0B),
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Laporan serupa sudah ada!',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: Color(0xFF78350F),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Terdapat $_jumlahLaporanSerupa laporan aktif '
+                    'di lokasi ini. Pastikan belum dilaporkan '
+                    'sebelum mengirim laporan baru.',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF92400E),
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   InputDecoration _fieldDecoration({required String hintText}) {
     return InputDecoration(
@@ -116,8 +222,13 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                   : () async {
                       final selected = await _showLocationPicker();
                       if (selected != null) {
-                        setState(() => _lokasiPerbaikan = selected);
+                        setState(() {
+                          _lokasiPerbaikan = selected;
+                          _jumlahLaporanSerupa = 0; // reset saat ganti lokasi
+                        });
                         state.didChange(selected);
+                        // Cek laporan serupa setelah lokasi dipilih
+                        _checkLaporanSerupa(selected);
                       }
                     },
               child: InputDecorator(
@@ -520,7 +631,10 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
 
                         _sectionLabel('Lokasi Perbaikan', required: true),
                         _lokasiSelector(),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
+
+                        // Banner peringatan laporan serupa
+                        _buildWarningBanner(),
 
                         _sectionLabel('Keterangan Kerusakan', required: true),
                         TextFormField(

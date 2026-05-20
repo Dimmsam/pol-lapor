@@ -73,4 +73,16 @@ class HiveLocalDatasource {
   ValueListenable<Box<LaporanLokal>> listenable() {
     return Hive.box<LaporanLokal>(AppConstants.boxLaporan).listenable();
   }
+
+  // ── CEK LAPORAN SERUPA DI LOKASI (OFFLINE CHECK) ─────────────────────
+  /// Mengembalikan daftar laporan aktif (belum selesai) di lokasi yang sama.
+  /// Dipakai untuk peringatan "laporan serupa sudah ada" bahkan saat offline.
+  List<LaporanLokal> getLaporanAktifByLokasi(String lokasi) {
+    return _box.values.where((l) {
+      final sameLokasi = l.lokasiPerbaikan.trim().toLowerCase() ==
+          lokasi.trim().toLowerCase();
+      final masihAktif = l.status != StatusLaporan.selesai;
+      return sameLokasi && masihAktif;
+    }).toList();
+  }
 }
