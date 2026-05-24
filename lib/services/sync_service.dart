@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../data/models/laporan_lokal.dart';
 import 'hive_service.dart';
@@ -8,6 +9,7 @@ import 'hive_service.dart';
 class SyncService {
   final HiveService _hiveService = HiveService();
   final supabase = Supabase.instance.client;
+  final _uuid = const Uuid();
 
   // ── 1. FUNGSI UTAMA: Pemicu Sinkronisasi ─────────────────────────────────
   Future<void> syncUnsyncedData() async {
@@ -43,6 +45,14 @@ class SyncService {
 
         // Step B: Simpan data ke tabel formulir_laporan
         await _upsertDataToSupabase(laporan, cloudImageUrl);
+
+        // Step B2: Buat entry tracking awal untuk laporan baru
+        await _insertInitialTracking(
+          formulirId: laporan.formulirId,
+          aktorId: authUser.id,
+          pesanNarasi: 'Laporan sudah dibuat',
+          status: _mapStatusForSupabase(laporan.status),
+        );
 
         // Step C: Tandai sebagai synced di Hive
         await _hiveService.markSynced(laporan.formulirId);
@@ -109,6 +119,22 @@ class SyncService {
       // tanda_tangan_pelapor          → tidak ada
       // tanggal_tanda_tangan_pelapor  → tidak ada
       // lokasi_perbaikan              → tidak ada (diganti lokasi_id)
+    });
+  }
+
+  Future<void> _insertInitialTracking({
+    required String formulirId,
+    required String aktorId,
+    required String pesanNarasi,
+    required String status,
+  }) async {
+    await supabase.from('tracking').insert({
+      'tracking_id': _uuid.v4(),
+      'formulir_id': formulirId,
+      'aktor_id': aktorId,
+      'status': status,
+      'pesan_narasi': pesanNarasi,
+      'created_at': DateTime.now().toIso8601String(),
     });
   }
 
