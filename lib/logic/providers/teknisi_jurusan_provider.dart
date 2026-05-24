@@ -311,6 +311,11 @@ class TeknisiJurusanProvider extends ChangeNotifier {
           .from('formulir_laporan')
           .update({'status': StatusLaporan.selesai, 'updated_at': nowStr})
           .eq('formulir_id', formulirId);
+
+      final teknisiId = await _getTeknisiIdByPenanganan(penangananId);
+      if (teknisiId != null) {
+        await _setTeknisiBusyState(teknisiId: teknisiId, isBusy: false);
+      }
     } catch (e) {
       _errorMessage = 'Gagal menyelesaikan penanganan: $e';
       debugPrint('selesaikanPenanganan error: $e');
@@ -358,6 +363,11 @@ class TeknisiJurusanProvider extends ChangeNotifier {
             'Teknisi Jurusan mengajukan eskalasi. '
             'Kategori: $kategoriKerusakan. Catatan: $catatanEskalasi',
       );
+
+      final teknisiId = await _getTeknisiIdByPenanganan(penangananId);
+      if (teknisiId != null) {
+        await _setTeknisiBusyState(teknisiId: teknisiId, isBusy: false);
+      }
 
       // Update state lokal + map
       final index = _daftarPenangananLokal
@@ -435,6 +445,39 @@ class TeknisiJurusanProvider extends ChangeNotifier {
       });
     } catch (e) {
       debugPrint('_insertTrackingLog error (non-critical): $e');
+    }
+  }
+
+  /// Ambil teknisi_id dari penanganan, gunakan cache lokal jika ada.
+  Future<String?> _getTeknisiIdByPenanganan(String penangananId) async {
+    final localIndex = _daftarPenangananLokal
+        .indexWhere((p) => p.penangananId == penangananId);
+    if (localIndex != -1) {
+      return _daftarPenangananLokal[localIndex].teknisiId;
+    }
+
+    try {
+      final response = await _db
+          .from('penanganan')
+          .select('teknisi_id')
+          .eq('penanganan_id', penangananId)
+          .maybeSingle();
+      if (response == null) return null;
+      return response['teknisi_id'] as String?;
+    } catch (e) {
+      debugPrint('_getTeknisiIdByPenanganan error: $e');
+      return null;
+    }
+  }
+
+  Future<void> _setTeknisiBusyState({
+    required String teknisiId,
+    required bool isBusy,
+  }) async {
+    try {
+      await _db.from('pengguna').update({'is_busy': isBusy}).eq('user_id', teknisiId);
+    } catch (e) {
+      debugPrint('_setTeknisiBusyState error: $e');
     }
   }
 
