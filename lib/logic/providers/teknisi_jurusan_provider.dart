@@ -322,16 +322,6 @@ class TeknisiJurusanProvider extends ChangeNotifier {
           .from('formulir_laporan')
           .update({'status': StatusLaporan.selesai, 'updated_at': nowStr})
           .eq('formulir_id', formulirId);
-
-      // ── Catat tracking: Penanganan Selesai ────────────────────────────
-      final user = SupabaseService.auth.currentUser;
-      await _trackingService.catatTracking(
-        formulirId: formulirId,
-        aktorId: user?.id,
-        statusLaporan: StatusLaporan.selesai,
-        pesanNarasi: 'Penanganan selesai. '
-            'Deskripsi hasil: $deskripsiHasil',
-      );
     } catch (e) {
       _errorMessage = 'Gagal menyelesaikan penanganan: $e';
       debugPrint('selesaikanPenanganan error: $e');
@@ -402,6 +392,106 @@ class TeknisiJurusanProvider extends ChangeNotifier {
   }
 
   // =========================================================================
+  // PENANGANAN — UPDATE PROGRES
+  // =========================================================================
+
+  Future<bool> updateProgresLaporan({
+    required String formulirId,
+    required String statusBaru,
+    String? catatanProgres,
+    String? fotoProgresUrl,
+  }) async {
+    _setLoading(true);
+
+    try {
+      final nowStr = DateTime.now().toIso8601String();
+
+      // Cari penanganan yang sedang aktif untuk formulir ini
+      final penanganan = _mapPenanganan[formulirId];
+      if (penanganan == null) {
+        throw Exception('Penanganan tidak ditemukan untuk formulir ini.');
+      }
+
+      String finalStatusLaporan = StatusLaporan.diproses;
+      String finalStatusPenanganan = StatusPenanganan.sedangDikerjakan;
+
+      if (statusBaru.toLowerCase() == 'selesai') {
+        finalStatusLaporan = StatusLaporan.selesai;
+        finalStatusPenanganan = StatusPenanganan.selesai;
+      }
+
+      // Update penanganan
+      Map<String, dynamic> updateData = {
+        'status_penanganan': finalStatusPenanganan,
+        'updated_at': nowStr,
+      };
+
+      if (catatanProgres != null) {
+        updateData['catatan_progres'] = catatanProgres;
+        if (finalStatusPenanganan == StatusPenanganan.selesai) {
+          updateData['deskripsi_hasil'] = catatanProgres;
+        }
+      }
+
+      if (fotoProgresUrl != null) {
+        if (finalStatusPenanganan == StatusPenanganan.selesai) {
+          updateData['foto_hasil_url'] = fotoProgresUrl;
+        } else {
+          updateData['foto_progres_url'] = [fotoProgresUrl];
+        }
+      }
+
+      if (finalStatusPenanganan == StatusPenanganan.selesai) {
+        updateData['tanggal_selesai'] = nowStr;
+      }
+
+      await _db
+          .from('penanganan')
+          .update(updateData)
+          .eq('penanganan_id', penanganan.penangananId);
+
+      // Update formulir laporan
+      await _db
+          .from('formulir_laporan')
+          .update({
+            'status': finalStatusLaporan,
+            'updated_at': nowStr,
+          })
+          .eq('formulir_id', formulirId);
+
+      // Track the status
+      await _insertTrackingLog(
+        formulirId: formulirId,
+        statusSebelumnya: StatusLaporan.diproses,
+        statusBaru: finalStatusLaporan,
+        keterangan: 'Teknisi memperbarui progres: $statusBaru. ${catatanProgres ?? ""}',
+      );
+
+      // Update local state
+      final index = _daftarPenangananLokal.indexWhere((p) => p.penangananId == penanganan.penangananId);
+      if (index != -1) {
+        final updated = _daftarPenangananLokal[index].copyWith(
+          statusPenanganan: finalStatusPenanganan,
+          catatanProgres: catatanProgres ?? _daftarPenangananLokal[index].catatanProgres,
+          fotoHasilUrl: finalStatusPenanganan == StatusPenanganan.selesai ? fotoProgresUrl : _daftarPenangananLokal[index].fotoHasilUrl,
+          tanggalSelesai: finalStatusPenanganan == StatusPenanganan.selesai ? DateTime.now() : _daftarPenangananLokal[index].tanggalSelesai,
+        );
+        _daftarPenangananLokal[index] = updated;
+        _mapPenanganan[formulirId] = updated;
+        notifyListeners();
+      }
+
+      return true;
+    } catch (e) {
+      _errorMessage = 'Gagal memperbarui progres: $e';
+      debugPrint('updateProgresLaporan error: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // =========================================================================
   // HELPER PRIVAT
   // =========================================================================
 
@@ -455,126 +545,6 @@ class TeknisiJurusanProvider extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint('_insertTrackingLog error (non-critical): $e');
-    }
-  }
-
-  // =========================================================================
-  // PENANGANAN — UPDATE PROGRES (untuk UpdateLaporanScreen)
-  // =========================================================================
-
-  /// Update progres penanganan: catatan, foto, dan status.
-  /// Digunakan oleh UpdateLaporanScreen.
-  Future<bool> updateProgresLaporan({
-    required String formulirId,
-    required String statusBaru,
-    String? catatanProgres,
-    String? fotoProgresUrl,
-  }) async {
-    _setLoading(true);
-    _errorMessage = null;
-
-    try {
-      final penanganan = _mapPenanganan[formulirId];
-      if (penanganan == null) {
-        _errorMessage = 'Data penanganan tidak ditemukan';
-        return false;
-      }
-
-      final now = DateTime.now();
-      final nowStr = now.toIso8601String();
-
-      // Map status UI → status DB
-      final statusDb = _mapStatusUiToDb(statusBaru);
-
-      // Update tabel penanganan
-      final updateData = <String, dynamic>{
-        'updated_at': nowStr,
-      };
-
-      if (catatanProgres != null && catatanProgres.isNotEmpty) {
-        updateData['catatan_progres'] = catatanProgres;
-      }
-
-      if (statusDb == StatusPenanganan.selesai) {
-        updateData['status_penanganan'] = StatusPenanganan.selesai;
-        updateData['deskripsi_hasil'] = catatanProgres ?? '';
-        updateData['tanggal_selesai'] = nowStr;
-      } else {
-        updateData['status_penanganan'] = StatusPenanganan.sedangDikerjakan;
-      }
-
-      // Tambahkan foto progres jika ada
-      if (fotoProgresUrl != null && fotoProgresUrl.isNotEmpty) {
-        final updatedFotoList = [...penanganan.fotoProgresUrl, fotoProgresUrl];
-        updateData['foto_progres_url'] = updatedFotoList;
-      }
-
-      await _db
-          .from('penanganan')
-          .update(updateData)
-          .eq('penanganan_id', penanganan.penangananId);
-
-      // Update status formulir_laporan
-      final statusFormulir = statusDb == StatusPenanganan.selesai
-          ? StatusLaporan.selesai
-          : StatusLaporan.diproses;
-
-      await _db
-          .from('formulir_laporan')
-          .update({'status': statusFormulir, 'updated_at': nowStr})
-          .eq('formulir_id', formulirId);
-
-      // Update state lokal
-      final updatedPenanganan = penanganan.copyWith(
-        statusPenanganan: updateData['status_penanganan'] as String?,
-        catatanProgres: catatanProgres,
-        fotoProgresUrl: fotoProgresUrl != null
-            ? [...penanganan.fotoProgresUrl, fotoProgresUrl]
-            : null,
-        tanggalSelesai:
-            statusDb == StatusPenanganan.selesai ? now : null,
-      );
-      _mapPenanganan[formulirId] = updatedPenanganan;
-
-      final index = _daftarPenangananLokal
-          .indexWhere((p) => p.penangananId == penanganan.penangananId);
-      if (index != -1) {
-        _daftarPenangananLokal[index] = updatedPenanganan;
-      }
-      notifyListeners();
-
-      // Catat tracking
-      final user = SupabaseService.auth.currentUser;
-      final pesanNarasi = statusDb == StatusPenanganan.selesai
-          ? 'Penanganan diselesaikan oleh Teknisi. ${catatanProgres ?? ""}'
-          : 'Progres diperbarui oleh Teknisi. ${catatanProgres ?? ""}';
-
-      await _trackingService.catatTracking(
-        formulirId: formulirId,
-        aktorId: user?.id,
-        statusLaporan: statusFormulir,
-        pesanNarasi: pesanNarasi.trim(),
-      );
-
-      return true;
-    } catch (e) {
-      _errorMessage = 'Gagal memperbarui laporan: $e';
-      debugPrint('updateProgresLaporan error: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  /// Map label status dari dropdown UI ke konstanta DB
-  String _mapStatusUiToDb(String statusUi) {
-    switch (statusUi.toLowerCase()) {
-      case 'selesai':
-        return StatusPenanganan.selesai;
-      case 'diproses':
-      case 'tunda':
-      default:
-        return StatusPenanganan.sedangDikerjakan;
     }
   }
 

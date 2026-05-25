@@ -105,4 +105,4 @@ class TrackingProvider extends ChangeNotifier {
     stopRealtimeListener();
     super.dispose();
   }
-}
+}
