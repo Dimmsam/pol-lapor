@@ -14,7 +14,7 @@ class HiveLocalDatasource {
   // ── READ ALL ──────────────────────────────────────────────────────────────
   List<LaporanLokal> getAllLaporan() {
     final list = _box.values.toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // terbaru di atas
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   }
 
@@ -42,18 +42,18 @@ class HiveLocalDatasource {
   Future<void> markAsSynced(String formulirId, String fotoCloudUrl) async {
     final laporan = _box.get(formulirId);
     if (laporan == null) return;
-    
+
     laporan.isSynced = true;
-    laporan.fotoKerusakanUrl = fotoCloudUrl; 
+    laporan.fotoKerusakanUrl = fotoCloudUrl;
     laporan.updatedAt = DateTime.now();
-    await laporan.save(); 
+    await laporan.save();
   }
 
   // ── UPDATE STATUS ─────────────────────────────────────────────────────────
   Future<void> updateStatus(String formulirId, String statusBaru) async {
     final laporan = _box.get(formulirId);
     if (laporan == null) return;
-    
+
     laporan.status = statusBaru;
     laporan.updatedAt = DateTime.now();
     await laporan.save();
@@ -69,8 +69,20 @@ class HiveLocalDatasource {
           .where((l) => !l.isSynced)
           .length;
 
-  // ── LISTENABLE (REALTIME UI) ─────────────────────────────────────────
+  // ── LISTENABLE (REALTIME UI) ──────────────────────────────────────────────
   ValueListenable<Box<LaporanLokal>> listenable() {
     return Hive.box<LaporanLokal>(AppConstants.boxLaporan).listenable();
+  }
+
+  // ── CEK LAPORAN SERUPA DI LOKASI (OFFLINE CHECK) ──────────────────────────
+  /// Mengembalikan daftar laporan aktif (belum selesai) di lokasi yang sama.
+  /// Dipakai untuk peringatan "laporan serupa sudah ada" bahkan saat offline.
+  List<LaporanLokal> getLaporanAktifByLokasi(String lokasi) {
+    return _box.values.where((l) {
+      final sameLokasi = l.lokasiPerbaikan.trim().toLowerCase() ==
+          lokasi.trim().toLowerCase();
+      final masihAktif = l.status != StatusLaporan.selesai;
+      return sameLokasi && masihAktif;
+    }).toList();
   }
 }
