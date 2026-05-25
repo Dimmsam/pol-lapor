@@ -8,7 +8,6 @@ import '../../../logic/providers/home_provider.dart';
 import '../../../logic/providers/login_provider.dart';
 import '../../../data/datasources/local/auth_local_datasource.dart';
 import '../../../data/models/user_session.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -254,7 +253,8 @@ class ProfileScreen extends StatelessWidget {
                     borderSide: BorderSide.none,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12,
+                    horizontal: 14,
+                    vertical: 12,
                   ),
                 ),
               ),
@@ -297,7 +297,9 @@ class ProfileScreen extends StatelessWidget {
                     if (ctx.mounted) Navigator.pop(ctx);
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Profil berhasil diperbarui')),
+                        const SnackBar(
+                          content: Text('Profil berhasil diperbarui'),
+                        ),
                       );
                     }
                   },
@@ -345,16 +347,14 @@ class ProfileScreen extends StatelessWidget {
                   controller: oldCtrl,
                   label: 'Password Lama',
                   obscure: obscureOld,
-                  onToggle: () =>
-                      setModalState(() => obscureOld = !obscureOld),
+                  onToggle: () => setModalState(() => obscureOld = !obscureOld),
                 ),
                 const SizedBox(height: 12),
                 _passwordField(
                   controller: newCtrl,
                   label: 'Password Baru',
                   obscure: obscureNew,
-                  onToggle: () =>
-                      setModalState(() => obscureNew = !obscureNew),
+                  onToggle: () => setModalState(() => obscureNew = !obscureNew),
                 ),
                 const SizedBox(height: 12),
                 _passwordField(
@@ -393,9 +393,11 @@ class ProfileScreen extends StatelessWidget {
                         return;
                       }
 
-                      // Supabase update password
+                      // Pakai backend auth yang sudah ada untuk ubah password
                       try {
-                        await supabaseUpdatePassword(newCtrl.text);
+                        await context.read<LoginProvider>().updatePassword(
+                          newCtrl.text,
+                        );
                         if (ctx.mounted) Navigator.pop(ctx);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -406,9 +408,9 @@ class ProfileScreen extends StatelessWidget {
                         }
                       } catch (e) {
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Gagal: $e')),
-                          );
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text('Gagal: $e')));
                         }
                       }
                     },
@@ -459,11 +461,14 @@ class ProfileScreen extends StatelessWidget {
               borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 12,
+              horizontal: 14,
+              vertical: 12,
             ),
             suffixIcon: IconButton(
               icon: Icon(
-                obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                obscure
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
                 size: 18,
                 color: const Color(0xFF9CA3AF),
               ),
@@ -472,13 +477,6 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  // Panggil Supabase update password
-  Future<void> supabaseUpdatePassword(String newPassword) async {
-    await Supabase.instance.client.auth.updateUser(
-      UserAttributes(password: newPassword),
     );
   }
 
@@ -500,8 +498,11 @@ class ProfileScreen extends StatelessWidget {
                 color: const Color(0xFF0D47A1),
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: const Icon(Icons.apartment_rounded,
-                  color: Colors.white, size: 32),
+              child: const Icon(
+                Icons.apartment_rounded,
+                color: Colors.white,
+                size: 32,
+              ),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -677,9 +678,7 @@ class _LogoutButton extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Keluar dari Akun?',
           style: TextStyle(

@@ -1,3 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../models/user_session.dart';
 import '../../../core/supabase/supabase_service.dart';
 
@@ -33,6 +35,13 @@ class AuthRemoteDatasource {
   // ── Logout ────────────────────────────────────────────────────────────────
   Future<void> logout() async {
     await SupabaseService.auth.signOut();
+  }
+
+  // ── Ubah password ────────────────────────────────────────────────────────
+  Future<void> updatePassword(String newPassword) async {
+    await SupabaseService.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
   }
 
   // ── Cek session masih valid ───────────────────────────────────────────────

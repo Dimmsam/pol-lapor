@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../data/datasources/local/auth_local_datasource.dart';
+import '../../../data/models/user_session.dart';
 import '../../../logic/providers/login_provider.dart';
 import 'widgets/bottom_nav_teknisi.dart';
 
@@ -15,6 +17,17 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
   static const lightBlue = Color(0xFF7FB6E6);
 
   int _selectedIndex = 3; // default to Profil tab
+
+  String _initials(String nama) {
+    final parts = nama.trim().split(' ');
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  UserSession? _currentSession() {
+    return AuthLocalDatasource().getSession();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +91,6 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
               children: [
                 _buildProfileCard(context),
                 const SizedBox(height: 16),
-                _buildPerformanceCard(context),
                 const SizedBox(height: 20),
                 const Text(
                   'Pengaturan Akun',
@@ -109,6 +121,11 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
   }
 
   Widget _buildProfileCard(BuildContext context) {
+    final session = _currentSession();
+    final nama = session?.nama ?? 'Ahmad Teknisi';
+    final email = session?.email ?? 'teknisi@pol-lapor.local';
+    final role = session?.role ?? 'Teknisi Jurusan Teknik Informatika';
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -136,13 +153,16 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                 children: [
                   Stack(
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 44,
                         backgroundColor: Colors.blueGrey,
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 40,
+                        child: Text(
+                          _initials(nama),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       Positioned(
@@ -165,18 +185,19 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Ahmad Teknisi',
-                    style: TextStyle(
+                  Text(
+                    nama,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: navy,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Teknisi Jurusan Teknik Informatika',
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                  Text(
+                    '$role\n$email',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
                   ),
                 ],
               ),
@@ -187,73 +208,10 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
     );
   }
 
-  Widget _buildPerformanceCard(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        final login = context.read<LoginProvider>();
-        final session = login.getExistingSession() ?? login.session;
-        if (session != null) {
-          Navigator.pushNamed(
-            context,
-            '/dashboard-teknisi-jurusan',
-            arguments: session,
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Harap login terlebih dahulu')),
-          );
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: navy,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: lightBlue,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.check, color: Colors.white),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'PERFORMA KERJA',
-                    style: TextStyle(
-                      color: Color(0xFF9FD4FF),
-                      fontSize: 12,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Total Diselesaikan: 45 Laporan',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.show_chart, color: Colors.white),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSettingsList(BuildContext context) {
+    final session = _currentSession();
+    final namaAktif = session?.nama ?? 'Ahmad Teknisi';
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -274,8 +232,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
             title: const Text('Edit Profil'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // Tampilkan modal untuk edit profil khusus teknisi
-              final namaCtrl = TextEditingController(text: 'Ahmad Teknisi');
+              final namaCtrl = TextEditingController(text: namaAktif);
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
@@ -305,13 +262,33 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Profil disimpan (demo)'),
-                              ),
-                            );
+                          onPressed: () async {
+                            final namaBaru = namaCtrl.text.trim();
+                            if (namaBaru.isEmpty) return;
+
+                            final auth = AuthLocalDatasource();
+                            final currentSession = auth.getSession();
+                            if (currentSession != null) {
+                              final updated = UserSession(
+                                userId: currentSession.userId,
+                                nama: namaBaru,
+                                email: currentSession.email,
+                                role: currentSession.role,
+                                token: currentSession.token,
+                                unitGedung: currentSession.unitGedung,
+                              );
+                              await auth.saveSession(updated);
+                            }
+
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (mounted) {
+                              setState(() {});
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Profil berhasil diperbarui'),
+                                ),
+                              );
+                            }
                           },
                           child: const Text('Simpan'),
                         ),
@@ -434,7 +411,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             if (newCtrl.text != confirmCtrl.text) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -443,12 +420,35 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                               );
                               return;
                             }
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Password diperbarui (demo)'),
-                              ),
-                            );
+
+                            if (newCtrl.text.length < 6) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Password minimal 6 karakter'),
+                                ),
+                              );
+                              return;
+                            }
+
+                            try {
+                              await context.read<LoginProvider>().updatePassword(
+                                newCtrl.text,
+                              );
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Password berhasil diubah'),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Gagal: $e')),
+                                );
+                              }
+                            }
                           },
                           child: const Text('Simpan Password'),
                         ),
@@ -465,6 +465,8 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
   }
 
   Widget _buildLogoutButton(BuildContext context) {
+    final screenContext = context;
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -481,16 +483,26 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
         onPressed: () {
           showDialog<void>(
             context: context,
-            builder: (context) => AlertDialog(
+            builder: (dialogContext) => AlertDialog(
               title: const Text('Konfirmasi'),
               content: const Text('Apakah Anda yakin ingin keluar?'),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('Batal'),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () async {
+                    Navigator.pop(dialogContext);
+                    await screenContext.read<LoginProvider>().logout();
+                    if (screenContext.mounted) {
+                      Navigator.pushNamedAndRemoveUntil(
+                        screenContext,
+                        '/login',
+                        (route) => false,
+                      );
+                    }
+                  },
                   child: const Text('Keluar'),
                 ),
               ],
@@ -522,7 +534,15 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
       onTap: (index) {
         switch (index) {
           case 0:
-            Navigator.pushNamed(context, '/home');
+            if (session != null) {
+              Navigator.pushNamed(
+                context,
+                '/dashboard-teknisi-jurusan',
+                arguments: session,
+              );
+            } else {
+              Navigator.pushNamed(context, '/home');
+            }
             break;
           case 1:
             if (session != null) {
@@ -538,7 +558,6 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
             }
             break;
           case 2:
-            // show profil (our internal index 3)
             setState(() => _selectedIndex = 3);
             break;
         }

@@ -30,9 +30,20 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _uuid = const Uuid();
 
   static const List<String> _lokasiPerbaikanOptions = [
-    'D101', 'D102', 'D105', 'D106', 'D107', 'D108',
-    'D111', 'D112', 'D115', 'D116', 'D217', 'D219',
-    'D223', 'D224',
+    'D101 - Kelas',
+    'D102 - Lab. MT',
+    'D105 - Kelas',
+    'D106 - Lab. SDB',
+    'D107 - Lab. RPL',
+    'D108 - Kelas',
+    'D111 - Kelas',
+    'D112 - Kelas',
+    'D115 - Lab. PjBL-1',
+    'D116 - Lab. PjBL-2',
+    'D217 - Kelas',
+    'D219 - Kelas',
+    'D223 - Kelas',
+    'D224 - Kelas',
   ];
 
   bool _isSubmitting = false;
@@ -41,7 +52,8 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
 
   final TextEditingController _judulController = TextEditingController();
   final TextEditingController _deskripsiController = TextEditingController();
-  final TextEditingController _nomorInventarisController = TextEditingController();
+  final TextEditingController _nomorInventarisController =
+      TextEditingController();
   String? _lokasiPerbaikan;
   String? _fotoPath;
 
@@ -76,7 +88,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     });
 
     final lokalSerupa = _datasource.getLaporanAktifByLokasi(lokasi);
-
     if (mounted) {
       setState(() {
         _jumlahLaporanSerupa = lokalSerupa.length;
@@ -84,7 +95,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       });
     }
   }
-  
+
   // ── Banner peringatan laporan serupa ──────────────────────────────────────
   Widget _buildWarningBanner() {
     if (_isCheckingSerupa) {
@@ -93,7 +104,8 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
         child: Row(
           children: [
             const SizedBox(
-              width: 16, height: 16,
+              width: 16,
+              height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             const SizedBox(width: 10),
@@ -120,7 +132,11 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B), size: 20),
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: Color(0xFFF59E0B),
+              size: 20,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -154,7 +170,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     );
   }
 
-  // ── Dekorasi field ────────────────────────────────────────────────────────
   InputDecoration _fieldDecoration({required String hintText}) {
     return InputDecoration(
       hintText: hintText,
@@ -227,14 +242,23 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                       }
                     },
               child: InputDecorator(
-                decoration: _fieldDecoration(hintText: 'Pilih Ruangan').copyWith(
-                  prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xFF6B7280)),
-                  suffixIcon: const Icon(Icons.expand_more_rounded, color: Color(0xFF0D47A1)),
-                ),
+                decoration: _fieldDecoration(hintText: 'Pilih Ruangan')
+                    .copyWith(
+                      prefixIcon: const Icon(
+                        Icons.location_on_outlined,
+                        color: Color(0xFF6B7280),
+                      ),
+                      suffixIcon: const Icon(
+                        Icons.expand_more_rounded,
+                        color: Color(0xFF0D47A1),
+                      ),
+                    ),
                 child: Text(
                   _lokasiPerbaikan ?? 'Pilih Gedung & Ruangan',
                   style: TextStyle(
-                    color: _lokasiPerbaikan == null ? Colors.grey.shade600 : Colors.black,
+                    color: _lokasiPerbaikan == null
+                        ? Colors.grey.shade600
+                        : Colors.black,
                   ),
                 ),
               ),
@@ -244,7 +268,10 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                 padding: const EdgeInsets.only(top: 6, left: 12),
                 child: Text(
                   state.errorText ?? '',
-                  style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12),
+                  style: const TextStyle(
+                    color: Color(0xFFDC2626),
+                    fontSize: 12,
+                  ),
                 ),
               ),
           ],
@@ -273,7 +300,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
             String query = '';
             List<String> filter(List<String> src) {
               if (query.isEmpty) return src;
-              return src.where((s) => s.toLowerCase().contains(query.toLowerCase())).toList();
+              return src
+                  .where((s) => s.toLowerCase().contains(query.toLowerCase()))
+                  .toList();
             }
 
             return StatefulBuilder(
@@ -282,12 +311,15 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                 final f2 = filter(floor2);
 
                 return Padding(
-                  padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
                   child: Column(
                     children: [
                       const SizedBox(height: 12),
                       Container(
-                        width: 40, height: 4,
+                        width: 40,
+                        height: 4,
                         decoration: BoxDecoration(
                           color: Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(4),
@@ -311,23 +343,39 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                           children: [
                             if (f1.isNotEmpty) ...[
                               const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Text('Lantai 1', style: TextStyle(fontWeight: FontWeight.w600)),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  'Lantai 1',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
                               ),
-                              ...f1.map((lok) => ListTile(
-                                title: Text(lok),
-                                onTap: () => Navigator.of(context).pop(lok),
-                              )),
+                              ...f1.map(
+                                (lok) => ListTile(
+                                  title: Text(lok),
+                                  onTap: () => Navigator.of(context).pop(lok),
+                                ),
+                              ),
                             ],
                             if (f2.isNotEmpty) ...[
                               const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Text('Lantai 2', style: TextStyle(fontWeight: FontWeight.w600)),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  'Lantai 2',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
                               ),
-                              ...f2.map((lok) => ListTile(
-                                title: Text(lok),
-                                onTap: () => Navigator.of(context).pop(lok),
-                              )),
+                              ...f2.map(
+                                (lok) => ListTile(
+                                  title: Text(lok),
+                                  onTap: () => Navigator.of(context).pop(lok),
+                                ),
+                              ),
                             ],
                           ],
                         ),
@@ -431,14 +479,20 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
 
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen(initialIndex: 1)),
+          MaterialPageRoute(
+            builder: (context) => const HomeScreen(initialIndex: 1),
+          ),
           (route) => false,
         );
         return;
       }
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar(_isEditMode ? 'Gagal memperbarui laporan.' : 'Gagal menyimpan laporan lokal.');
+      _showSnackBar(
+        _isEditMode
+            ? 'Gagal memperbarui laporan.'
+            : 'Gagal menyimpan laporan lokal.',
+      );
     }
 
     if (mounted) setState(() => _isSubmitting = false);
@@ -477,22 +531,32 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
                           child: Container(
-                            width: 34, height: 34,
+                            width: 34,
+                            height: 34,
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.16),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                            child: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         )
                       else
                         Container(
-                          width: 34, height: 34,
+                          width: 34,
+                          height: 34,
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.16),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.school_rounded, color: Colors.white, size: 20),
+                          child: const Icon(
+                            Icons.school_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       const SizedBox(width: 8),
                       const Text(
@@ -507,7 +571,10 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                       const Spacer(),
                       IconButton(
                         onPressed: () {},
-                        icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+                        icon: const Icon(
+                          Icons.notifications_none_rounded,
+                          color: Colors.white,
+                        ),
                       ),
                     ],
                   ),
@@ -519,7 +586,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                     children: [
                       // Judul berubah sesuai mode
                       Text(
-                        _isEditMode ? 'Edit Laporan\nKerusakan' : 'Buat Laporan\nKerusakan',
+                        _isEditMode
+                            ? 'Edit Laporan\nKerusakan'
+                            : 'Buat Laporan\nKerusakan',
                         style: theme.textTheme.headlineMedium?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
@@ -594,7 +663,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                           _isEditMode
                               ? 'Ubah data yang perlu diperbarui lalu simpan.'
                               : 'Isi data utama lalu kirim laporan.',
-                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey.shade700,
+                          ),
                         ),
                         const SizedBox(height: 18),
 
@@ -603,10 +674,13 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                           controller: _judulController,
                           textInputAction: TextInputAction.next,
                           maxLength: 80,
-                          decoration: _fieldDecoration(hintText: 'Contoh: AC Mati di Ruang 201').copyWith(counterText: ''),
+                          decoration: _fieldDecoration(
+                            hintText: 'Contoh: AC Mati di Ruang 201',
+                          ).copyWith(counterText: ''),
                           validator: (value) {
                             final text = value?.trim() ?? '';
-                            if (text.isEmpty) return 'Nama sarana tidak boleh kosong';
+                            if (text.isEmpty)
+                              return 'Nama sarana tidak boleh kosong';
                             if (text.length < 6) return 'Minimal 6 karakter';
                             return null;
                           },
@@ -617,7 +691,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                         TextFormField(
                           controller: _nomorInventarisController,
                           textInputAction: TextInputAction.next,
-                          decoration: _fieldDecoration(hintText: 'Lihat stiker pada barang'),
+                          decoration: _fieldDecoration(
+                            hintText: 'Lihat stiker pada barang',
+                          ),
                         ),
                         const SizedBox(height: 12),
 
@@ -633,7 +709,10 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                           minLines: 4,
                           maxLines: 6,
                           maxLength: 500,
-                          decoration: _fieldDecoration(hintText: 'Jelaskan detail kerusakan yang terlihat...').copyWith(counterText: ''),
+                          decoration: _fieldDecoration(
+                            hintText:
+                                'Jelaskan detail kerusakan yang terlihat...',
+                          ).copyWith(counterText: ''),
                           validator: (value) {
                             final text = value?.trim() ?? '';
                             if (text.isEmpty) return 'Deskripsi harus diisi';
@@ -647,7 +726,8 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                         LaporanPhotoField(
                           imagePath: _fotoPath,
                           enabled: !_isSubmitting,
-                          onChanged: (value) => setState(() => _fotoPath = value),
+                          onChanged: (value) =>
+                              setState(() => _fotoPath = value),
                         ),
                         const SizedBox(height: 18),
 
@@ -660,23 +740,36 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                               backgroundColor: const Color(0xFF1565C0),
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 220),
                               child: _isSubmitting
                                   ? const SizedBox(
                                       key: ValueKey('loading'),
-                                      width: 22, height: 22,
+                                      width: 22,
+                                      height: 22,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2.4,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
                                       ),
                                     )
                                   : Text(
-                                      _isEditMode ? 'Simpan Perubahan' : 'Kirim Laporan',
-                                      key: ValueKey(_isEditMode ? 'edit' : 'idle'),
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                                      _isEditMode
+                                          ? 'Simpan Perubahan'
+                                          : 'Kirim Laporan',
+                                      key: ValueKey(
+                                        _isEditMode ? 'edit' : 'idle',
+                                      ),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                             ),
                           ),

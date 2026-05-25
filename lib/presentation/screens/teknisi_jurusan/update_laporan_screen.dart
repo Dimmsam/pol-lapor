@@ -7,7 +7,6 @@ import '../../../core/supabase/supabase_service.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/user_session.dart';
 import '../../../logic/providers/teknisi_jurusan_provider.dart';
-import 'widgets/bottom_nav_teknisi.dart';
 import 'profil_teknisi_screen.dart';
 import '../pelapor/camera_picker_screen.dart';
 
@@ -91,9 +90,7 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              provider.errorMessage ?? 'Gagal memperbarui laporan',
-            ),
+            content: Text(provider.errorMessage ?? 'Gagal memperbarui laporan'),
             backgroundColor: Colors.red,
           ),
         );
@@ -101,10 +98,7 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -384,7 +378,7 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-            SizedBox(
+          SizedBox(
             width: double.infinity,
             height: 48,
             child: ElevatedButton.icon(
@@ -419,31 +413,60 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
   }
 
   Widget _buildBottomNavBar() {
-    // Use shared BottomNavTeknisi for consistent navigation
-    return BottomNavTeknisi(
-      currentIndex: 0,
-      primaryColor: primaryNavy,
-      accentColor: accentWarn,
-      onTap: (index) {
-        switch (index) {
-          case 0:
-            Navigator.pushNamed(context, '/home');
-            break;
-          case 1:
-            Navigator.pushNamed(
-              context,
-              '/daftar-tugas-teknisi-jurusan',
-              arguments: widget.userSession,
-            );
-            break;
-          case 2:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfilTeknisiScreen()),
-            );
-            break;
-        }
-      },
+    return Container(
+      padding: const EdgeInsets.only(top: 8),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          InkWell(
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                '/dashboard-teknisi-jurusan',
+                arguments: widget.userSession,
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: _navItem(
+              icon: Icons.dashboard_outlined,
+              label: 'Beranda',
+              active: true,
+            ),
+          ),
+          InkWell(
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                '/daftar-tugas-teknisi-jurusan',
+                arguments: widget.userSession,
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: _navItem(
+              icon: Icons.list_alt_outlined,
+              label: 'Tugas',
+              active: false,
+            ),
+          ),
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfilTeknisiScreen()),
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: _navItem(
+              icon: Icons.person_outline,
+              label: 'Profil',
+              active: false,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

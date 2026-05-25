@@ -5,10 +5,12 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../data/datasources/local/auth_local_datasource.dart';
 import '../pelapor/detail_laporan_screen.dart';
 import '../pelapor/form_laporan_screen.dart'; // ← import screen form edit
 import '../../../data/datasources/local/hive_local_datasource.dart'; // ← import datasource
 import '../../../data/models/laporan_lokal.dart';
+import '../../../services/laporan_delete_service.dart';
 
 class LaporanScreen extends StatefulWidget {
   const LaporanScreen({super.key});
@@ -24,6 +26,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
   // ── Datasource untuk operasi delete ──────────────────────────────────────
   final HiveLocalDatasource _localDs = HiveLocalDatasource();
+  final LaporanDeleteService _deleteService = LaporanDeleteService();
 
   @override
   void dispose() {
@@ -32,7 +35,23 @@ class _LaporanScreenState extends State<LaporanScreen> {
   }
 
   // ── Hapus laporan dengan konfirmasi ──────────────────────────────────────
-  Future<void> _confirmDelete(BuildContext context, LaporanLokal laporan) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    LaporanLokal laporan,
+  ) async {
+    final currentUserId = AuthLocalDatasource().getSession()?.userId;
+    if (currentUserId == null || currentUserId != laporan.pelaporId) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Kamu hanya bisa menghapus laporan milikmu sendiri'),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
+      }
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -77,18 +96,41 @@ class _LaporanScreenState extends State<LaporanScreen> {
     );
 
     if (confirmed == true) {
-      await _localDs.deleteLaporan(laporan.formulirId);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Laporan berhasil dihapus'),
-            backgroundColor: const Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+      try {
+        if (laporan.isSynced) {
+          await _deleteService.deleteLaporanRemotely(
+            formulirId: laporan.formulirId,
+            pelaporId: laporan.pelaporId,
+          );
+        }
+
+        await _localDs.deleteLaporan(laporan.formulirId);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Laporan berhasil dihapus'),
+              backgroundColor: const Color(0xFFEF4444),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-        );
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal menghapus laporan: $e'),
+              backgroundColor: const Color(0xFFEF4444),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
       }
     }
   }
@@ -190,7 +232,10 @@ class _LaporanScreenState extends State<LaporanScreen> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: isActive ? const Color(0xFF0D47A1) : Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -219,6 +264,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
   Widget _buildList() {
     final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
+    final currentUserId = AuthLocalDatasource().getSession()?.userId;
 
     return ValueListenableBuilder<Box<LaporanLokal>>(
       valueListenable: box.listenable(),
@@ -234,7 +280,9 @@ class _LaporanScreenState extends State<LaporanScreen> {
               .where(
                 (l) =>
                     l.namaSarana.toLowerCase().contains(_searchQuery) ||
-                    l.keteranganKerusakan.toLowerCase().contains(_searchQuery) ||
+                    l.keteranganKerusakan.toLowerCase().contains(
+                      _searchQuery,
+                    ) ||
                     l.lokasiPerbaikan.toLowerCase().contains(_searchQuery),
               )
               .toList();
@@ -247,8 +295,16 @@ class _LaporanScreenState extends State<LaporanScreen> {
           itemCount: data.length,
           itemBuilder: (context, index) => _LaporanCard(
             laporan: data[index],
-            onDelete: () => _confirmDelete(context, data[index]),
-            onEdit: data[index].status == StatusLaporan.menungguKlasifikasi
+            canDelete:
+                currentUserId != null && currentUserId == data[index].pelaporId,
+            onDelete:
+                currentUserId != null && currentUserId == data[index].pelaporId
+                ? () => _confirmDelete(context, data[index])
+                : null,
+            onEdit:
+                currentUserId != null &&
+                    currentUserId == data[index].pelaporId &&
+                    data[index].status == StatusLaporan.menungguKlasifikasi
                 ? () => _navigateToEdit(context, data[index])
                 : null, // null = tombol edit tidak ditampilkan
           ),
@@ -314,22 +370,29 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
 class _LaporanCard extends StatelessWidget {
   final LaporanLokal laporan;
-  final VoidCallback onDelete;
+  final bool canDelete;
+  final VoidCallback? onDelete;
   final VoidCallback? onEdit; // null berarti tombol edit tidak ditampilkan
 
   const _LaporanCard({
     required this.laporan,
+    required this.canDelete,
     required this.onDelete,
     this.onEdit,
   });
 
   IconData get _icon {
     final nama = laporan.namaSarana.toLowerCase();
-    if (nama.contains('ac') || nama.contains('kipas')) return Icons.air_outlined;
-    if (nama.contains('lampu') || nama.contains('listrik')) return Icons.lightbulb_outline_rounded;
-    if (nama.contains('pintu') || nama.contains('jendela')) return Icons.door_back_door_outlined;
-    if (nama.contains('proyektor') || nama.contains('komputer')) return Icons.monitor_outlined;
-    if (nama.contains('toilet') || nama.contains('wc')) return Icons.wc_outlined;
+    if (nama.contains('ac') || nama.contains('kipas'))
+      return Icons.air_outlined;
+    if (nama.contains('lampu') || nama.contains('listrik'))
+      return Icons.lightbulb_outline_rounded;
+    if (nama.contains('pintu') || nama.contains('jendela'))
+      return Icons.door_back_door_outlined;
+    if (nama.contains('proyektor') || nama.contains('komputer'))
+      return Icons.monitor_outlined;
+    if (nama.contains('toilet') || nama.contains('wc'))
+      return Icons.wc_outlined;
     return Icons.construction_outlined;
   }
 
@@ -366,7 +429,11 @@ class _LaporanCard extends StatelessWidget {
                       color: const Color(0xFFF0F4FF),
                       borderRadius: BorderRadius.circular(11),
                     ),
-                    child: Icon(_icon, color: const Color(0xFF0D47A1), size: 19),
+                    child: Icon(
+                      _icon,
+                      color: const Color(0xFF0D47A1),
+                      size: 19,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -476,14 +543,15 @@ class _LaporanCard extends StatelessWidget {
                     const SizedBox(width: 8),
                   ],
 
-                  // ── Tombol Hapus (selalu tampil) ─────────────────────────
-                  _ActionButton(
-                    icon: Icons.delete_outline_rounded,
-                    label: 'Hapus',
-                    color: const Color(0xFFEF4444),
-                    bgColor: const Color(0xFFFEF2F2),
-                    onTap: onDelete,
-                  ),
+                  // ── Tombol Hapus (hanya milik sendiri) ────────────────────
+                  if (canDelete && onDelete != null)
+                    _ActionButton(
+                      icon: Icons.delete_outline_rounded,
+                      label: 'Hapus',
+                      color: const Color(0xFFEF4444),
+                      bgColor: const Color(0xFFFEF2F2),
+                      onTap: onDelete!,
+                    ),
                 ],
               ),
             ],

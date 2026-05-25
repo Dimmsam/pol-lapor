@@ -26,8 +26,7 @@ class SyncService {
     }
 
     final semuaLaporan = await _hiveService.getAllLaporan();
-    final unsyncedLaporan =
-        semuaLaporan.where((lap) => !lap.isSynced).toList();
+    final unsyncedLaporan = semuaLaporan.where((lap) => !lap.isSynced).toList();
 
     if (unsyncedLaporan.isEmpty) return;
 
@@ -46,16 +45,25 @@ class SyncService {
         // Step B: Simpan data ke tabel formulir_laporan
         await _upsertDataToSupabase(laporan, cloudImageUrl);
 
-        // Step B2: Buat entry tracking awal untuk laporan baru
-        await _insertInitialTracking(
-          formulirId: laporan.formulirId,
-          aktorId: authUser.id,
-          pesanNarasi: 'Laporan sudah dibuat',
-          status: _mapStatusForSupabase(laporan.status),
-        );
-
-        // Step C: Tandai sebagai synced di Hive
+        // Step B2: Tandai sebagai synced di Hive begitu data laporan utama
+        // berhasil masuk, supaya badge lokal tidak tertahan oleh tracking.
         await _hiveService.markSynced(laporan.formulirId);
+
+        // Step B3: Tracking bersifat pelengkap; gagal di sini tidak boleh
+        // mengembalikan status laporan utama menjadi belum tersinkron.
+        try {
+          await _insertInitialTracking(
+            formulirId: laporan.formulirId,
+            aktorId: authUser.id,
+            pesanNarasi: 'Laporan sudah dibuat',
+          );
+        } catch (e) {
+          debugPrint(
+            'Tracking awal gagal untuk laporan ${laporan.formulirId}: $e',
+          );
+        }
+
+        // Step C: Log sukses sinkron laporan utama
         debugPrint('Laporan ${laporan.formulirId} berhasil di-sync.');
       } on StorageException catch (e) {
         debugPrint(
@@ -103,18 +111,18 @@ class SyncService {
 
     final statusCloud = _mapStatusForSupabase(laporan.status);
 
-    await supabase.from('formulir_laporan').upsert({
-      'formulir_id':          laporan.formulirId,
-      'pelapor_id':           pelaporId,
-      'nama_sarana':          laporan.namaSarana,
+    await supabase.from('formulir_laporan').insert({
+      'formulir_id': laporan.formulirId,
+      'pelapor_id': pelaporId,
+      'nama_sarana': laporan.namaSarana,
       'keterangan_kerusakan': laporan.keteranganKerusakan,
-      'lokasi_id':            lokasiId,          // ← UUID FK, bukan string lagi
-      'nomor_inventaris':     laporan.nomorInventaris,
-      'foto_kerusakan_url':   imageUrl ?? laporan.fotoKerusakanUrl,
-      'status':               statusCloud,
-      'is_synced':            true,
-      'created_at':           laporan.createdAt.toIso8601String(),
-      'updated_at':           laporan.updatedAt.toIso8601String(),
+      'lokasi_id': lokasiId, // ← UUID FK, bukan string lagi
+      'nomor_inventaris': laporan.nomorInventaris,
+      'foto_kerusakan_url': imageUrl ?? laporan.fotoKerusakanUrl,
+      'status': statusCloud,
+      'is_synced': true,
+      'created_at': laporan.createdAt.toIso8601String(),
+      'updated_at': laporan.updatedAt.toIso8601String(),
       // kolom yang dihapus dari schema baru:
       // tanda_tangan_pelapor          → tidak ada
       // tanggal_tanda_tangan_pelapor  → tidak ada
@@ -126,13 +134,11 @@ class SyncService {
     required String formulirId,
     required String aktorId,
     required String pesanNarasi,
-    required String status,
   }) async {
     await supabase.from('tracking').insert({
       'tracking_id': _uuid.v4(),
       'formulir_id': formulirId,
       'aktor_id': aktorId,
-      'status': status,
       'pesan_narasi': pesanNarasi,
       'created_at': DateTime.now().toIso8601String(),
     });
@@ -142,19 +148,20 @@ class SyncService {
   // Mencari UUID lokasi berdasarkan nama_ruangan yang tersimpan di Hive.
   // Jika tidak ditemukan, kirim null (lokasi_id nullable di schema).
   Future<String?> _lookupLokasiId(String namaRuangan) async {
-    if (namaRuangan.trim().isEmpty) return null;
+    final normalizedNama = _normalizeLokasiName(namaRuangan);
+    if (normalizedNama.isEmpty) return null;
 
     try {
       final resp = await supabase
           .from('lokasi')
           .select('lokasi_id')
-          .eq('nama_ruangan', namaRuangan.trim())
+          .eq('nama_ruangan', normalizedNama)
           .eq('is_active', true)
           .maybeSingle();
 
       if (resp == null) {
         debugPrint(
-          'Lokasi "$namaRuangan" tidak ditemukan di tabel lokasi. '
+          'Lokasi "$normalizedNama" tidak ditemukan di tabel lokasi. '
           'lokasi_id akan dikirim sebagai NULL.',
         );
         return null;
@@ -162,9 +169,33 @@ class SyncService {
 
       return resp['lokasi_id'] as String?;
     } catch (e) {
-      debugPrint('Gagal lookup lokasi_id untuk "$namaRuangan": $e');
+      debugPrint('Gagal lookup lokasi_id untuk "$normalizedNama": $e');
       return null;
     }
+  }
+
+  String _normalizeLokasiName(String namaRuangan) {
+    final trimmed = namaRuangan.trim();
+    if (trimmed.isEmpty) return '';
+
+    const aliasMap = <String, String>{
+      'D101': 'D101 - Kelas',
+      'D102': 'D102 - Lab. MT',
+      'D105': 'D105 - Kelas',
+      'D106': 'D106 - Lab. SDB',
+      'D107': 'D107 - Lab. RPL',
+      'D108': 'D108 - Kelas',
+      'D111': 'D111 - Kelas',
+      'D112': 'D112 - Kelas',
+      'D115': 'D115 - Lab. PjBL-1',
+      'D116': 'D116 - Lab. PjBL-2',
+      'D217': 'D217 - Kelas',
+      'D219': 'D219 - Kelas',
+      'D223': 'D223 - Kelas',
+      'D224': 'D224 - Kelas',
+    };
+
+    return aliasMap[trimmed.toUpperCase()] ?? trimmed;
   }
 
   // ── 5. Map status lokal → enum status_formulir di Supabase ───────────────
