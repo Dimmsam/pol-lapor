@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/constants/app_constants.dart';
 import '../pelapor/detail_laporan_screen.dart';
+import '../pelapor/form_laporan_screen.dart'; // ← import screen form edit
+import '../../../data/datasources/local/hive_local_datasource.dart'; // ← import datasource
 import '../../../data/models/laporan_lokal.dart';
 
 class LaporanScreen extends StatefulWidget {
@@ -20,10 +22,85 @@ class _LaporanScreenState extends State<LaporanScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = '';
 
+  // ── Datasource untuk operasi delete ──────────────────────────────────────
+  final HiveLocalDatasource _localDs = HiveLocalDatasource();
+
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  // ── Hapus laporan dengan konfirmasi ──────────────────────────────────────
+  Future<void> _confirmDelete(BuildContext context, LaporanLokal laporan) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Hapus Laporan?',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+        ),
+        content: Text(
+          'Laporan "${laporan.namaSarana}" akan dihapus permanen dan tidak dapat dipulihkan.',
+          style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: OutlinedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              side: const BorderSide(color: Color(0xFFE9ECEF)),
+            ),
+            child: const Text(
+              'Batal',
+              style: TextStyle(color: Color(0xFF6B7280)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _localDs.deleteLaporan(laporan.formulirId);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Laporan berhasil dihapus'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  // ── Navigasi ke form edit ─────────────────────────────────────────────────
+  void _navigateToEdit(BuildContext context, LaporanLokal laporan) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        // Sesuaikan dengan nama & parameter form laporan kamu
+        builder: (_) => FormLaporanScreen(laporanEdit: laporan),
+      ),
+    );
   }
 
   @override
@@ -93,7 +170,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
   }
 
   Widget _buildFilterChips() {
-    // key = value filter internal, label = teks yang ditampilkan
     final filters = <Map<String, String>>[
       {'key': 'semua', 'label': 'Semua'},
       {'key': StatusLaporan.menungguKlasifikasi, 'label': 'Menunggu'},
@@ -114,10 +190,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 7,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                 decoration: BoxDecoration(
                   color: isActive ? const Color(0xFF0D47A1) : Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -152,20 +225,16 @@ class _LaporanScreenState extends State<LaporanScreen> {
       builder: (context, box, _) {
         var data = box.values.toList().reversed.toList();
 
-        // Filter status — cocokkan dengan StatusLaporan constants
         if (_filterStatus != 'semua') {
           data = data.where((l) => l.status == _filterStatus).toList();
         }
 
-        // Filter search
         if (_searchQuery.isNotEmpty) {
           data = data
               .where(
                 (l) =>
                     l.namaSarana.toLowerCase().contains(_searchQuery) ||
-                    l.keteranganKerusakan.toLowerCase().contains(
-                      _searchQuery,
-                    ) ||
+                    l.keteranganKerusakan.toLowerCase().contains(_searchQuery) ||
                     l.lokasiPerbaikan.toLowerCase().contains(_searchQuery),
               )
               .toList();
@@ -176,7 +245,13 @@ class _LaporanScreenState extends State<LaporanScreen> {
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
           itemCount: data.length,
-          itemBuilder: (context, index) => _LaporanCard(laporan: data[index]),
+          itemBuilder: (context, index) => _LaporanCard(
+            laporan: data[index],
+            onDelete: () => _confirmDelete(context, data[index]),
+            onEdit: data[index].status == StatusLaporan.menungguKlasifikasi
+                ? () => _navigateToEdit(context, data[index])
+                : null, // null = tombol edit tidak ditampilkan
+          ),
         );
       },
     );
@@ -235,24 +310,26 @@ class _LaporanScreenState extends State<LaporanScreen> {
   }
 }
 
-// ─── LAPORAN CARD ──────────────────────────────────────────────────────────
+// ─── LAPORAN CARD ───────────────────────────────────────────────────────────
 
 class _LaporanCard extends StatelessWidget {
   final LaporanLokal laporan;
-  const _LaporanCard({required this.laporan});
+  final VoidCallback onDelete;
+  final VoidCallback? onEdit; // null berarti tombol edit tidak ditampilkan
+
+  const _LaporanCard({
+    required this.laporan,
+    required this.onDelete,
+    this.onEdit,
+  });
 
   IconData get _icon {
     final nama = laporan.namaSarana.toLowerCase();
-    if (nama.contains('ac') || nama.contains('kipas'))
-      return Icons.air_outlined;
-    if (nama.contains('lampu') || nama.contains('listrik'))
-      return Icons.lightbulb_outline_rounded;
-    if (nama.contains('pintu') || nama.contains('jendela'))
-      return Icons.door_back_door_outlined;
-    if (nama.contains('proyektor') || nama.contains('komputer'))
-      return Icons.monitor_outlined;
-    if (nama.contains('toilet') || nama.contains('wc'))
-      return Icons.wc_outlined;
+    if (nama.contains('ac') || nama.contains('kipas')) return Icons.air_outlined;
+    if (nama.contains('lampu') || nama.contains('listrik')) return Icons.lightbulb_outline_rounded;
+    if (nama.contains('pintu') || nama.contains('jendela')) return Icons.door_back_door_outlined;
+    if (nama.contains('proyektor') || nama.contains('komputer')) return Icons.monitor_outlined;
+    if (nama.contains('toilet') || nama.contains('wc')) return Icons.wc_outlined;
     return Icons.construction_outlined;
   }
 
@@ -278,6 +355,7 @@ class _LaporanCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Baris atas: ikon + nama + lokasi + status badge ──────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -288,11 +366,7 @@ class _LaporanCard extends StatelessWidget {
                       color: const Color(0xFFF0F4FF),
                       borderRadius: BorderRadius.circular(11),
                     ),
-                    child: Icon(
-                      _icon,
-                      color: const Color(0xFF0D47A1),
-                      size: 19,
-                    ),
+                    child: Icon(_icon, color: const Color(0xFF0D47A1), size: 19),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -324,6 +398,8 @@ class _LaporanCard extends StatelessWidget {
                   _StatusBadge(status: laporan.status),
                 ],
               ),
+
+              // ── Divider ──────────────────────────────────────────────────
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 11),
                 child: Divider(
@@ -332,6 +408,8 @@ class _LaporanCard extends StatelessWidget {
                   color: Color(0xFFF3F4F6),
                 ),
               ),
+
+              // ── Keterangan kerusakan ─────────────────────────────────────
               Text(
                 laporan.keteranganKerusakan,
                 style: const TextStyle(
@@ -341,8 +419,11 @@ class _LaporanCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
+
+              // ── Footer: tanggal + sync + tombol aksi ─────────────────────
               Row(
                 children: [
+                  // Tanggal
                   const Icon(
                     Icons.calendar_today_outlined,
                     size: 12,
@@ -358,8 +439,10 @@ class _LaporanCard extends StatelessWidget {
                       color: Color(0xFF9CA3AF),
                     ),
                   ),
+
+                  // Indikator belum sinkron
                   if (!laporan.isSynced) ...[
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     Container(
                       width: 6,
                       height: 6,
@@ -368,7 +451,7 @@ class _LaporanCard extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 5),
+                    const SizedBox(width: 4),
                     const Text(
                       'Belum tersinkron',
                       style: TextStyle(
@@ -378,6 +461,29 @@ class _LaporanCard extends StatelessWidget {
                       ),
                     ),
                   ],
+
+                  const Spacer(),
+
+                  // ── Tombol Edit (hanya jika status menunggu) ─────────────
+                  if (onEdit != null) ...[
+                    _ActionButton(
+                      icon: Icons.edit_outlined,
+                      label: 'Edit',
+                      color: const Color(0xFF0D47A1),
+                      bgColor: const Color(0xFFEEF2FF),
+                      onTap: onEdit!,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+
+                  // ── Tombol Hapus (selalu tampil) ─────────────────────────
+                  _ActionButton(
+                    icon: Icons.delete_outline_rounded,
+                    label: 'Hapus',
+                    color: const Color(0xFFEF4444),
+                    bgColor: const Color(0xFFFEF2F2),
+                    onTap: onDelete,
+                  ),
                 ],
               ),
             ],
@@ -388,7 +494,54 @@ class _LaporanCard extends StatelessWidget {
   }
 }
 
-// ─── STATUS BADGE ──────────────────────────────────────────────────────────
+// ─── ACTION BUTTON ──────────────────────────────────────────────────────────
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color bgColor;
+  final VoidCallback onTap;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.bgColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── STATUS BADGE ────────────────────────────────────────────────────────────
 
 class _StatusBadge extends StatelessWidget {
   final String status;
@@ -411,7 +564,7 @@ class _StatusBadge extends StatelessWidget {
         fg = const Color(0xFFB45309);
         label = 'Diproses';
         break;
-      default: // menunggu_klasifikasi
+      default:
         bg = const Color(0xFFF3F4F6);
         fg = const Color(0xFF6B7280);
         label = 'Menunggu';
