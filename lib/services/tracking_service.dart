@@ -21,7 +21,6 @@ class TrackingService {
         'tracking_id': const Uuid().v4(),
         'formulir_id': formulirId,
         'aktor_id': aktorId,
-        'status': statusLaporan,
         'pesan_narasi': pesanNarasi,
         'created_at': DateTime.now().toIso8601String(),
       });
@@ -77,8 +76,7 @@ class TrackingService {
           callback: (payload) {
             try {
               final newRecord = payload.newRecord;
-              final tracking =
-                  Tracking.fromJson(newRecord);
+              final tracking = Tracking.fromJson(newRecord);
               onNewTracking(tracking);
               debugPrint('🔔 Realtime tracking baru: ${tracking.pesanNarasi}');
             } catch (e) {

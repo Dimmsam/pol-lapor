@@ -53,11 +53,20 @@ class LoginProvider extends ChangeNotifier {
 
   // ── Logout ────────────────────────────────────────────────────────────────
   Future<void> logout() async {
-    await _remoteAuth.logout();
     await _localAuth.clearSession();
     _session = null;
     _status = LoginStatus.idle;
     notifyListeners();
+
+    try {
+      await _remoteAuth.logout();
+    } catch (e) {
+      debugPrint('LoginProvider logout remote warning: $e');
+    }
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    await _remoteAuth.updatePassword(newPassword);
   }
 
   // ── Reset error ───────────────────────────────────────────────────────────

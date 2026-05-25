@@ -26,27 +26,27 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _uuid = const Uuid();
 
   static const List<String> _lokasiPerbaikanOptions = [
-    'D101',
-    'D102',
-    'D105',
-    'D106',
-    'D107',
-    'D108',
-    'D111',
-    'D112',
-    'D115',
-    'D116',
-    'D217',
-    'D219',
-    'D223',
-    'D224',
+    'D101 - Kelas',
+    'D102 - Lab. MT',
+    'D105 - Kelas',
+    'D106 - Lab. SDB',
+    'D107 - Lab. RPL',
+    'D108 - Kelas',
+    'D111 - Kelas',
+    'D112 - Kelas',
+    'D115 - Lab. PjBL-1',
+    'D116 - Lab. PjBL-2',
+    'D217 - Kelas',
+    'D219 - Kelas',
+    'D223 - Kelas',
+    'D224 - Kelas',
   ];
 
   bool _isSubmitting = false;
 
   // State peringatan laporan serupa
   bool _isCheckingSerupa = false;
-  int _jumlahLaporanSerupa = 0;  // 0 = tidak ada / belum dicek
+  int _jumlahLaporanSerupa = 0; // 0 = tidak ada / belum dicek
 
   // Controller untuk menangkap input
   final TextEditingController _judulController = TextEditingController();
@@ -71,9 +71,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     final countCloud = await _remoteDs.countLaporanAktifByLokasi(lokasi);
 
     // Ambil angka terbesar antara lokal dan cloud
-    final jumlah = countCloud != null
-        ? countCloud
-        : lokalSerupa.length;
+    final jumlah = countCloud != null ? countCloud : lokalSerupa.length;
 
     if (mounted) {
       setState(() {
@@ -156,7 +154,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       ),
     );
   }
-
 
   InputDecoration _fieldDecoration({required String hintText}) {
     return InputDecoration(
@@ -643,7 +640,8 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                           maxLines: 6,
                           maxLength: 500,
                           decoration: _fieldDecoration(
-                            hintText: 'Jelaskan detail kerusakan yang terlihat...',
+                            hintText:
+                                'Jelaskan detail kerusakan yang terlihat...',
                           ).copyWith(counterText: ''),
                           validator: (value) {
                             final text = value?.trim() ?? '';
@@ -688,8 +686,8 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                                         strokeWidth: 2.4,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
+                                              Colors.white,
+                                            ),
                                       ),
                                     )
                                   : const Text(
@@ -714,5 +712,4 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       ),
     );
   }
-
 }
