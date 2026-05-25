@@ -10,14 +10,12 @@ import '../../../logic/providers/teknisi_jurusan_provider.dart';
 import '../../../data/models/user_session.dart';
 import '../../../data/models/laporan_lokal.dart';
 import 'widgets/bottom_nav_teknisi.dart'; // ← pakai navbar baru
+import 'profil_teknisi_screen.dart';
 
 class DashboardTeknisiJurusanScreen extends StatefulWidget {
   final UserSession userSession;
 
-  const DashboardTeknisiJurusanScreen({
-    super.key,
-    required this.userSession,
-  });
+  const DashboardTeknisiJurusanScreen({super.key, required this.userSession});
 
   @override
   State<DashboardTeknisiJurusanScreen> createState() =>
@@ -36,9 +34,9 @@ class _DashboardTeknisiJurusanScreenState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context
-          .read<TeknisiJurusanProvider>()
-          .loadDashboard(teknisiId: widget.userSession.userId);
+      context.read<TeknisiJurusanProvider>().loadDashboard(
+        teknisiId: widget.userSession.userId,
+      );
     });
   }
 
@@ -57,7 +55,10 @@ class _DashboardTeknisiJurusanScreenState
         );
         break;
       case 2:
-        // TODO: Navigate ke ProfilScreen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ProfilTeknisiScreen()),
+        );
         break;
     }
   }
@@ -77,9 +78,8 @@ class _DashboardTeknisiJurusanScreenState
 
             return RefreshIndicator(
               color: _primaryColor,
-              onRefresh: () => provider.loadDashboard(
-                teknisiId: widget.userSession.userId,
-              ),
+              onRefresh: () =>
+                  provider.loadDashboard(teknisiId: widget.userSession.userId),
               child: CustomScrollView(
                 slivers: [
                   _buildSliverAppBar(),

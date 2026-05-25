@@ -4,10 +4,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/laporan_lokal.dart';
 import '../../data/models/penanganan.dart';
 import '../../core/supabase/supabase_service.dart';
+import '../../services/tracking_service.dart';
 
 class TeknisiJurusanProvider extends ChangeNotifier {
   // ─── Supabase Client ─────────────────────────────────────────────────────
   SupabaseClient get _db => SupabaseService.db;
+  final TrackingService _trackingService = TrackingService();
 
   // ─── State ───────────────────────────────────────────────────────────────
   List<Penanganan> _daftarPenangananLokal = [];
@@ -258,6 +260,15 @@ class TeknisiJurusanProvider extends ChangeNotifier {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('formulir_id', formulirId);
+
+      // ── Catat tracking: Penanganan Dimulai ────────────────────────────
+      await _trackingService.catatTracking(
+        formulirId: formulirId,
+        aktorId: teknisiId,
+        statusLaporan: StatusLaporan.diproses,
+        pesanNarasi: 'Teknisi Jurusan memulai penanganan. '
+            'Status berubah dari Menunggu → Diproses.',
+      );
     } catch (e) {
       _errorMessage = 'Gagal memulai penanganan: $e';
       debugPrint('mulaiPenangananLangsung error: $e');
@@ -381,6 +392,106 @@ class TeknisiJurusanProvider extends ChangeNotifier {
   }
 
   // =========================================================================
+  // PENANGANAN — UPDATE PROGRES
+  // =========================================================================
+
+  Future<bool> updateProgresLaporan({
+    required String formulirId,
+    required String statusBaru,
+    String? catatanProgres,
+    String? fotoProgresUrl,
+  }) async {
+    _setLoading(true);
+
+    try {
+      final nowStr = DateTime.now().toIso8601String();
+
+      // Cari penanganan yang sedang aktif untuk formulir ini
+      final penanganan = _mapPenanganan[formulirId];
+      if (penanganan == null) {
+        throw Exception('Penanganan tidak ditemukan untuk formulir ini.');
+      }
+
+      String finalStatusLaporan = StatusLaporan.diproses;
+      String finalStatusPenanganan = StatusPenanganan.sedangDikerjakan;
+
+      if (statusBaru.toLowerCase() == 'selesai') {
+        finalStatusLaporan = StatusLaporan.selesai;
+        finalStatusPenanganan = StatusPenanganan.selesai;
+      }
+
+      // Update penanganan
+      Map<String, dynamic> updateData = {
+        'status_penanganan': finalStatusPenanganan,
+        'updated_at': nowStr,
+      };
+
+      if (catatanProgres != null) {
+        updateData['catatan_progres'] = catatanProgres;
+        if (finalStatusPenanganan == StatusPenanganan.selesai) {
+          updateData['deskripsi_hasil'] = catatanProgres;
+        }
+      }
+
+      if (fotoProgresUrl != null) {
+        if (finalStatusPenanganan == StatusPenanganan.selesai) {
+          updateData['foto_hasil_url'] = fotoProgresUrl;
+        } else {
+          updateData['foto_progres_url'] = [fotoProgresUrl];
+        }
+      }
+
+      if (finalStatusPenanganan == StatusPenanganan.selesai) {
+        updateData['tanggal_selesai'] = nowStr;
+      }
+
+      await _db
+          .from('penanganan')
+          .update(updateData)
+          .eq('penanganan_id', penanganan.penangananId);
+
+      // Update formulir laporan
+      await _db
+          .from('formulir_laporan')
+          .update({
+            'status': finalStatusLaporan,
+            'updated_at': nowStr,
+          })
+          .eq('formulir_id', formulirId);
+
+      // Track the status
+      await _insertTrackingLog(
+        formulirId: formulirId,
+        statusSebelumnya: StatusLaporan.diproses,
+        statusBaru: finalStatusLaporan,
+        keterangan: 'Teknisi memperbarui progres: $statusBaru. ${catatanProgres ?? ""}',
+      );
+
+      // Update local state
+      final index = _daftarPenangananLokal.indexWhere((p) => p.penangananId == penanganan.penangananId);
+      if (index != -1) {
+        final updated = _daftarPenangananLokal[index].copyWith(
+          statusPenanganan: finalStatusPenanganan,
+          catatanProgres: catatanProgres ?? _daftarPenangananLokal[index].catatanProgres,
+          fotoHasilUrl: finalStatusPenanganan == StatusPenanganan.selesai ? fotoProgresUrl : _daftarPenangananLokal[index].fotoHasilUrl,
+          tanggalSelesai: finalStatusPenanganan == StatusPenanganan.selesai ? DateTime.now() : _daftarPenangananLokal[index].tanggalSelesai,
+        );
+        _daftarPenangananLokal[index] = updated;
+        _mapPenanganan[formulirId] = updated;
+        notifyListeners();
+      }
+
+      return true;
+    } catch (e) {
+      _errorMessage = 'Gagal memperbarui progres: $e';
+      debugPrint('updateProgresLaporan error: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // =========================================================================
   // HELPER PRIVAT
   // =========================================================================
 
@@ -415,6 +526,7 @@ class TeknisiJurusanProvider extends ChangeNotifier {
   }
 
   /// Insert log ke tabel `tracking` untuk audit trail (non-critical)
+  /// Menggunakan TrackingService agar format kolom konsisten.
   Future<void> _insertTrackingLog({
     required String formulirId,
     required String statusSebelumnya,
@@ -425,14 +537,12 @@ class TeknisiJurusanProvider extends ChangeNotifier {
       final user = SupabaseService.auth.currentUser;
       if (user == null) return;
 
-      await _db.from('tracking').insert({
-        'formulir_id': formulirId,
-        'status_sebelumnya': statusSebelumnya,
-        'status_baru': statusBaru,
-        'keterangan': keterangan,
-        'aktor_id': user.id,
-        'created_at': DateTime.now().toIso8601String(),
-      });
+      await _trackingService.catatTracking(
+        formulirId: formulirId,
+        aktorId: user.id,
+        statusLaporan: statusBaru,
+        pesanNarasi: keterangan,
+      );
     } catch (e) {
       debugPrint('_insertTrackingLog error (non-critical): $e');
     }

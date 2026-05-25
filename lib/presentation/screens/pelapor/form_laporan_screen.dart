@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/datasources/local/hive_local_datasource.dart';
-import '../../../data/datasources/remote/laporan_remote_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../logic/providers/home_provider.dart';
 import '../../../services/sync_service.dart';
@@ -27,7 +26,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
 
   final _formKey = GlobalKey<FormState>();
   final _datasource = HiveLocalDatasource();
-  final _remoteDs = LaporanRemoteDatasource();
   final _syncService = SyncService();
   final _uuid = const Uuid();
 
@@ -71,24 +69,22 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   }
 
   // ── Cek laporan serupa ────────────────────────────────────────────────────
-  Future<void> _checkLaporanSerupa(String lokasi) async {
+  void _checkLaporanSerupa(String lokasi) {
     setState(() {
       _isCheckingSerupa = true;
       _jumlahLaporanSerupa = 0;
     });
 
     final lokalSerupa = _datasource.getLaporanAktifByLokasi(lokasi);
-    final countCloud = await _remoteDs.countLaporanAktifByLokasi(lokasi);
-    final jumlah = countCloud != null ? countCloud : lokalSerupa.length;
 
     if (mounted) {
       setState(() {
-        _jumlahLaporanSerupa = jumlah;
+        _jumlahLaporanSerupa = lokalSerupa.length;
         _isCheckingSerupa = false;
       });
     }
   }
-
+  
   // ── Banner peringatan laporan serupa ──────────────────────────────────────
   Widget _buildWarningBanner() {
     if (_isCheckingSerupa) {
