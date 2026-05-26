@@ -44,15 +44,24 @@ class SyncService {
         }
 
         // Step B: Simpan data ke tabel formulir_laporan
+        final alreadyExists = await _laporanExistsOnCloud(laporan.formulirId);
         await _upsertDataToSupabase(laporan, cloudImageUrl);
 
-        // Step B2: Buat entry tracking awal untuk laporan baru
-        await _insertInitialTracking(
-          formulirId: laporan.formulirId,
-          aktorId: authUser.id,
-          pesanNarasi: 'Laporan sudah dibuat',
-          status: _mapStatusForSupabase(laporan.status),
-        );
+        // Step B2: Buat entry tracking awal hanya untuk laporan baru
+        if (!alreadyExists) {
+          await _insertInitialTracking(
+            formulirId: laporan.formulirId,
+            aktorId: authUser.id,
+            pesanNarasi: 'Tracking Sudah Dibuat',
+            status: _mapStatusForSupabase(laporan.status),
+          );
+          await _insertInitialTracking(
+            formulirId: laporan.formulirId,
+            aktorId: authUser.id,
+            pesanNarasi: 'Laporan sedang Ditinjau',
+            status: _mapStatusForSupabase(laporan.status),
+          );
+        }
 
         // Step C: Tandai sebagai synced di Hive
         await _hiveService.markSynced(laporan.formulirId);
@@ -223,5 +232,34 @@ class SyncService {
     }
 
     return resp['user_id'] as String;
+  }
+
+  Future<bool> _laporanExistsOnCloud(String formulirId) async {
+    try {
+      final resp = await supabase
+          .from('formulir_laporan')
+          .select('formulir_id')
+          .eq('formulir_id', formulirId)
+          .maybeSingle();
+
+      return resp != null;
+    } catch (e) {
+      debugPrint('Gagal memeriksa keberadaan laporan di cloud: $e');
+      return false;
+    }
+  }
+
+  Future<void> deleteLaporanFromSupabase(String formulirId) async {
+    final authUser = supabase.auth.currentUser;
+    if (authUser == null) {
+      throw Exception('Supabase auth belum tersedia. Hapus cloud gagal.');
+    }
+
+    await supabase
+        .from('formulir_laporan')
+        .delete()
+        .eq('formulir_id', formulirId);
+
+    debugPrint('Laporan $formulirId dihapus dari Supabase.');
   }
 }

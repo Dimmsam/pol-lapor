@@ -30,6 +30,8 @@ class HiveLocalDatasource {
 
   // ── UPDATE ────────────────────────────────────────────────────────────────
   Future<void> updateLaporan(LaporanLokal laporan) async {
+    laporan.isSynced = false;
+    laporan.updatedAt = DateTime.now();
     await _box.put(laporan.formulirId, laporan);
   }
 
@@ -55,6 +57,7 @@ class HiveLocalDatasource {
     if (laporan == null) return;
     
     laporan.status = statusBaru;
+    laporan.isSynced = false;
     laporan.updatedAt = DateTime.now();
     await laporan.save();
   }

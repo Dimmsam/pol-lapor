@@ -13,6 +13,15 @@ class HiveService {
   // Menggunakan formulirId sebagai key agar konsisten dengan Controller
   Future<void> saveLaporan(LaporanLokal laporan) async {
     final box = await _box;
+    laporan.isSynced = false;
+    laporan.updatedAt = DateTime.now();
+    await box.put(laporan.formulirId, laporan);
+  }
+
+  Future<void> updateLaporan(LaporanLokal laporan) async {
+    final box = await _box;
+    laporan.isSynced = false;
+    laporan.updatedAt = DateTime.now();
     await box.put(laporan.formulirId, laporan);
   }
 
