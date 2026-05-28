@@ -28,7 +28,8 @@ class AuthRemoteDatasource {
       email: profil['email'] as String,
       role: profil['role'] as String,
       token: response.session?.accessToken ?? '',
-      unitGedung: profil['unit_jurusan'] as String?,
+      keahlian: profil['keahlian'] as String?,
+      nomorTelepon: profil['nomor_telepon'] as String?,
     );
   }
 
@@ -63,7 +64,8 @@ class AuthRemoteDatasource {
         email: profil['email'] as String,
         role: profil['role'] as String,
         token: supabaseSession.accessToken,
-        unitGedung: profil['unit_jurusan'] as String?,
+        keahlian: profil['keahlian'] as String?,
+        nomorTelepon: profil['nomor_telepon'] as String?,
       );
     } catch (_) {
       return null;

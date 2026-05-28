@@ -3,14 +3,12 @@
 // File: laporan_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import '../../../core/constants/app_constants.dart';
-import '../../../data/datasources/local/auth_local_datasource.dart';
-import '../pelapor/detail_laporan_screen.dart';
-import '../pelapor/form_laporan_screen.dart'; // ← import screen form edit
-import '../../../data/datasources/local/hive_local_datasource.dart'; // ← import datasource
+import 'package:provider/provider.dart';
 import '../../../data/models/laporan_lokal.dart';
-import '../../../services/laporan_delete_service.dart';
+import '../../../logic/providers/laporan_provider.dart';
+import '../../../presentation/widgets/common/status_badge.dart';
+import 'detail_laporan_screen.dart';
+import 'form_laporan_screen.dart';
 
 class LaporanScreen extends StatefulWidget {
   const LaporanScreen({super.key});
@@ -24,10 +22,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = '';
 
-  // ── Datasource untuk operasi delete ──────────────────────────────────────
-  final HiveLocalDatasource _localDs = HiveLocalDatasource();
-  final LaporanDeleteService _deleteService = LaporanDeleteService();
-
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -39,8 +33,8 @@ class _LaporanScreenState extends State<LaporanScreen> {
     BuildContext context,
     LaporanLokal laporan,
   ) async {
-    final currentUserId = AuthLocalDatasource().getSession()?.userId;
-    if (currentUserId == null || currentUserId != laporan.pelaporId) {
+    final laporanProvider = context.read<LaporanProvider>();
+    if (!laporanProvider.canDelete(laporan)) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -97,14 +91,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
     if (confirmed == true) {
       try {
-        if (laporan.isSynced) {
-          await _deleteService.deleteLaporanRemotely(
-            formulirId: laporan.formulirId,
-            pelaporId: laporan.pelaporId,
-          );
-        }
-
-        await _localDs.deleteLaporan(laporan.formulirId);
+        await laporanProvider.deleteLaporan(laporan);
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -263,51 +250,28 @@ class _LaporanScreenState extends State<LaporanScreen> {
   }
 
   Widget _buildList() {
-    final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
-    final currentUserId = AuthLocalDatasource().getSession()?.userId;
+    final laporanProvider = context.watch<LaporanProvider>();
+    final data = laporanProvider.filterLaporan(
+      filterStatus: _filterStatus,
+      searchQuery: _searchQuery,
+    );
 
-    return ValueListenableBuilder<Box<LaporanLokal>>(
-      valueListenable: box.listenable(),
-      builder: (context, box, _) {
-        var data = box.values.toList().reversed.toList();
+    if (data.isEmpty) return _buildEmpty();
 
-        if (_filterStatus != 'semua') {
-          data = data.where((l) => l.status == _filterStatus).toList();
-        }
-
-        if (_searchQuery.isNotEmpty) {
-          data = data
-              .where(
-                (l) =>
-                    l.namaSarana.toLowerCase().contains(_searchQuery) ||
-                    l.keteranganKerusakan.toLowerCase().contains(
-                      _searchQuery,
-                    ) ||
-                    l.lokasiPerbaikan.toLowerCase().contains(_searchQuery),
-              )
-              .toList();
-        }
-
-        if (data.isEmpty) return _buildEmpty();
-
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-          itemCount: data.length,
-          itemBuilder: (context, index) => _LaporanCard(
-            laporan: data[index],
-            canDelete:
-                currentUserId != null && currentUserId == data[index].pelaporId,
-            onDelete:
-                currentUserId != null && currentUserId == data[index].pelaporId
-                ? () => _confirmDelete(context, data[index])
-                : null,
-            onEdit:
-                currentUserId != null &&
-                    currentUserId == data[index].pelaporId &&
-                    data[index].status == StatusLaporan.menungguKlasifikasi
-                ? () => _navigateToEdit(context, data[index])
-                : null, // null = tombol edit tidak ditampilkan
-          ),
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+      itemCount: data.length,
+      itemBuilder: (context, index) {
+        final laporan = data[index];
+        return _LaporanCard(
+          laporan: laporan,
+          canDelete: laporanProvider.canDelete(laporan),
+          onDelete: laporanProvider.canDelete(laporan)
+              ? () => _confirmDelete(context, laporan)
+              : null,
+          onEdit: laporanProvider.canEdit(laporan)
+              ? () => _navigateToEdit(context, laporan)
+              : null,
         );
       },
     );
@@ -462,7 +426,7 @@ class _LaporanCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  _StatusBadge(status: laporan.status),
+                  StatusBadge(status: laporan.status),
                 ],
               ),
 
@@ -609,45 +573,3 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// ─── STATUS BADGE ────────────────────────────────────────────────────────────
-
-class _StatusBadge extends StatelessWidget {
-  final String status;
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    Color bg;
-    Color fg;
-    String label;
-
-    switch (status) {
-      case StatusLaporan.selesai:
-        bg = const Color(0xFFD1FAE5);
-        fg = const Color(0xFF065F46);
-        label = 'Selesai';
-        break;
-      case StatusLaporan.diproses:
-        bg = const Color(0xFFFEF3C7);
-        fg = const Color(0xFFB45309);
-        label = 'Diproses';
-        break;
-      default:
-        bg = const Color(0xFFF3F4F6);
-        fg = const Color(0xFF6B7280);
-        label = 'Menunggu';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg),
-      ),
-    );
-  }
-}

@@ -6,9 +6,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../logic/providers/teknisi_jurusan_provider.dart';
+import '../../../logic/providers/teknisi_dashboard_provider.dart';
 import '../../../data/models/user_session.dart';
 import '../../../data/models/laporan_lokal.dart';
+import '../../widgets/common/status_badge.dart';
 import 'widgets/bottom_nav_teknisi.dart'; // ← pakai navbar baru
 import 'profil_teknisi_screen.dart';
 
@@ -34,7 +35,7 @@ class _DashboardTeknisiJurusanScreenState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TeknisiJurusanProvider>().loadDashboard(
+      context.read<TeknisiDashboardProvider>().loadDashboard(
         teknisiId: widget.userSession.userId,
       );
     });
@@ -68,7 +69,7 @@ class _DashboardTeknisiJurusanScreenState
     return Scaffold(
       backgroundColor: _bgColor,
       body: SafeArea(
-        child: Consumer<TeknisiJurusanProvider>(
+        child: Consumer<TeknisiDashboardProvider>(
           builder: (context, provider, _) {
             if (provider.isLoading) {
               return const Center(
@@ -202,7 +203,7 @@ class _DashboardTeknisiJurusanScreenState
     );
   }
 
-  Widget _buildIkhtisarTugas(TeknisiJurusanProvider provider) {
+  Widget _buildIkhtisarTugas(TeknisiDashboardProvider provider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -321,8 +322,6 @@ class _DashboardTeknisiJurusanScreenState
   }
 
   Widget _buildCardLaporan(LaporanLokal laporan) {
-    final statusInfo = _getStatusInfo(laporan.status);
-
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -386,10 +385,7 @@ class _DashboardTeknisiJurusanScreenState
                   laporan.createdAt.toFormatted(),
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
-                _buildBadgeStatus(
-                  label: statusInfo['label'] as String,
-                  color: statusInfo['color'] as Color,
-                ),
+                LaporanTeknisiStatusBadge(status: laporan.status),
               ],
             ),
           ],
@@ -410,25 +406,6 @@ class _DashboardTeknisiJurusanScreenState
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Icon(Icons.image_outlined, color: Colors.grey, size: 28),
-    );
-  }
-
-  Widget _buildBadgeStatus({required String label, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.4)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
     );
   }
 
@@ -472,16 +449,4 @@ class _DashboardTeknisiJurusanScreenState
     }
   }
 
-  Map<String, dynamic> _getStatusInfo(String status) {
-    switch (status) {
-      case StatusLaporan.menungguKlasifikasi:
-        return {'label': 'Menunggu', 'color': _accentColor};
-      case StatusLaporan.diproses:
-        return {'label': 'Dikerjakan', 'color': const Color(0xFF1565C0)};
-      case StatusLaporan.selesai:
-        return {'label': 'Selesai', 'color': const Color(0xFF2E7D32)};
-      default:
-        return {'label': status, 'color': Colors.grey};
-    }
-  }
 }

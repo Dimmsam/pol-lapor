@@ -8,8 +8,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../logic/providers/teknisi_jurusan_provider.dart';
+import '../../../logic/providers/penanganan_provider.dart';
 import '../../../logic/providers/tracking_provider.dart';
+import '../../widgets/common/status_badge.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/tracking.dart';
@@ -60,7 +61,7 @@ class _DetailLaporanTeknisiScreenState
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<TeknisiJurusanProvider>();
+    final provider = context.watch<PenangananProvider>();
     final penanganan = provider.getPenangananByFormulir(
       widget.laporan.formulirId,
     );
@@ -176,11 +177,6 @@ class _DetailLaporanTeknisiScreenState
   }
 
   Widget _buildIdDanStatus(Penanganan? penanganan) {
-    final statusLabel = penanganan == null
-        ? 'Pending'
-        : StatusPenanganan.toLabel(penanganan.statusPenanganan);
-    final statusColor = _getStatusColor(penanganan);
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -206,22 +202,7 @@ class _DetailLaporanTeknisiScreenState
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: statusColor.withOpacity(0.4)),
-          ),
-          child: Text(
-            statusLabel,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: statusColor,
-            ),
-          ),
-        ),
+        PenangananStatusBadge.fromPenanganan(penanganan),
       ],
     );
   }
@@ -345,7 +326,7 @@ class _DetailLaporanTeknisiScreenState
   Widget _buildKlasifikasiKerusakan(
     bool sudahMulai,
     Penanganan? penanganan,
-    TeknisiJurusanProvider provider,
+    PenangananProvider provider,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,20 +498,6 @@ class _DetailLaporanTeknisiScreenState
   // HELPERS
   // =========================================================================
 
-  Color _getStatusColor(Penanganan? penanganan) {
-    if (penanganan == null) return _accentColor;
-    switch (penanganan.statusPenanganan) {
-      case StatusPenanganan.sedangDikerjakan:
-        return const Color(0xFF1565C0);
-      case StatusPenanganan.selesai:
-        return const Color(0xFF2E7D32);
-      case StatusPenanganan.menungguEskalasi:
-        return Colors.red;
-      default:
-        return _accentColor;
-    }
-  }
-
   // ─── TRACKING TIMELINE CARD ──────────────────────────────────────────────
   Widget _buildTrackingCard() {
     return Consumer<TrackingProvider>(
@@ -658,10 +625,10 @@ class _TrackingTimelineTileTeknisi extends StatelessWidget {
               height: 30,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _getTimelineColor(tracking.status),
+                color: _getTimelineColor(tracking.jenisEvent ?? ''),
               ),
               child: Icon(
-                _getTimelineIcon(tracking.status),
+                _getTimelineIcon(tracking.jenisEvent ?? ''),
                 color: Colors.white,
                 size: 16,
               ),
@@ -687,7 +654,7 @@ class _TrackingTimelineTileTeknisi extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        tracking.status,
+                        tracking.jenisEvent ?? tracking.pesanNarasi,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -722,25 +689,28 @@ class _TrackingTimelineTileTeknisi extends StatelessWidget {
     );
   }
 
-  Color _getTimelineColor(String status) {
-    switch (status.toLowerCase()) {
+  Color _getTimelineColor(String jenisEvent) {
+    switch (jenisEvent.toLowerCase()) {
       case 'selesai':
+      case 'penanganan_selesai':
         return const Color(0xFF2E7D32);
       case 'diproses':
+      case 'penanganan_dimulai':
+      case 'status_berubah':
         return const Color(0xFF1565C0);
-      case 'menunggu_klasifikasi':
       default:
         return const Color(0xFF6B7280);
     }
   }
 
-  IconData _getTimelineIcon(String status) {
-    switch (status.toLowerCase()) {
+  IconData _getTimelineIcon(String jenisEvent) {
+    switch (jenisEvent.toLowerCase()) {
       case 'selesai':
+      case 'penanganan_selesai':
         return Icons.check_circle_outline;
       case 'diproses':
+      case 'penanganan_dimulai':
         return Icons.build_outlined;
-      case 'menunggu_klasifikasi':
       default:
         return Icons.schedule;
     }

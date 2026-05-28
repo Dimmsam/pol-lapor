@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../data/datasources/local/auth_local_datasource.dart';
 import '../../data/datasources/remote/auth_remote_datasource.dart';
 import '../../data/models/user_session.dart';
 
 enum LoginStatus { idle, loading, success, error }
 
-class LoginProvider extends ChangeNotifier {
+class AuthProvider extends ChangeNotifier {
   final AuthLocalDatasource _localAuth = AuthLocalDatasource();
   final AuthRemoteDatasource _remoteAuth = AuthRemoteDatasource();
 
@@ -19,22 +20,33 @@ class LoginProvider extends ChangeNotifier {
   UserSession? get session => _session;
   bool get isLoading => _status == LoginStatus.loading;
 
-  // ── Cek session lokal saat splash ────────────────────────────────────────
   bool isLoggedIn() => _localAuth.isLoggedIn();
 
   UserSession? getExistingSession() => _localAuth.getSession();
 
-  // ── Login via Supabase Auth ───────────────────────────────────────────────
+  /// Dipakai splash: restore session Supabase atau bersihkan lokal
+  Future<UserSession?> restoreSession() async {
+    final remote = await _remoteAuth.getSessionFromSupabase();
+    if (remote != null) {
+      await _localAuth.saveSession(remote);
+      _session = remote;
+      notifyListeners();
+      return remote;
+    }
+
+    await _localAuth.clearSession();
+    _session = null;
+    notifyListeners();
+    return null;
+  }
+
   Future<void> login(String email, String password) async {
     _status = LoginStatus.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // Hit Supabase Auth → ambil JWT + profil dari tabel pengguna
       final session = await _remoteAuth.login(email, password);
-
-      // Simpan ke Hive lokal untuk offline session
       await _localAuth.saveSession(session);
       _session = session;
       _status = LoginStatus.success;
@@ -44,14 +56,13 @@ class LoginProvider extends ChangeNotifier {
     } catch (e, st) {
       _status = LoginStatus.error;
       _errorMessage = 'Terjadi kesalahan: ${e.toString()}';
-      debugPrint('LoginProvider unexpected error: $e');
+      debugPrint('AuthProvider unexpected error: $e');
       debugPrint('$st');
     }
 
     notifyListeners();
   }
 
-  // ── Logout ────────────────────────────────────────────────────────────────
   Future<void> logout() async {
     await _localAuth.clearSession();
     _session = null;
@@ -61,7 +72,7 @@ class LoginProvider extends ChangeNotifier {
     try {
       await _remoteAuth.logout();
     } catch (e) {
-      debugPrint('LoginProvider logout remote warning: $e');
+      debugPrint('AuthProvider logout remote warning: $e');
     }
   }
 
@@ -69,14 +80,30 @@ class LoginProvider extends ChangeNotifier {
     await _remoteAuth.updatePassword(newPassword);
   }
 
-  // ── Reset error ───────────────────────────────────────────────────────────
+  Future<void> updateLocalNama(String nama) async {
+    final current = _session ?? _localAuth.getSession();
+    if (current == null) return;
+
+    final updated = UserSession(
+      userId: current.userId,
+      nama: nama,
+      email: current.email,
+      role: current.role,
+      token: current.token,
+      keahlian: current.keahlian,
+      nomorTelepon: current.nomorTelepon,
+    );
+    await _localAuth.saveSession(updated);
+    _session = updated;
+    notifyListeners();
+  }
+
   void resetError() {
     _errorMessage = null;
     _status = LoginStatus.idle;
     notifyListeners();
   }
 
-  // ── Map pesan error Supabase → bahasa Indonesia ───────────────────────────
   String _mapAuthError(String message) {
     if (message.contains('Invalid login credentials')) {
       return 'Email atau password salah.';

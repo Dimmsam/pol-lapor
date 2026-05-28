@@ -1,38 +1,44 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import '../data/models/tracking.dart';
 
-class TrackingService {
-  final _supabase = Supabase.instance.client;
+import '../../../core/supabase/supabase_service.dart';
+import '../../models/tracking.dart';
+
+class TrackingRemoteDatasource {
+  final _supabase = SupabaseService.db;
 
   RealtimeChannel? _realtimeChannel;
 
-  // ─── 1. INSERT: Catat tracking baru ──────────────────────────────────────
-  /// Fungsi universal untuk mencatat tracking dari mana saja
+  /// Catat satu baris tracking ke tabel `public.tracking`.
+  ///
+  /// [jenisEvent] — nilai enum `jenis_event_enum` di Supabase (NOT NULL).
+  /// Wajib diisi setelah enum values dikonfirmasi (lihat check_schema.sql).
+  /// TODO(B10): jadikan required setelah enum dikonfirmasi.
   Future<void> catatTracking({
     required String formulirId,
-    String? aktorId, // Bisa ID Pelapor, Teknisi, atau Admin
-    required String statusLaporan,
+    String? aktorId,
+    required String jenisEvent,
     required String pesanNarasi,
+    Map<String, dynamic>? metadata,
   }) async {
     try {
       await _supabase.from('tracking').insert({
         'tracking_id': const Uuid().v4(),
         'formulir_id': formulirId,
         'aktor_id': aktorId,
+        'jenis_event': jenisEvent,
         'pesan_narasi': pesanNarasi,
+        if (metadata != null) 'metadata': metadata,
         'created_at': DateTime.now().toIso8601String(),
       });
-      debugPrint('✅ Tracking berhasil dicatat: $pesanNarasi');
+      debugPrint('TrackingRemote: berhasil dicatat — "$pesanNarasi"');
     } catch (e) {
-      debugPrint('❌ Gagal mencatat tracking: $e');
+      debugPrint('TrackingRemote: gagal mencatat tracking: $e');
       rethrow;
     }
   }
 
-  // ─── 2. FETCH: Ambil riwayat tracking untuk 1 laporan ───────────────────
-  /// Mengembalikan list [Tracking] diurutkan dari yang terlama (ascending).
   Future<List<Tracking>> fetchRiwayatTracking(String formulirId) async {
     try {
       final response = await _supabase
@@ -45,20 +51,15 @@ class TrackingService {
           .map((item) => Tracking.fromJson(item as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      debugPrint('❌ Gagal fetch riwayat tracking: $e');
+      debugPrint('TrackingRemote: gagal fetch riwayat tracking: $e');
       rethrow;
     }
   }
 
-  // ─── 3. REALTIME: Subscribe ke perubahan tracking ───────────────────────
-  /// Membuka channel realtime Supabase untuk mendengarkan INSERT baru
-  /// pada tabel tracking yang sesuai [formulirId].
-  /// [onNewTracking] dipanggil setiap ada record baru.
   void subscribeRealtime({
     required String formulirId,
     required void Function(Tracking newTracking) onNewTracking,
   }) {
-    // Tutup channel lama jika ada
     unsubscribe();
 
     final channelName = 'tracking:$formulirId';
@@ -75,26 +76,28 @@ class TrackingService {
           ),
           callback: (payload) {
             try {
-              final newRecord = payload.newRecord;
-              final tracking = Tracking.fromJson(newRecord);
+              final tracking = Tracking.fromJson(payload.newRecord);
               onNewTracking(tracking);
-              debugPrint('🔔 Realtime tracking baru: ${tracking.pesanNarasi}');
+              debugPrint(
+                'TrackingRemote: realtime baru — "${tracking.pesanNarasi}"',
+              );
             } catch (e) {
-              debugPrint('❌ Error parse realtime tracking: $e');
+              debugPrint('TrackingRemote: error parse realtime tracking: $e');
             }
           },
         )
         .subscribe();
 
-    debugPrint('📡 Subscribed realtime tracking untuk formulir: $formulirId');
+    debugPrint(
+      'TrackingRemote: subscribed realtime untuk formulir $formulirId',
+    );
   }
 
-  // ─── 4. UNSUBSCRIBE: Tutup channel realtime ─────────────────────────────
   void unsubscribe() {
     if (_realtimeChannel != null) {
       _supabase.removeChannel(_realtimeChannel!);
       _realtimeChannel = null;
-      debugPrint('📡 Unsubscribed dari realtime tracking');
+      debugPrint('TrackingRemote: unsubscribed dari realtime tracking');
     }
   }
 }

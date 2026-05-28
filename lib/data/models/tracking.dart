@@ -1,17 +1,23 @@
 class Tracking {
   final String trackingId;
   final String formulirId;
-  final String? aktorId; // Bisa null jika yang melakukan adalah by system
-  final String status;
+  final String? aktorId;
+
+  /// Nilai enum `jenis_event_enum` di Supabase.
+  /// Nullable di model agar backward-compatible saat fetch data lama.
+  final String? jenisEvent;
+
   final String pesanNarasi;
+  final Map<String, dynamic>? metadata;
   final DateTime createdAt;
 
   const Tracking({
     required this.trackingId,
     required this.formulirId,
     this.aktorId,
-    required this.status,
+    this.jenisEvent,
     required this.pesanNarasi,
+    this.metadata,
     required this.createdAt,
   });
 
@@ -20,8 +26,9 @@ class Tracking {
       trackingId: json['tracking_id'] as String,
       formulirId: json['formulir_id'] as String,
       aktorId: json['aktor_id'] as String?,
-      status: json['status'] as String? ?? '',
-      pesanNarasi: json['pesan_narasi'] as String,
+      jenisEvent: json['jenis_event'] as String?,
+      pesanNarasi: json['pesan_narasi'] as String? ?? '',
+      metadata: json['metadata'] as Map<String, dynamic>?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -30,8 +37,9 @@ class Tracking {
     'tracking_id': trackingId,
     'formulir_id': formulirId,
     'aktor_id': aktorId,
-    'status': status,
+    'jenis_event': jenisEvent,
     'pesan_narasi': pesanNarasi,
+    'metadata': metadata,
     'created_at': createdAt.toIso8601String(),
   };
 }

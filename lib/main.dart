@@ -9,23 +9,20 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'core/constants/app_constants.dart';
 import 'data/models/laporan_lokal.dart';
 import 'data/models/user_session.dart';
-import 'data/models/notifikasi_laporan.dart';
-import 'logic/providers/home_provider.dart';
-import 'logic/providers/login_provider.dart';
-import 'logic/providers/teknisi_jurusan_provider.dart';
-// import 'logic/providers/tugas_detail_provider.dart';
-// import 'logic/providers/riwayat_provider.dart';
+import 'logic/providers/auth_provider.dart';
+import 'logic/providers/form_laporan_provider.dart';
+import 'logic/providers/laporan_provider.dart';
+import 'logic/providers/notifikasi_provider.dart';
+import 'logic/providers/penanganan_provider.dart';
+import 'logic/providers/teknisi_dashboard_provider.dart';
 import 'logic/providers/tracking_provider.dart';
-import 'presentation/screens/home/home_screen.dart';
-import 'presentation/screens/home/notif_screen.dart';
-import 'presentation/screens/login/login_screen.dart';
+import 'presentation/screens/pelapor/home_screen.dart';
+import 'presentation/screens/pelapor/notif_screen.dart';
+import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/pelapor/form_laporan_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
-
-// ── Tambahan: Route Teknisi Jurusan ──────────────────────────────────────────
 import 'presentation/screens/teknisi_jurusan/dashboard_teknisi_jurusan_screen.dart';
 import 'presentation/screens/teknisi_jurusan/daftar_tugas_screen.dart';
-
 import 'services/sync_service.dart';
 
 Future<void> main() async {
@@ -45,18 +42,12 @@ Future<void> main() async {
   if (!Hive.isAdapterRegistered(1)) {
     Hive.registerAdapter(UserSessionAdapter());
   }
-  if (!Hive.isAdapterRegistered(2)) {
-    Hive.registerAdapter(NotifikasiLaporanAdapter());
-  }
 
   await Hive.openBox<LaporanLokal>(AppConstants.boxLaporan);
   await Hive.openBox<UserSession>(AppConstants.boxUser);
-  await Hive.openBox<NotifikasiLaporan>('box_notifikasi');
 
   runApp(const PolLaporApp());
 }
-
-final supabase = Supabase.instance.client;
 
 class PolLaporApp extends StatefulWidget {
   const PolLaporApp({super.key});
@@ -73,12 +64,11 @@ class _PolLaporAppState extends State<PolLaporApp> {
   void initState() {
     super.initState();
 
-    // Auto-sync saat koneksi terdeteksi
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
       List<ConnectivityResult> results,
     ) {
       if (!results.contains(ConnectivityResult.none)) {
-        debugPrint('🌐 Sinyal terdeteksi! Menjalankan Auto-Sync...');
+        debugPrint('Sinyal terdeteksi! Menjalankan Auto-Sync...');
         _syncService.syncUnsyncedData();
       }
     });
@@ -94,21 +84,19 @@ class _PolLaporAppState extends State<PolLaporApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => LoginProvider()),
-
-        // Home Provider dengan realtime aktif
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(
           create: (_) {
-            final p = HomeProvider();
+            final p = LaporanProvider();
             p.init();
             return p;
           },
         ),
-
-        ChangeNotifierProvider(create: (_) => TeknisiJurusanProvider()),
-        // ChangeNotifierProvider(create: (_) => TugasDetailProvider()),
-        // ChangeNotifierProvider(create: (_) => RiwayatProvider()),
+        ChangeNotifierProvider(create: (_) => FormLaporanProvider()),
+        ChangeNotifierProvider(create: (_) => TeknisiDashboardProvider()),
+        ChangeNotifierProvider(create: (_) => PenangananProvider()),
         ChangeNotifierProvider(create: (_) => TrackingProvider()),
+        ChangeNotifierProvider(create: (_) => NotifikasiProvider()),
       ],
       child: MaterialApp(
         title: 'PolLapor',
@@ -125,7 +113,6 @@ class _PolLaporAppState extends State<PolLaporApp> {
           '/notif': (context) => const NotifScreen(),
         },
         onGenerateRoute: (settings) {
-          // ── Dashboard Teknisi Jurusan ───────────────────────────────────
           if (settings.name == '/dashboard-teknisi-jurusan') {
             final userSession = settings.arguments as UserSession;
             return MaterialPageRoute(
@@ -135,7 +122,6 @@ class _PolLaporAppState extends State<PolLaporApp> {
             );
           }
 
-          // ── Daftar Tugas Teknisi Jurusan ────────────────────────────────
           if (settings.name == '/daftar-tugas-teknisi-jurusan') {
             final userSession = settings.arguments as UserSession;
             return MaterialPageRoute(

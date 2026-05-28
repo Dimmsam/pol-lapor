@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../data/datasources/local/auth_local_datasource.dart';
-import '../../../data/models/user_session.dart';
-import '../../../logic/providers/login_provider.dart';
+import '../../../logic/providers/auth_provider.dart';
 import 'widgets/bottom_nav_teknisi.dart';
 
 class ProfilTeknisiScreen extends StatefulWidget {
@@ -23,10 +21,6 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
     if (parts.isEmpty) return 'U';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-
-  UserSession? _currentSession() {
-    return AuthLocalDatasource().getSession();
   }
 
   @override
@@ -121,7 +115,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
   }
 
   Widget _buildProfileCard(BuildContext context) {
-    final session = _currentSession();
+    final session = context.read<AuthProvider>().session;
     final nama = session?.nama ?? 'Ahmad Teknisi';
     final email = session?.email ?? 'teknisi@pol-lapor.local';
     final role = session?.role ?? 'Teknisi Jurusan Teknik Informatika';
@@ -209,7 +203,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
   }
 
   Widget _buildSettingsList(BuildContext context) {
-    final session = _currentSession();
+    final session = context.read<AuthProvider>().session;
     final namaAktif = session?.nama ?? 'Ahmad Teknisi';
 
     return Container(
@@ -266,19 +260,9 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                             final namaBaru = namaCtrl.text.trim();
                             if (namaBaru.isEmpty) return;
 
-                            final auth = AuthLocalDatasource();
-                            final currentSession = auth.getSession();
-                            if (currentSession != null) {
-                              final updated = UserSession(
-                                userId: currentSession.userId,
-                                nama: namaBaru,
-                                email: currentSession.email,
-                                role: currentSession.role,
-                                token: currentSession.token,
-                                unitGedung: currentSession.unitGedung,
-                              );
-                              await auth.saveSession(updated);
-                            }
+                            await context.read<AuthProvider>().updateLocalNama(
+                              namaBaru,
+                            );
 
                             if (ctx.mounted) Navigator.pop(ctx);
                             if (mounted) {
@@ -431,7 +415,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                             }
 
                             try {
-                              await context.read<LoginProvider>().updatePassword(
+                              await context.read<AuthProvider>().updatePassword(
                                 newCtrl.text,
                               );
                               if (ctx.mounted) Navigator.pop(ctx);
@@ -494,7 +478,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                 TextButton(
                   onPressed: () async {
                     Navigator.pop(dialogContext);
-                    await screenContext.read<LoginProvider>().logout();
+                    await screenContext.read<AuthProvider>().logout();
                     if (screenContext.mounted) {
                       Navigator.pushNamedAndRemoveUntil(
                         screenContext,
@@ -514,7 +498,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
   }
 
   Widget _buildBottomNav(BuildContext context) {
-    final login = context.read<LoginProvider>();
+    final login = context.read<AuthProvider>();
     final session = login.getExistingSession() ?? login.session;
 
     // Map internal _selectedIndex (0..3) to BottomNavTeknisi indexes (0..2)

@@ -6,18 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // Import provider
-import '../../../logic/providers/home_provider.dart';
-
-// Import screen
+import '../../../logic/providers/laporan_provider.dart';
+import '../../../logic/providers/notifikasi_provider.dart';
 import 'dashboard_screen.dart';
 import 'laporan_screen.dart';
 import 'profile_screen.dart';
-
-// Import form laporan (reuse)
-import '../pelapor/form_laporan_screen.dart';
-
-// Import widget
-import '../../screens/home/bottom_nav_bar.dart';
+import 'form_laporan_screen.dart';
+import 'bottom_nav_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialIndex; // TAMBAHAN
@@ -53,7 +48,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Inisialisasi session & statistik laporan saat home pertama dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<HomeProvider>().init();
+      final laporanProvider = context.read<LaporanProvider>();
+      laporanProvider.init();
+
+      // Init NotifikasiProvider dengan userId pelapor yang sedang login
+      final userId = laporanProvider.currentUserId;
+      if (userId != null) {
+        context.read<NotifikasiProvider>().init(userId);
+      }
     });
   }
 

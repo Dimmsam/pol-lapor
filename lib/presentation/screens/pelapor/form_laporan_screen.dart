@@ -1,11 +1,10 @@
-import '../../screens/home/home_screen.dart';
+import 'home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
-import '../../../data/datasources/local/hive_local_datasource.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../data/models/laporan_lokal.dart';
-import '../../../logic/providers/home_provider.dart';
-import '../../../services/sync_service.dart';
+import '../../../logic/providers/form_laporan_provider.dart';
+import '../../../logic/providers/laporan_provider.dart';
 import '../../widgets/pelapor/laporan_photo_field.dart';
 
 import 'dart:async';
@@ -25,30 +24,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   bool get _isEditMode => widget.laporanEdit != null;
 
   final _formKey = GlobalKey<FormState>();
-  final _datasource = HiveLocalDatasource();
-  final _syncService = SyncService();
-  final _uuid = const Uuid();
-
-  static const List<String> _lokasiPerbaikanOptions = [
-    'D101 - Kelas',
-    'D102 - Lab. MT',
-    'D105 - Kelas',
-    'D106 - Lab. SDB',
-    'D107 - Lab. RPL',
-    'D108 - Kelas',
-    'D111 - Kelas',
-    'D112 - Kelas',
-    'D115 - Lab. PjBL-1',
-    'D116 - Lab. PjBL-2',
-    'D217 - Kelas',
-    'D219 - Kelas',
-    'D223 - Kelas',
-    'D224 - Kelas',
-  ];
-
-  bool _isSubmitting = false;
-  bool _isCheckingSerupa = false;
-  int _jumlahLaporanSerupa = 0;
 
   final TextEditingController _judulController = TextEditingController();
   final TextEditingController _deskripsiController = TextEditingController();
@@ -82,23 +57,14 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
 
   // ── Cek laporan serupa ────────────────────────────────────────────────────
   void _checkLaporanSerupa(String lokasi) {
-    setState(() {
-      _isCheckingSerupa = true;
-      _jumlahLaporanSerupa = 0;
-    });
-
-    final lokalSerupa = _datasource.getLaporanAktifByLokasi(lokasi);
-    if (mounted) {
-      setState(() {
-        _jumlahLaporanSerupa = lokalSerupa.length;
-        _isCheckingSerupa = false;
-      });
-    }
+    context.read<FormLaporanProvider>().checkLaporanSerupa(lokasi);
   }
 
   // ── Banner peringatan laporan serupa ──────────────────────────────────────
   Widget _buildWarningBanner() {
-    if (_isCheckingSerupa) {
+    final form = context.watch<FormLaporanProvider>();
+
+    if (form.isCheckingSerupa) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Row(
@@ -118,7 +84,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       );
     }
 
-    if (_jumlahLaporanSerupa <= 0) return const SizedBox.shrink();
+    if (form.jumlahLaporanSerupa <= 0) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -152,7 +118,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Terdapat $_jumlahLaporanSerupa laporan aktif '
+                    'Terdapat ${form.jumlahLaporanSerupa} laporan aktif '
                     'di lokasi ini. Pastikan belum dilaporkan '
                     'sebelum mengirim laporan baru.',
                     style: const TextStyle(
@@ -228,15 +194,12 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             GestureDetector(
-              onTap: _isSubmitting
+              onTap: context.watch<FormLaporanProvider>().isSubmitting
                   ? null
                   : () async {
                       final selected = await _showLocationPicker();
                       if (selected != null) {
-                        setState(() {
-                          _lokasiPerbaikan = selected;
-                          _jumlahLaporanSerupa = 0;
-                        });
+                        setState(() => _lokasiPerbaikan = selected);
                         state.didChange(selected);
                         _checkLaporanSerupa(selected);
                       }
@@ -281,8 +244,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   }
 
   Future<String?> _showLocationPicker() async {
-    final floor1 = _lokasiPerbaikanOptions.take(10).toList();
-    final floor2 = _lokasiPerbaikanOptions.skip(10).toList();
+    final options = AppConstants.lokasiPerbaikanOptions;
+    final floor1 = options.take(10).toList();
+    final floor2 = options.skip(10).toList();
 
     return await showModalBottomSheet<String>(
       context: context,
@@ -413,64 +377,45 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    final formProvider = context.read<FormLaporanProvider>();
+    final laporanProvider = context.read<LaporanProvider>();
+    final nomorInv = _nomorInventarisController.text.trim().isEmpty
+        ? null
+        : _nomorInventarisController.text.trim();
 
     try {
       if (_isEditMode) {
-        // ── MODE EDIT: pakai copyWith karena field final, lalu simpan ────
-        final updated = widget.laporanEdit!.copyWith(
+        await formProvider.updateLaporan(
+          widget.laporanEdit!,
           namaSarana: _judulController.text.trim(),
           keteranganKerusakan: _deskripsiController.text.trim(),
           lokasiPerbaikan: _lokasiPerbaikan!.trim(),
-          nomorInventaris: _nomorInventarisController.text.trim().isEmpty
-              ? null
-              : _nomorInventarisController.text.trim(),
           fotoLokalPath: _fotoPath,
-          isSynced: false, // tandai ulang agar di-sync ulang
-          updatedAt: DateTime.now(),
+          nomorInventaris: nomorInv,
         );
 
-        await _datasource.updateLaporan(updated);
-        debugPrint('✅ Laporan diperbarui: ${updated.formulirId}');
-
-        // Sync di background
-        _syncService.syncUnsyncedData().catchError((_) {});
-
         if (!mounted) return;
+        laporanProvider.onReturnFromForm();
         _showSnackBar('✅ Laporan berhasil diperbarui!');
-        Navigator.pop(context); // kembali ke daftar laporan
+        Navigator.pop(context);
       } else {
-        // ── MODE CREATE: simpan laporan baru ──────────────────────────────
-        final laporan = LaporanLokal(
-          formulirId: _uuid.v4(),
+        await formProvider.createLaporan(
           namaSarana: _judulController.text.trim(),
           keteranganKerusakan: _deskripsiController.text.trim(),
           lokasiPerbaikan: _lokasiPerbaikan!.trim(),
           fotoLokalPath: _fotoPath!,
-          nomorInventaris: _nomorInventarisController.text.trim().isEmpty
-              ? null
-              : _nomorInventarisController.text.trim(),
-          pelaporId: context.read<HomeProvider>().session?.userId ?? '',
-          tandaTanganPelapor: true,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+          pelaporId: laporanProvider.session?.userId ?? '',
+          nomorInventaris: nomorInv,
         );
 
-        await _datasource.saveLaporan(laporan);
-        debugPrint('✅ Laporan tersimpan: ${laporan.formulirId}');
-
-        if (mounted) context.read<HomeProvider>().onReturnFromForm();
-
-        _syncService.syncUnsyncedData().catchError((_) {});
-
         if (!mounted) return;
+        laporanProvider.onReturnFromForm();
 
         _formKey.currentState?.reset();
         _judulController.clear();
         _deskripsiController.clear();
         _nomorInventarisController.clear();
         setState(() {
-          _isSubmitting = false;
           _lokasiPerbaikan = null;
           _fotoPath = null;
         });
@@ -484,18 +429,16 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
           ),
           (route) => false,
         );
-        return;
       }
     } catch (e) {
       if (!mounted) return;
       _showSnackBar(
-        _isEditMode
-            ? 'Gagal memperbarui laporan.'
-            : 'Gagal menyimpan laporan lokal.',
+        formProvider.errorMessage ??
+            (_isEditMode
+                ? 'Gagal memperbarui laporan.'
+                : 'Gagal menyimpan laporan lokal.'),
       );
     }
-
-    if (mounted) setState(() => _isSubmitting = false);
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -725,7 +668,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                         _sectionLabel('Foto Bukti Kerusakan', required: true),
                         LaporanPhotoField(
                           imagePath: _fotoPath,
-                          enabled: !_isSubmitting,
+                          enabled: !context.watch<FormLaporanProvider>().isSubmitting,
                           onChanged: (value) =>
                               setState(() => _fotoPath = value),
                         ),
@@ -735,7 +678,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: _isSubmitting ? null : _submitForm,
+                            onPressed: context.watch<FormLaporanProvider>().isSubmitting
+                                ? null
+                                : _submitForm,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF1565C0),
                               foregroundColor: Colors.white,
@@ -746,7 +691,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                             ),
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 220),
-                              child: _isSubmitting
+                              child: context.watch<FormLaporanProvider>().isSubmitting
                                   ? const SizedBox(
                                       key: ValueKey('loading'),
                                       width: 22,

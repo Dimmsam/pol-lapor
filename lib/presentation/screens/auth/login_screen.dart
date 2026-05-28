@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../logic/providers/login_provider.dart';
+import '../../../logic/providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
 Future<void> handleLogin() async {
-    final provider = context.read<LoginProvider>();
+    final provider = context.read<AuthProvider>();
 
     if (emailController.text.trim().isEmpty ||
         passwordController.text.trim().isEmpty) {
@@ -63,7 +63,7 @@ Future<void> handleLogin() async {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<LoginProvider>();
+    final provider = context.watch<AuthProvider>();
     final isLoading = provider.isLoading;
     final errorMessage = provider.errorMessage;
 

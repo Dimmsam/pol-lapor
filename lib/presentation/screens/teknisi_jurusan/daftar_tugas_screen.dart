@@ -5,12 +5,13 @@
 // Deskripsi    : Halaman Daftar Tugas untuk Teknisi Jurusan.
 //                Menampilkan semua laporan yang di-assign ke teknisi
 //                dengan filter tab: Semua | Menunggu | Dikerjakan.
-//                Terhubung langsung ke Supabase via TeknisiJurusanProvider.
+//                Terhubung langsung ke Supabase via PenangananProvider.
 // ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../logic/providers/teknisi_jurusan_provider.dart';
+import '../../../logic/providers/penanganan_provider.dart';
+import '../../widgets/common/status_badge.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
@@ -58,7 +59,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
     _tabController = TabController(length: _tabs.length, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TeknisiJurusanProvider>().loadDaftarTugas(
+      context.read<PenangananProvider>().loadDaftarTugas(
         teknisiId: widget.userSession.userId,
       );
     });
@@ -110,7 +111,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
 
             // ── Content ─────────────────────────────────────────────────────
             Expanded(
-              child: Consumer<TeknisiJurusanProvider>(
+              child: Consumer<PenangananProvider>(
                 builder: (context, provider, _) {
                   if (provider.isLoading) {
                     return const Center(
@@ -125,10 +126,8 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
                   return TabBarView(
                     controller: _tabController,
                     children: _tabs.map((tab) {
-                      final filtered = _filterLaporan(
-                        provider.daftarTugas,
+                      final filtered = provider.filterTugasByStatus(
                         tab.filterStatus,
-                        provider,
                       );
                       return _buildListTugas(filtered, provider);
                     }).toList(),
@@ -264,7 +263,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
   /// List tugas berdasarkan filter tab
   Widget _buildListTugas(
     List<LaporanLokal> laporan,
-    TeknisiJurusanProvider provider,
+    PenangananProvider provider,
   ) {
     // Jika daftar kosong, tampilkan satu laporan dummy lokal untuk pengujian
     final listToShow = laporan.isEmpty
@@ -305,11 +304,8 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
   Widget _buildCardTugas(
     LaporanLokal laporan,
     Penanganan? penanganan,
-    TeknisiJurusanProvider provider,
+    PenangananProvider provider,
   ) {
-    final prioritasInfo = _getPrioritasInfo(laporan.status);
-    final statusInfo = _getStatusPenanganan(penanganan);
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -368,10 +364,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _buildBadgePrioritas(
-                            label: prioritasInfo['label'] as String,
-                            color: prioritasInfo['color'] as Color,
-                          ),
+                          PrioritasBadge(laporanStatus: laporan.status),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -415,10 +408,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Badge status penanganan
-                _buildBadgeStatus(
-                  label: statusInfo['label'] as String,
-                  color: statusInfo['color'] as Color,
-                ),
+                PenangananStatusBadge.fromPenanganan(penanganan),
 
                 // Tombol Detail →
                 ElevatedButton(
@@ -476,45 +466,6 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
     );
   }
 
-  /// Badge prioritas (High / Medium / Low)
-  Widget _buildBadgePrioritas({required String label, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  /// Badge status penanganan (Menunggu / Dikerjakan / Selesai)
-  Widget _buildBadgeStatus({required String label, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.4)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-
   /// Empty state
   Widget _buildEmptyState() {
     return Center(
@@ -543,7 +494,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
   }
 
   /// Error state dengan tombol retry
-  Widget _buildErrorState(TeknisiJurusanProvider provider) {
+  Widget _buildErrorState(PenangananProvider provider) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -577,54 +528,6 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
   // =========================================================================
   // HELPER METHODS
   // =========================================================================
-
-  /// Filter laporan berdasarkan status penanganan
-  List<LaporanLokal> _filterLaporan(
-    List<LaporanLokal> semua,
-    String? filterStatus,
-    TeknisiJurusanProvider provider,
-  ) {
-    if (filterStatus == null) return semua;
-
-    return semua.where((laporan) {
-      final penanganan = provider.getPenangananByFormulir(laporan.formulirId);
-      if (penanganan == null) {
-        return filterStatus == StatusPenanganan.mulaiDikerjakan;
-      }
-      return penanganan.statusPenanganan == filterStatus;
-    }).toList();
-  }
-
-  /// Info status penanganan untuk badge
-  Map<String, dynamic> _getStatusPenanganan(Penanganan? penanganan) {
-    if (penanganan == null) {
-      return {'label': 'Menunggu', 'color': _accentColor};
-    }
-    switch (penanganan.statusPenanganan) {
-      case StatusPenanganan.mulaiDikerjakan:
-        return {'label': 'Menunggu', 'color': _accentColor};
-      case StatusPenanganan.sedangDikerjakan:
-        return {'label': 'Dikerjakan', 'color': const Color(0xFF1565C0)};
-      case StatusPenanganan.selesai:
-        return {'label': 'Selesai', 'color': const Color(0xFF2E7D32)};
-      default:
-        return {'label': 'Menunggu', 'color': Colors.grey};
-    }
-  }
-
-  /// Info prioritas berdasarkan status laporan
-  Map<String, dynamic> _getPrioritasInfo(String status) {
-    switch (status) {
-      case StatusLaporan.menungguKlasifikasi:
-        return {'label': 'High', 'color': Colors.red};
-      case StatusLaporan.diproses:
-        return {'label': 'Medium', 'color': _accentColor};
-      case StatusLaporan.selesai:
-        return {'label': 'Low', 'color': const Color(0xFF2E7D32)};
-      default:
-        return {'label': 'Medium', 'color': _accentColor};
-    }
-  }
 
   /// Ambil inisial nama untuk avatar
   String _getInitial(String nama) {

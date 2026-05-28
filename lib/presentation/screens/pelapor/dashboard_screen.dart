@@ -4,10 +4,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../logic/providers/home_provider.dart';
+import '../../../logic/providers/laporan_provider.dart';
+import '../../../logic/providers/notifikasi_provider.dart';
+import '../../../presentation/widgets/common/status_badge.dart';
 
-import 'package:hive_flutter/hive_flutter.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../data/models/laporan_lokal.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -18,11 +18,9 @@ class DashboardScreen extends StatelessWidget {
 
   @override
 Widget build(BuildContext context) {
-  final provider = context.watch<HomeProvider>();
+  final provider = context.watch<LaporanProvider>();
 
-  return withRealtime(
-    context,
-    Scaffold(
+  return Scaffold(
       backgroundColor: _bg,
       body: SafeArea(
         child: Column(
@@ -51,9 +49,8 @@ Widget build(BuildContext context) {
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 // ─── TOP BAR ───────────────────────────────────────────────────────────────
@@ -71,8 +68,8 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<HomeProvider>();
-    final notifCount = provider.unreadNotifCount;
+    final provider    = context.watch<LaporanProvider>();
+    final notifCount  = context.watch<NotifikasiProvider>().unreadCount;
 
     return Container(
       color: Colors.white,
@@ -124,13 +121,11 @@ class _TopBar extends StatelessWidget {
                   size: 24,
                 ),
                 onPressed: () {
-                  // reset notif
-                  context.read<HomeProvider>().clearNotification();
                   Navigator.pushNamed(context, '/notif');
                 },
               ),
 
-              // BADGE REALTIME
+              // BADGE REALTIME dari NotifikasiProvider
               if (notifCount > 0)
                 Positioned(
                   top: -2,
@@ -276,64 +271,46 @@ class _GreetingSection extends StatelessWidget {
 // ─── STAT CARDS ─────────────────────────────────────────────────────────────
 
 class _StatSection extends StatelessWidget {
-  final HomeProvider provider;
+  final LaporanProvider provider;
   const _StatSection({required this.provider});
 
   @override
   Widget build(BuildContext context) {
-    final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
-
-    return ValueListenableBuilder(
-      valueListenable: box.listenable(),
-      builder: (context, Box<LaporanLokal> box, _) {
-        final semua = box.values.toList();
-        final total = semua.length;
-        final diproses = semua
-            .where((l) =>
-                l.status == StatusLaporan.diproses ||
-                l.status == StatusLaporan.menungguKlasifikasi)
-            .length;
-        final selesai = semua
-            .where((l) => l.status == StatusLaporan.selesai)
-            .length;
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.description_outlined,
-                  iconColor: const Color(0xFF4F46E5),
-                  iconBg: const Color(0xFFEEF2FF),
-                  value: total.toString(),
-                  label: 'Total',
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.schedule_outlined,
-                  iconColor: const Color(0xFFD97706),
-                  iconBg: const Color(0xFFFEF3C7),
-                  value: diproses.toString(),
-                  label: 'Diproses',
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.check_circle_outline_rounded,
-                  iconColor: const Color(0xFF059669),
-                  iconBg: const Color(0xFFD1FAE5),
-                  value: selesai.toString(),
-                  label: 'Selesai',
-                ),
-              ),
-            ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: _StatCard(
+              icon: Icons.description_outlined,
+              iconColor: const Color(0xFF4F46E5),
+              iconBg: const Color(0xFFEEF2FF),
+              value: provider.totalLaporan.toString(),
+              label: 'Total',
+            ),
           ),
-        );
-      },
+          const SizedBox(width: 10),
+          Expanded(
+            child: _StatCard(
+              icon: Icons.schedule_outlined,
+              iconColor: const Color(0xFFD97706),
+              iconBg: const Color(0xFFFEF3C7),
+              value: provider.totalDiproses.toString(),
+              label: 'Diproses',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _StatCard(
+              icon: Icons.check_circle_outline_rounded,
+              iconColor: const Color(0xFF059669),
+              iconBg: const Color(0xFFD1FAE5),
+              value: provider.totalSelesai.toString(),
+              label: 'Selesai',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -405,8 +382,7 @@ class _NotifSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<HomeProvider>();
-    final count = provider.unreadNotifCount;
+    final count = context.watch<NotifikasiProvider>().unreadCount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,12 +403,12 @@ class _NotifSection extends StatelessWidget {
         if (count == 0)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text("Tidak ada notifikasi"),
+            child: Text('Tidak ada notifikasi baru'),
           )
         else
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text("$count notifikasi baru"),
+            child: Text('$count notifikasi belum dibaca'),
           ),
       ],
     );
@@ -444,7 +420,7 @@ class NotifSectionDynamic extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<HomeProvider>();
+    final provider = context.watch<LaporanProvider>();
     final count = provider.unreadNotifCount;
 
     return Column(
@@ -479,34 +455,12 @@ class NotifSectionDynamic extends StatelessWidget {
 }
 
 // ======================
-// REALTIME EXTENSION
-// ======================
-
-extension DashboardRealtime on DashboardScreen {
-  Widget withRealtime(BuildContext context, Widget child) {
-    final provider = context.read<HomeProvider>();
-
-    return ValueListenableBuilder(
-      valueListenable: Hive.box<LaporanLokal>(AppConstants.boxLaporan).listenable(),
-      builder: (context, box, _) {
-        // trigger refresh provider setiap ada perubahan
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          provider.onReturnFromForm();
-        });
-
-        return child;
-      },
-    );
-  }
-}
-
-// ======================
 // NOTIFICATION BADGE EXTENSION
 // ======================
 
 extension TopBarNotifExtension on BuildContext {
   Widget buildNotifBadge(Widget icon) {
-    final provider = watch<HomeProvider>();
+    final provider = watch<LaporanProvider>();
     final count = provider.unreadNotifCount;
 
     return Stack(
@@ -548,7 +502,7 @@ extension TopBarNotifExtension on BuildContext {
 
 void clearDashboardNotif(BuildContext context) {
   try {
-    context.read<HomeProvider>().clearNotification();
+    context.read<LaporanProvider>().clearNotification();
   } catch (_) {}
 }
 
@@ -559,59 +513,51 @@ class _RecentSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final box = Hive.box<LaporanLokal>(AppConstants.boxLaporan);
+    final data = context.watch<LaporanProvider>().recentLaporan();
 
-    return ValueListenableBuilder(
-      valueListenable: box.listenable(),
-      builder: (context, Box<LaporanLokal> box, _) {
-        final data = box.values.toList().reversed.toList();
+    if (data.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text('Belum ada laporan'),
+      );
+    }
 
-        if (data.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text("Belum ada laporan"),
-          );
-        }
-
-        return Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 18),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Laporan Terbaru',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0D1B3E),
+    return Column(
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 18),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Laporan Terbaru',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0D1B3E),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: data.map((laporan) {
+              return Column(
+                children: [
+                  _ReportItem(
+                    icon: Icons.report_problem_outlined,
+                    title: laporan.namaSarana,
+                    location: laporan.lokasiPerbaikan,
+                    status: laporan.status,
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: data.take(3).map((laporan) {
-                  return Column(
-                    children: [
-                      _ReportItem(
-                        icon: Icons.report_problem_outlined,
-                        title: laporan.namaSarana,
-                        location: laporan.lokasiPerbaikan,
-                        status: laporan.status,
-                      ),
-                      const SizedBox(height: 9),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        );
-      },
+                  const SizedBox(height: 9),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -673,53 +619,8 @@ class _ReportItem extends StatelessWidget {
               ],
             ),
           ),
-          _StatusBadge(status: status),
+          StatusBadge(status: status),
         ],
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final String status;
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    Color bg;
-    Color fg;
-    String label;
-
-    switch (status) {
-      case StatusLaporan.selesai:
-        bg = const Color(0xFFD1FAE5);
-        fg = const Color(0xFF065F46);
-        label = 'Selesai';
-        break;
-      case StatusLaporan.diproses:
-        bg = const Color(0xFFFEF3C7);
-        fg = const Color(0xFFB45309);
-        label = 'Diproses';
-        break;
-      default:
-        bg = const Color(0xFFF3F4F6);
-        fg = const Color(0xFF6B7280);
-        label = 'Menunggu';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: fg,
-        ),
       ),
     );
   }

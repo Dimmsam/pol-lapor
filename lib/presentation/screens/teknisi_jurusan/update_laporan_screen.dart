@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase/supabase_service.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/user_session.dart';
-import '../../../logic/providers/teknisi_jurusan_provider.dart';
+import '../../../logic/providers/penanganan_provider.dart';
 import 'profil_teknisi_screen.dart';
 import '../pelapor/camera_picker_screen.dart';
 
@@ -29,6 +29,7 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
   static const Color bgLight = Color(0xFFF8F9FA);
   static const Color accentWarn = Color(0xFFD97706);
 
+  // Nilai harus lowercase agar match dengan logika di updateProgresLaporan
   String _status = 'Diproses';
   final TextEditingController _catatanCtrl = TextEditingController();
   String? _pickedImagePath;
@@ -69,7 +70,7 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
 
       // Update via provider
       if (!mounted) return;
-      final provider = context.read<TeknisiJurusanProvider>();
+      final provider = context.read<PenangananProvider>();
       final success = await provider.updateProgresLaporan(
         formulirId: widget.laporan.formulirId,
         statusBaru: _status,
@@ -211,9 +212,14 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down),
           items: const [
-            DropdownMenuItem(value: 'Diproses', child: Text('Diproses')),
-            DropdownMenuItem(value: 'Selesai', child: Text('Selesai')),
-            DropdownMenuItem(value: 'Tunda', child: Text('Tunda')),
+            DropdownMenuItem(
+              value: 'Diproses',
+              child: Text('Masih Dikerjakan'),
+            ),
+            DropdownMenuItem(
+              value: 'Selesai',
+              child: Text('Selesai Diperbaiki'),
+            ),
           ],
           onChanged: (v) => setState(() => _status = v ?? _status),
         ),

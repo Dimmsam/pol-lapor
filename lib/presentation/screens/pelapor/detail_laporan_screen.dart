@@ -3,10 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../data/datasources/local/auth_local_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/tracking.dart';
+import '../../../logic/providers/auth_provider.dart';
 import '../../../logic/providers/tracking_provider.dart';
+import '../../widgets/common/status_badge.dart';
 
 class DetailLaporanScreen extends StatefulWidget {
   final LaporanLokal laporan;
@@ -42,15 +43,14 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
     final text = _catatanCtrl.text.trim();
     if (text.isEmpty) return;
 
-    final session = AuthLocalDatasource().getSession();
-    final aktorId = session?.userId;
+    final aktorId = context.read<AuthProvider>().session?.userId;
 
     setState(() => _isSubmitting = true);
     try {
       final success = await context.read<TrackingProvider>().catatTrackingDanRefresh(
         formulirId: widget.laporan.formulirId,
         aktorId: aktorId,
-        statusLaporan: widget.laporan.status,
+        jenisEvent: 'teknisi_mulai_periksa',
         pesanNarasi: text,
       );
 
@@ -156,7 +156,7 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              _buildStatusBadge(laporan.status),
+              StatusBadge(status: laporan.status),
             ],
           ),
           const SizedBox(height: 14),
@@ -417,14 +417,11 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
   }
 
   Widget _buildCatatanCard(LaporanLokal laporan) {
-    return FutureBuilder(
-      future: Future.microtask(() => AuthLocalDatasource().getSession()),
-      builder: (context, snap) {
-        final session = snap.data;
-        final canAdd = session != null && session.userId == laporan.pelaporId;
-        if (!canAdd) return const SizedBox.shrink();
+    final session = context.watch<AuthProvider>().session;
+    final canAdd = session != null && session.userId == laporan.pelaporId;
+    if (!canAdd) return const SizedBox.shrink();
 
-        return Container(
+    return Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -486,44 +483,8 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
             ],
           ),
         );
-      },
-    );
   }
 
-  Widget _buildStatusBadge(String status) {
-    Color bg;
-    Color fg;
-    String label;
-
-    switch (status.toLowerCase()) {
-      case 'selesai':
-        bg = const Color(0xFFD1FAE5);
-        fg = const Color(0xFF065F46);
-        label = 'Selesai';
-        break;
-      case 'diproses':
-        bg = const Color(0xFFFEF3C7);
-        fg = const Color(0xFFB45309);
-        label = 'Diproses';
-        break;
-      default:
-        bg = const Color(0xFFF3F4F6);
-        fg = const Color(0xFF6B7280);
-        label = 'Menunggu';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg),
-      ),
-    );
-  }
 }
 
 class _TrackingTimelineTile extends StatelessWidget {
@@ -573,7 +534,7 @@ class _TrackingTimelineTile extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        tracking.status,
+                        tracking.jenisEvent ?? tracking.pesanNarasi,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,

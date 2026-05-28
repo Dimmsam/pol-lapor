@@ -1,0 +1,150 @@
+import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+import '../../core/constants/app_constants.dart';
+import '../../data/datasources/local/auth_local_datasource.dart';
+import '../../data/datasources/local/laporan_local_datasource.dart';
+import '../../data/datasources/remote/laporan_remote_datasource.dart';
+import '../../data/models/laporan_lokal.dart';
+import '../../data/models/user_session.dart';
+
+class LaporanProvider extends ChangeNotifier {
+  final AuthLocalDatasource _auth = AuthLocalDatasource();
+  final LaporanLocalDatasource _laporanLocal = LaporanLocalDatasource();
+  final LaporanRemoteDatasource _laporanRemote = LaporanRemoteDatasource();
+
+  UserSession? _session;
+  List<LaporanLokal> _laporanList = [];
+  int _totalLaporan = 0;
+  int _totalUnsynced = 0;
+  int _totalDiproses = 0;
+  int _totalSelesai = 0;
+  int _totalMenunggu = 0;
+  ValueListenable<Box<LaporanLokal>>? _listenable;
+  VoidCallback? _listener;
+
+  UserSession? get session => _session;
+  List<LaporanLokal> get laporanList => _laporanList;
+  ValueListenable<Box<LaporanLokal>> get laporanListenable =>
+      _laporanLocal.listenable();
+  int get totalLaporan => _totalLaporan;
+  int get totalUnsynced => _totalUnsynced;
+  int get totalDiproses => _totalDiproses;
+  int get totalSelesai => _totalSelesai;
+  int get totalMenunggu => _totalMenunggu;
+  String get namaUser => _session?.nama ?? '-';
+  String get roleUser => _session?.role ?? '-';
+  String get emailUser => _session?.email ?? '-';
+
+  String? get currentUserId => _session?.userId;
+
+  void init() {
+    _session = _auth.getSession();
+    _refresh();
+    _listenRealtimeLaporan();
+  }
+
+  List<LaporanLokal> recentLaporan({int limit = 3}) {
+    return _laporanList.take(limit).toList();
+  }
+
+  List<LaporanLokal> filterLaporan({
+    String filterStatus = 'semua',
+    String searchQuery = '',
+  }) {
+    var data = List<LaporanLokal>.from(_laporanList);
+
+    if (filterStatus != 'semua') {
+      data = data.where((l) => l.status == filterStatus).toList();
+    }
+
+    final query = searchQuery.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      data = data
+          .where(
+            (l) =>
+                l.namaSarana.toLowerCase().contains(query) ||
+                l.keteranganKerusakan.toLowerCase().contains(query) ||
+                l.lokasiPerbaikan.toLowerCase().contains(query),
+          )
+          .toList();
+    }
+
+    return data;
+  }
+
+  void _refresh() {
+    _laporanList = _laporanLocal.getAllLaporan();
+    _updateStats(_laporanList);
+    notifyListeners();
+  }
+
+  void _updateStats(List<LaporanLokal> semua) {
+    _totalLaporan = semua.length;
+    _totalUnsynced = semua.where((l) => !l.isSynced).length;
+    _totalDiproses =
+        semua.where((l) => l.status == StatusLaporan.diproses).length;
+    _totalSelesai =
+        semua.where((l) => l.status == StatusLaporan.selesai).length;
+    _totalMenunggu = semua
+        .where((l) => l.status == StatusLaporan.menungguKlasifikasi)
+        .length;
+  }
+
+  void onReturnFromForm() {
+    _refresh();
+  }
+
+  bool isOwner(LaporanLokal laporan) {
+    final userId = currentUserId;
+    return userId != null && userId == laporan.pelaporId;
+  }
+
+  bool canDelete(LaporanLokal laporan) => isOwner(laporan);
+
+  bool canEdit(LaporanLokal laporan) {
+    return isOwner(laporan) &&
+        laporan.status == StatusLaporan.menungguKlasifikasi;
+  }
+
+  Future<void> deleteLaporan(LaporanLokal laporan) async {
+    if (!canDelete(laporan)) {
+      throw Exception('Kamu hanya bisa menghapus laporan milikmu sendiri');
+    }
+
+    if (laporan.isSynced) {
+      await _laporanRemote.deleteLaporan(
+        formulirId: laporan.formulirId,
+        pelaporId: laporan.pelaporId,
+      );
+    }
+
+    await _laporanLocal.deleteLaporan(laporan.formulirId);
+    _refresh();
+  }
+
+  void _listenRealtimeLaporan() {
+    _listenable = _laporanLocal.listenable();
+
+    _listener = () {
+      debugPrint('Laporan berubah (Realtime)');
+
+      final semua = _laporanLocal.getAllLaporan();
+      
+      _laporanList = semua;
+      _updateStats(semua);
+      notifyListeners();
+    };
+
+    _listenable!.addListener(_listener!);
+  }
+
+
+  @override
+  void dispose() {
+    if (_listenable != null && _listener != null) {
+      _listenable!.removeListener(_listener!);
+    }
+    super.dispose();
+  }
+}

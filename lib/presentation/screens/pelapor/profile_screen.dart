@@ -4,11 +4,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../logic/providers/home_provider.dart';
-import '../../../logic/providers/login_provider.dart';
-import '../../../data/datasources/local/auth_local_datasource.dart';
-import '../../../data/models/user_session.dart';
-
+import '../../../logic/providers/laporan_provider.dart';
+import '../../../logic/providers/auth_provider.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -21,7 +18,7 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final home = context.watch<HomeProvider>();
+    final home = context.watch<LaporanProvider>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
@@ -67,7 +64,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(HomeProvider home) {
+  Widget _buildHeader(LaporanProvider home) {
     return Container(
       width: double.infinity,
       color: const Color(0xFF0D47A1),
@@ -136,7 +133,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuSection(BuildContext context, HomeProvider home) {
+  Widget _buildMenuSection(BuildContext context, LaporanProvider home) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -215,7 +212,7 @@ class ProfileScreen extends StatelessWidget {
 
   // ─── EDIT PROFIL ──────────────────────────────────────────────────────────
 
-  void _showEditProfil(BuildContext context, HomeProvider home) {
+  void _showEditProfil(BuildContext context, LaporanProvider home) {
     final namaCtrl = TextEditingController(text: home.namaUser);
 
     showModalBottomSheet(
@@ -278,21 +275,8 @@ class ProfileScreen extends StatelessWidget {
                     final nama = namaCtrl.text.trim();
                     if (nama.isEmpty) return;
 
-                    // Update session di Hive
-                    final auth = AuthLocalDatasource();
-                    final session = auth.getSession();
-                    if (session != null) {
-                      final updated = UserSession(
-                        userId: session.userId,
-                        nama: nama,
-                        email: session.email,
-                        role: session.role,
-                        token: session.token,
-                        unitGedung: session.unitGedung,
-                      );
-                      await auth.saveSession(updated);
-                      home.init(); // refresh provider
-                    }
+                    await context.read<AuthProvider>().updateLocalNama(nama);
+                    home.init();
 
                     if (ctx.mounted) Navigator.pop(ctx);
                     if (context.mounted) {
@@ -395,7 +379,7 @@ class ProfileScreen extends StatelessWidget {
 
                       // Pakai backend auth yang sudah ada untuk ubah password
                       try {
-                        await context.read<LoginProvider>().updatePassword(
+                        await context.read<AuthProvider>().updatePassword(
                           newCtrl.text,
                         );
                         if (ctx.mounted) Navigator.pop(ctx);
@@ -709,7 +693,7 @@ class _LogoutButton extends StatelessWidget {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              await context.read<LoginProvider>().logout();
+              await context.read<AuthProvider>().logout();
               if (context.mounted) {
                 Navigator.pushReplacementNamed(context, '/login');
               }

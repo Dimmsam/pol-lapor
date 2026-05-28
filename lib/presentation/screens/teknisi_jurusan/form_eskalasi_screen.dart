@@ -6,7 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../logic/providers/teknisi_jurusan_provider.dart';
+import '../../../logic/providers/penanganan_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
@@ -57,7 +57,7 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
 
     setState(() => _isSubmitting = true);
 
-    final provider = context.read<TeknisiJurusanProvider>();
+    final provider = context.read<PenangananProvider>();
 
     // Jika belum ada penanganan, mulai dulu
     String penangananId;
