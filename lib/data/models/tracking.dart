@@ -2,6 +2,7 @@ class Tracking {
   final String trackingId;
   final String formulirId;
   final String? aktorId;
+  final String? aktorNama;
 
   /// Nilai enum `jenis_event_enum` di Supabase.
   /// Nullable di model agar backward-compatible saat fetch data lama.
@@ -15,6 +16,7 @@ class Tracking {
     required this.trackingId,
     required this.formulirId,
     this.aktorId,
+    this.aktorNama,
     this.jenisEvent,
     required this.pesanNarasi,
     this.metadata,
@@ -26,6 +28,7 @@ class Tracking {
       trackingId: json['tracking_id'] as String,
       formulirId: json['formulir_id'] as String,
       aktorId: json['aktor_id'] as String?,
+      aktorNama: json['pengguna'] != null ? json['pengguna']['nama_lengkap'] as String? : null,
       jenisEvent: json['jenis_event'] as String?,
       pesanNarasi: json['pesan_narasi'] as String? ?? '',
       metadata: json['metadata'] as Map<String, dynamic>?,
@@ -37,6 +40,7 @@ class Tracking {
     'tracking_id': trackingId,
     'formulir_id': formulirId,
     'aktor_id': aktorId,
+    if (aktorNama != null) 'aktor_nama': aktorNama,
     'jenis_event': jenisEvent,
     'pesan_narasi': pesanNarasi,
     'metadata': metadata,

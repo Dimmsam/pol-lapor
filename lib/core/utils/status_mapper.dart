@@ -47,4 +47,31 @@ class StatusMapper {
         return 'menunggu';
     }
   }
+
+  /// Format nilai enum jenis_event menjadi teks yang mudah dibaca
+  static String formatJenisEvent(String jenisEvent) {
+    switch (jenisEvent) {
+      case 'laporan_dibuat':
+        return 'Laporan Dibuat';
+      case 'laporan_diterima_admin':
+        return 'Laporan Diterima Admin';
+      case 'teknisi_ditugaskan':
+        return 'Teknisi Ditugaskan';
+      case 'teknisi_mulai_periksa':
+        return 'Teknisi Memulai Pemeriksaan';
+      case 'penanganan_dimulai':
+        return 'Penanganan Dimulai';
+      case 'penanganan_selesai':
+        return 'Penanganan Selesai';
+      case 'diteruskan_ke_pusat':
+        return 'Diteruskan ke Pusat';
+      default:
+        return jenisEvent
+            .split('_')
+            .map((word) => word.isNotEmpty
+                ? '\${word[0].toUpperCase()}\${word.substring(1)}'
+                : '')
+            .join(' ');
+    }
+  }
 }

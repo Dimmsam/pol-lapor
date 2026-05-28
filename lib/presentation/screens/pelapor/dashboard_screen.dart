@@ -420,8 +420,8 @@ class NotifSectionDynamic extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<LaporanProvider>();
-    final count = provider.unreadNotifCount;
+    final provider = context.watch<NotifikasiProvider>();
+    final count = provider.unreadCount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,8 +460,8 @@ class NotifSectionDynamic extends StatelessWidget {
 
 extension TopBarNotifExtension on BuildContext {
   Widget buildNotifBadge(Widget icon) {
-    final provider = watch<LaporanProvider>();
-    final count = provider.unreadNotifCount;
+    final provider = watch<NotifikasiProvider>();
+    final count = provider.unreadCount;
 
     return Stack(
       children: [
@@ -502,7 +502,7 @@ extension TopBarNotifExtension on BuildContext {
 
 void clearDashboardNotif(BuildContext context) {
   try {
-    context.read<LaporanProvider>().clearNotification();
+    context.read<NotifikasiProvider>().markAllAsRead();
   } catch (_) {}
 }
 

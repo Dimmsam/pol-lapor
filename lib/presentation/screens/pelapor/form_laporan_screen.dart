@@ -396,7 +396,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
 
         if (!mounted) return;
         laporanProvider.onReturnFromForm();
-        _showSnackBar('✅ Laporan berhasil diperbarui!');
+        _showSnackBar('Laporan berhasil diperbarui!');
         Navigator.pop(context);
       } else {
         await formProvider.createLaporan(
@@ -420,7 +420,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
           _fotoPath = null;
         });
 
-        _showSnackBar('✅ Laporan berhasil dikirim!');
+        _showSnackBar('Laporan berhasil dikirim!');
 
         Navigator.pushAndRemoveUntil(
           context,

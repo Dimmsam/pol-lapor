@@ -43,7 +43,7 @@ class TrackingRemoteDatasource {
     try {
       final response = await _supabase
           .from('tracking')
-          .select()
+          .select('*, pengguna(nama_lengkap)')
           .eq('formulir_id', formulirId)
           .order('created_at', ascending: true);
 

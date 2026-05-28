@@ -20,6 +20,7 @@ class TrackingProvider extends ChangeNotifier {
   Future<void> fetchRiwayat(String formulirId) async {
     _isLoading = true;
     _errorMessage = null;
+    _riwayatTracking = [];
     notifyListeners();
 
     try {
@@ -57,6 +58,7 @@ class TrackingProvider extends ChangeNotifier {
   void stopRealtimeListener() {
     _trackingRemote.unsubscribe();
     _currentFormulirId = null;
+    _riwayatTracking = [];
   }
 
   // ─── COMBINED: Catat tracking baru lalu refresh list ──────────────────────

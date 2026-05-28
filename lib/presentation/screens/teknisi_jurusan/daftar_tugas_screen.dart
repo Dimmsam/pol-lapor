@@ -265,21 +265,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
     List<LaporanLokal> laporan,
     PenangananProvider provider,
   ) {
-    // Jika daftar kosong, tampilkan satu laporan dummy lokal untuk pengujian
-    final listToShow = laporan.isEmpty
-        ? [
-            LaporanLokal(
-              formulirId: 'DUMMY-0001',
-              namaSarana: 'Laboratorium Jaringan',
-              keteranganKerusakan: 'Port LAN tidak berfungsi pada meja 3',
-              lokasiPerbaikan: 'Gedung A - Lantai 2',
-              nomorInventaris: 'INV-12345',
-              fotoKerusakanUrl: null,
-              status: StatusLaporan.diproses,
-              pelaporId: 'pelapor-demo',
-            ),
-          ]
-        : laporan;
+    final listToShow = laporan;
 
     if (listToShow.isEmpty) return _buildEmptyState();
 

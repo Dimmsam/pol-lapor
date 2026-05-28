@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/tracking.dart';
-import '../../../logic/providers/auth_provider.dart';
 import '../../../logic/providers/tracking_provider.dart';
+import '../../../core/utils/status_mapper.dart';
 import '../../widgets/common/status_badge.dart';
 
 class DetailLaporanScreen extends StatefulWidget {
@@ -18,8 +18,6 @@ class DetailLaporanScreen extends StatefulWidget {
 }
 
 class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
-  final TextEditingController _catatanCtrl = TextEditingController();
-  bool _isSubmitting = false;
   bool _showTracking = true;
 
   @override
@@ -35,51 +33,10 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
   @override
   void dispose() {
     context.read<TrackingProvider>().stopRealtimeListener();
-    _catatanCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _submitCatatan() async {
-    final text = _catatanCtrl.text.trim();
-    if (text.isEmpty) return;
 
-    final aktorId = context.read<AuthProvider>().session?.userId;
-
-    setState(() => _isSubmitting = true);
-    try {
-      final success = await context.read<TrackingProvider>().catatTrackingDanRefresh(
-        formulirId: widget.laporan.formulirId,
-        aktorId: aktorId,
-        jenisEvent: 'teknisi_mulai_periksa',
-        pesanNarasi: text,
-      );
-
-      if (success) {
-        _catatanCtrl.clear();
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Catatan berhasil ditambahkan')),
-          );
-        }
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Gagal menambahkan catatan')),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,8 +58,6 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
           _buildPhotoCard(laporan),
           const SizedBox(height: 16),
           _buildTrackingCard(),
-          const SizedBox(height: 16),
-          _buildCatatanCard(laporan),
           const SizedBox(height: 24),
         ],
       ),
@@ -416,74 +371,6 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
     );
   }
 
-  Widget _buildCatatanCard(LaporanLokal laporan) {
-    final session = context.watch<AuthProvider>().session;
-    final canAdd = session != null && session.userId == laporan.pelaporId;
-    if (!canAdd) return const SizedBox.shrink();
-
-    return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Tambah Catatan',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _catatanCtrl,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Tulis catatan atau update status...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF1565C0)),
-                  ),
-                  contentPadding: const EdgeInsets.all(12),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isSubmitting ? null : _submitCatatan,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1565C0),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  icon: _isSubmitting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.send_outlined),
-                  label: Text(_isSubmitting ? 'Mengirim...' : 'Kirim Catatan'),
-                ),
-              ),
-            ],
-          ),
-        );
-  }
 
 }
 
@@ -534,7 +421,9 @@ class _TrackingTimelineTile extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        tracking.jenisEvent ?? tracking.pesanNarasi,
+                        tracking.jenisEvent != null 
+                            ? StatusMapper.formatJenisEvent(tracking.jenisEvent!)
+                            : tracking.pesanNarasi,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -564,7 +453,7 @@ class _TrackingTimelineTile extends StatelessWidget {
                 if (tracking.aktorId != null) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'Aktor: ${tracking.aktorId}',
+                    'Aktor: ${tracking.aktorNama ?? (tracking.aktorId != null ? 'User ID: ${tracking.aktorId}' : 'Sistem')}',
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF9CA3AF),

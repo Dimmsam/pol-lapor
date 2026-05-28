@@ -15,6 +15,7 @@ import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/tracking.dart';
 import '../../../data/models/user_session.dart';
+import '../../../core/utils/status_mapper.dart';
 import 'form_eskalasi_screen.dart';
 import 'update_laporan_screen.dart';
 
@@ -654,7 +655,9 @@ class _TrackingTimelineTileTeknisi extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        tracking.jenisEvent ?? tracking.pesanNarasi,
+                        tracking.jenisEvent != null 
+                            ? StatusMapper.formatJenisEvent(tracking.jenisEvent!)
+                            : tracking.pesanNarasi,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
