@@ -39,7 +39,9 @@ class PenangananRemoteDatasource {
             tanggal_selesai,
             updated_at
           ''')
-        .eq('teknisi_id', teknisiId);
+        .eq('teknisi_id', teknisiId)
+        .order('updated_at', ascending: false)
+        .limit(50);
 
     return List<Map<String, dynamic>>.from(response as List);
   }

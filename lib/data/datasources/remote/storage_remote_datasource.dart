@@ -22,6 +22,10 @@ class StorageRemoteDatasource {
       return null;
     }
 
+    if (file.lengthSync() > 5 * 1024 * 1024) {
+      throw Exception('Ukuran file foto kerusakan maksimal 5 MB');
+    }
+
     try {
       final ext = filePath.split('.').last;
       final fileName = 'formulir_$formulirId.$ext';
@@ -62,6 +66,10 @@ class StorageRemoteDatasource {
     if (!await file.exists()) {
       debugPrint('StorageRemote: file tidak ada di path "$filePath"');
       return null;
+    }
+
+    if (file.lengthSync() > 5 * 1024 * 1024) {
+      throw Exception('Ukuran file foto progres maksimal 5 MB');
     }
 
     try {

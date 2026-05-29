@@ -8,12 +8,10 @@ import '../../../logic/providers/laporan_provider.dart';
 import '../../../logic/providers/notifikasi_provider.dart';
 import '../../../presentation/widgets/common/status_badge.dart';
 
-import '../../../data/models/laporan_lokal.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
-  static const Color _blue = Color(0xFF0D47A1);
   static const Color _bg = Color(0xFFF4F6FA);
 
   @override
@@ -37,7 +35,7 @@ Widget build(BuildContext context) {
                     _StatSection(provider: provider),
                     const SizedBox(height: 16),
 
-                    _NotifSection(),
+                    const _NotifSection(),
 
                     const SizedBox(height: 20),
                     const _RecentSection(),
@@ -68,7 +66,6 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider    = context.watch<LaporanProvider>();
     final notifCount  = context.watch<NotifikasiProvider>().unreadCount;
 
     return Container(
@@ -161,67 +158,6 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ─── OFFLINE BANNER ────────────────────────────────────────────────────────
-
-class _OfflineBanner extends StatelessWidget {
-  const _OfflineBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFDE68A), width: 0.8),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.warning_amber_rounded,
-              color: Color(0xFFD97706),
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Mode offline aktif',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF92400E),
-                  ),
-                ),
-                SizedBox(height: 1),
-                Text(
-                  'Data akan disinkronkan saat kembali online',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF92400E),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ─── GREETING ──────────────────────────────────────────────────────────────
 
@@ -378,7 +314,7 @@ class _StatCard extends StatelessWidget {
 // ─── NOTIFIKASI ────────────────────────────────────────────────────────────
 
 class _NotifSection extends StatelessWidget {
-  const _NotifSection({super.key});
+  const _NotifSection();
 
   @override
   Widget build(BuildContext context) {

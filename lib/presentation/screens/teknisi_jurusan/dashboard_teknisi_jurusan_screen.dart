@@ -12,6 +12,7 @@ import '../../../data/models/laporan_lokal.dart';
 import '../../widgets/common/status_badge.dart';
 import 'widgets/bottom_nav_teknisi.dart'; // ← pakai navbar baru
 import 'profil_teknisi_screen.dart';
+import 'daftar_tugas_screen.dart';
 
 class DashboardTeknisiJurusanScreen extends StatefulWidget {
   final UserSession userSession;
@@ -41,80 +42,73 @@ class _DashboardTeknisiJurusanScreenState
     });
   }
 
-  void _onNavTap(int index) {
-    setState(() => _currentNavIndex = index);
-    switch (index) {
-      case 0:
-        // Sudah di Beranda, tidak perlu navigate
-        break;
-      case 1:
-        // Navigate ke Daftar Tugas
-        Navigator.pushReplacementNamed(
-          context,
-          '/daftar-tugas-teknisi-jurusan',
-          arguments: widget.userSession,
-        );
-        break;
-      case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ProfilTeknisiScreen()),
-        );
-        break;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bgColor,
       body: SafeArea(
-        child: Consumer<TeknisiDashboardProvider>(
-          builder: (context, provider, _) {
-            if (provider.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(color: _primaryColor),
-              );
-            }
-
-            return RefreshIndicator(
-              color: _primaryColor,
-              onRefresh: () =>
-                  provider.loadDashboard(teknisiId: widget.userSession.userId),
-              child: CustomScrollView(
-                slivers: [
-                  _buildSliverAppBar(),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        const SizedBox(height: 16),
-                        _buildIkhtisarTugas(provider),
-                        const SizedBox(height: 20),
-                        _buildHeaderLaporanTerbaru(),
-                        const SizedBox(height: 12),
-                        if (provider.laporanTerbaru.isEmpty)
-                          _buildEmptyState()
-                        else
-                          ...provider.laporanTerbaru
-                              .take(5)
-                              .map((laporan) => _buildCardLaporan(laporan)),
-                        const SizedBox(height: 80),
-                      ]),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+        child: IndexedStack(
+          index: _currentNavIndex,
+          children: [
+            _buildDashboardContent(),
+            DaftarTugasScreen(userSession: widget.userSession),
+            const ProfilTeknisiScreen(),
+          ],
         ),
       ),
       bottomNavigationBar: BottomNavTeknisi(
         currentIndex: _currentNavIndex,
-        onTap: _onNavTap,
+        onTap: (index) {
+          setState(() {
+            _currentNavIndex = index;
+          });
+        },
         primaryColor: _primaryColor,
         accentColor: _accentColor,
       ),
+    );
+  }
+
+  Widget _buildDashboardContent() {
+    return Consumer<TeknisiDashboardProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading) {
+          return const Center(
+            child: CircularProgressIndicator(color: _primaryColor),
+          );
+        }
+
+        return RefreshIndicator(
+          color: _primaryColor,
+          onRefresh: () =>
+              provider.loadDashboard(teknisiId: widget.userSession.userId),
+          child: CustomScrollView(
+            slivers: [
+              _buildSliverAppBar(),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const SizedBox(height: 16),
+                    _buildIkhtisarTugas(provider),
+                    const SizedBox(height: 20),
+                    _buildHeaderLaporanTerbaru(),
+                    const SizedBox(height: 12),
+                    if (provider.laporanTerbaru.isEmpty)
+                      _buildEmptyState()
+                    else
+                      ...provider.laporanTerbaru
+                          .take(5)
+                          .map((laporan) => _buildCardLaporan(laporan)),
+                    const SizedBox(height: 80),
+                  ]),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

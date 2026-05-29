@@ -51,7 +51,7 @@ class LaporanProvider extends ChangeNotifier {
 
     try {
       final remoteLaporan = await _laporanRemote.fetchLaporanByPelapor(userId);
-      await _laporanLocal.syncFromRemote(remoteLaporan);
+      await _laporanLocal.syncFromRemote(remoteLaporan, userId);
       _refresh();
     } catch (e) {
       debugPrint('_syncFromRemote error: $e');

@@ -153,7 +153,7 @@ class SyncService {
     // Mapping status lokal → enum Supabase
     final statusCloud = StatusMapper.toSupabaseStatus(laporan.status);
 
-    await SupabaseService.db.from('formulir_laporan').insert({
+    await SupabaseService.db.from('formulir_laporan').upsert({
       'formulir_id': laporan.formulirId,
       'pelapor_id': pelaporId,
       'nama_sarana': laporan.namaSarana,
@@ -162,7 +162,6 @@ class SyncService {
       'nomor_inventaris': laporan.nomorInventaris,
       'foto_kerusakan_url': imageUrl ?? laporan.fotoKerusakanUrl,
       'status': statusCloud,
-      'is_synced': true,
       'created_at': laporan.createdAt.toIso8601String(),
       'updated_at': laporan.updatedAt.toIso8601String(),
     });

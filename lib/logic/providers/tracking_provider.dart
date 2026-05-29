@@ -62,11 +62,7 @@ class TrackingProvider extends ChangeNotifier {
       },
     );
   }
-          notifyListeners();
-        }
-      },
-    );
-  }
+
 
   /// Hentikan listener realtime (dipanggil saat screen di-dispose).
   void stopRealtimeListener() {

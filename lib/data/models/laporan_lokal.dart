@@ -97,11 +97,22 @@ class LaporanLokal extends HiveObject {
   DateTime updatedAt;
 
   factory LaporanLokal.fromSupabaseJson(Map<String, dynamic> json) {
+    String lokasiNama = json['lokasi_id'] as String? ?? '-';
+    if (json['lokasi'] != null) {
+      if (json['lokasi'] is Map) {
+        lokasiNama = json['lokasi']['nama_ruangan'] as String? ?? 
+                     json['lokasi']['lokasi_id'] as String? ?? 
+                     lokasiNama;
+      } else if (json['lokasi'] is String) {
+        lokasiNama = json['lokasi'] as String;
+      }
+    }
+
     return LaporanLokal(
       formulirId: json['formulir_id'] as String,
       namaSarana: json['nama_sarana'] as String? ?? '-',
       keteranganKerusakan: json['keterangan_kerusakan'] as String? ?? '-',
-      lokasiPerbaikan: json['lokasi_id'] as String? ?? '-',
+      lokasiPerbaikan: lokasiNama,
       nomorInventaris: json['nomor_inventaris'] as String?,
       fotoKerusakanUrl: json['foto_kerusakan_url'] as String?,
       status: json['status'] as String? ?? StatusLaporan.menungguKlasifikasi,

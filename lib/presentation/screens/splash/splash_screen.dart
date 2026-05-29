@@ -27,6 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (session != null) {
+      auth.initPostLoginServices(context);
       final route = switch (session.role) {
         AppConstants.roleTeknisiJurusan => '/dashboard-teknisi-jurusan',
         AppConstants.roleTeknisiUptPp => '/dashboard-teknisi-jurusan',
