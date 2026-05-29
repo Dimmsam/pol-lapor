@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/laporan_lokal.dart';
+import '../../../data/models/penanganan.dart';
 import '../../../data/models/tracking.dart';
+import '../../../logic/providers/penanganan_provider.dart';
 import '../../../logic/providers/tracking_provider.dart';
 import '../../../core/utils/status_mapper.dart';
 import '../../widgets/common/status_badge.dart';
@@ -41,6 +43,7 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
   @override
   Widget build(BuildContext context) {
     final laporan = widget.laporan;
+    final penanganan = context.watch<PenangananProvider>().getPenangananByFormulir(laporan.formulirId);
 
     return Scaffold(
       appBar: AppBar(
@@ -53,7 +56,7 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildInfoCard(laporan),
+          _buildInfoCard(laporan, penanganan),
           const SizedBox(height: 16),
           _buildPhotoCard(laporan),
           const SizedBox(height: 16),
@@ -64,7 +67,7 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
     );
   }
 
-  Widget _buildInfoCard(LaporanLokal laporan) {
+  Widget _buildInfoCard(LaporanLokal laporan, Penanganan? penanganan) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -148,6 +151,29 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
                 Expanded(
                   child: Text(
                     'No. Inventaris: ${laporan.nomorInventaris}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF4B5563),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (penanganan != null && penanganan.kategoriKerusakan != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(
+                  Icons.category_outlined,
+                  size: 16,
+                  color: Color(0xFF6B7280),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Kategori: ${penanganan.kategoriKerusakan}',
                     style: const TextStyle(
                       fontSize: 13,
                       color: Color(0xFF4B5563),
@@ -390,12 +416,12 @@ class _TrackingTimelineTile extends StatelessWidget {
             Container(
               width: 32,
               height: 32,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFF1565C0),
+                color: _getTimelineColor(tracking.jenisEvent ?? ''),
               ),
-              child: const Icon(
-                Icons.local_shipping_outlined,
+              child: Icon(
+                _getTimelineIcon(tracking.jenisEvent ?? ''),
                 color: Colors.white,
                 size: 18,
               ),
@@ -466,6 +492,47 @@ class _TrackingTimelineTile extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Color _getTimelineColor(String jenisEvent) {
+    switch (jenisEvent.toLowerCase()) {
+      case 'penanganan_selesai':
+        return const Color(0xFF2E7D32); // hijau — selesai
+      case 'penanganan_dimulai':
+      case 'teknisi_mulai_periksa':
+        return const Color(0xFF1565C0); // biru — sedang dikerjakan
+      case 'diteruskan_ke_pusat':
+        return const Color(0xFFE65100); // oranye — eskalasi
+      case 'teknisi_ditugaskan':
+        return const Color(0xFF6A1B9A); // ungu — ditugaskan
+      case 'laporan_diterima_admin':
+        return const Color(0xFF00838F); // teal — diterima admin
+      case 'laporan_dibuat':
+        return const Color(0xFF455A64); // abu tua — laporan baru
+      default:
+        return const Color(0xFF6B7280);
+    }
+  }
+
+  IconData _getTimelineIcon(String jenisEvent) {
+    switch (jenisEvent.toLowerCase()) {
+      case 'penanganan_selesai':
+        return Icons.check_circle_outline;
+      case 'penanganan_dimulai':
+        return Icons.build_outlined;
+      case 'teknisi_mulai_periksa':
+        return Icons.search;
+      case 'diteruskan_ke_pusat':
+        return Icons.forward_outlined;
+      case 'teknisi_ditugaskan':
+        return Icons.person_add_outlined;
+      case 'laporan_diterima_admin':
+        return Icons.assignment_turned_in_outlined;
+      case 'laporan_dibuat':
+        return Icons.note_add_outlined;
+      default:
+        return Icons.schedule;
+    }
   }
 
   String _formatDateTime(DateTime dateTime) {

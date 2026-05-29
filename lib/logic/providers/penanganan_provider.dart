@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/supabase/supabase_service.dart';
 import '../../data/datasources/remote/notifikasi_remote_datasource.dart';
 import '../../data/datasources/remote/penanganan_remote_datasource.dart';
@@ -107,7 +108,7 @@ class PenangananProvider extends ChangeNotifier {
       await _trackingRemote.catatTracking(
         formulirId: formulirId,
         aktorId: teknisiId,
-        jenisEvent: 'penanganan_dimulai',
+        jenisEvent: JenisEvent.penangananDimulai,
         pesanNarasi: 'Teknisi Jurusan memulai penanganan. '
             'Status berubah dari Menunggu → Diproses.',
       );
@@ -214,7 +215,7 @@ class PenangananProvider extends ChangeNotifier {
       await _insertTrackingLog(
         formulirId: formulirId,
         statusBaru: StatusLaporan.menungguKlasifikasi,
-        jenisEvent: 'diteruskan_ke_pusat',
+        jenisEvent: JenisEvent.diteruskanKePusat,
         keterangan:
             'Teknisi Jurusan mengajukan eskalasi ke Admin. '
             'Kategori: $kategoriKerusakan. Catatan: $catatanEskalasi',
@@ -310,8 +311,8 @@ class PenangananProvider extends ChangeNotifier {
         formulirId: formulirId,
         statusBaru: finalStatusLaporan,
         jenisEvent: finalStatusLaporan == StatusLaporan.selesai
-            ? 'penanganan_selesai'
-            : 'teknisi_mulai_periksa',
+            ? JenisEvent.penangananSelesai
+            : JenisEvent.teknisiMulaiPeriksa,
         keterangan:
             'Teknisi memperbarui progres: $statusBaru. ${catatanProgres ?? ""}',
       );
