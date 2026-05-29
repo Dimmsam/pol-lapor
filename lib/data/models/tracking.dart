@@ -5,7 +5,8 @@ class Tracking {
   final String? aktorNama;
 
   /// Nilai enum `jenis_event_enum` di Supabase.
-  /// Nullable di model agar backward-compatible saat fetch data lama.
+  /// Lihat [JenisEvent] di `app_constants.dart` untuk daftar lengkap.
+  /// Nullable agar backward-compatible saat fetch data lama yang belum terisi.
   final String? jenisEvent;
 
   final String pesanNarasi;

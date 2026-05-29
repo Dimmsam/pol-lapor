@@ -91,6 +91,30 @@ class NotifikasiProvider extends ChangeNotifier {
     }
   }
 
+  // ── Hapus notifikasi (swipe-to-delete) ───────────────────────────────────
+  Future<void> deleteNotifikasi(String notifikasiId) async {
+    final index = _notifikasiList.indexWhere(
+      (n) => n.notifikasiId == notifikasiId,
+    );
+    if (index == -1) return;
+
+    // Simpan data asli untuk rollback
+    final notifToDelete = _notifikasiList[index];
+
+    // Optimistic update
+    _notifikasiList.removeAt(index);
+    notifyListeners();
+
+    try {
+      await _remote.deleteNotifikasi(notifikasiId);
+    } catch (e) {
+      // Rollback
+      _notifikasiList.insert(index, notifToDelete);
+      notifyListeners();
+      debugPrint('NotifikasiProvider.deleteNotifikasi error: $e');
+    }
+  }
+
   // ── Insert notifikasi dari sisi app (pelapor → notif teknisi dsb) ────────
   Future<void> kirimNotifikasi({
     required String penerimaId,
