@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-import '../core/constants/app_constants.dart';
 import '../core/supabase/supabase_service.dart';
 import '../core/utils/status_mapper.dart';
 import '../data/models/laporan_lokal.dart';
@@ -119,6 +118,11 @@ class SyncService {
 
   // ── INSERT TRACKING AWAL ──────────────────────────────────────────────────
   /// Insert tracking pertama saat laporan berhasil sync ke Supabase.
+  ///
+  /// CATATAN (B10): field `jenis_event` (NOT NULL enum di DB) belum bisa
+  /// diisi sampai nilai enum dikonfirmasi dari Supabase dashboard.
+  /// Jalankan query di [check_schema.sql] untuk mendapatkan nilainya,
+  /// lalu uncomment baris 'jenis_event' di bawah.
   Future<void> _insertInitialTracking({
     required String formulirId,
     required String aktorId,
@@ -128,7 +132,7 @@ class SyncService {
         'tracking_id': _uuid.v4(),
         'formulir_id': formulirId,
         'aktor_id': aktorId,
-        'jenis_event': JenisEvent.laporanDibuat,
+        'jenis_event': 'laporan_dibuat',
         'pesan_narasi': 'Laporan berhasil dikirim.',
         'created_at': DateTime.now().toIso8601String(),
       });

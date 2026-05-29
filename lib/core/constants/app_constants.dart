@@ -44,30 +44,3 @@ class AppConstants {
   static const String tingkatRingan = 'rusak_ringan';
   static const String tingkatBerat = 'rusak_berat';
 }
-
-/// Nilai enum `jenis_event_enum` di tabel `tracking` Supabase.
-///
-/// Dikonfirmasi dari Supabase DB pada 29 Mei 2026.
-/// Lihat: REFACTOR_NOTES.md §9 — B10 (resolved).
-class JenisEvent {
-  JenisEvent._();
-
-  static const String laporanDibuat       = 'laporan_dibuat';
-  static const String laporanDiterimaAdmin = 'laporan_diterima_admin';
-  static const String teknisiDitugaskan   = 'teknisi_ditugaskan';
-  static const String teknisiMulaiPeriksa = 'teknisi_mulai_periksa';
-  static const String penangananDimulai   = 'penanganan_dimulai';
-  static const String penangananSelesai   = 'penanganan_selesai';
-  static const String diteruskanKePusat   = 'diteruskan_ke_pusat';
-
-  /// Semua nilai valid — berguna untuk validasi.
-  static const Set<String> values = {
-    laporanDibuat,
-    laporanDiterimaAdmin,
-    teknisiDitugaskan,
-    teknisiMulaiPeriksa,
-    penangananDimulai,
-    penangananSelesai,
-    diteruskanKePusat,
-  };
-}

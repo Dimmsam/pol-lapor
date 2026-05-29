@@ -94,7 +94,7 @@ class _DetailLaporanTeknisiScreenState
             const SizedBox(height: 16),
             _buildIdDanStatus(penanganan),
             const SizedBox(height: 16),
-            _buildInfoLaporan(penanganan),
+            _buildInfoLaporan(),
             const SizedBox(height: 16),
             _buildDeskripsi(),
             const SizedBox(height: 16),
@@ -208,7 +208,7 @@ class _DetailLaporanTeknisiScreenState
     );
   }
 
-  Widget _buildInfoLaporan(Penanganan? penanganan) {
+  Widget _buildInfoLaporan() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -274,23 +274,6 @@ class _DetailLaporanTeknisiScreenState
                 const SizedBox(width: 4),
                 Text(
                   'Inventaris: ${widget.laporan.nomorInventaris}',
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ],
-            ),
-          ],
-          if (penanganan != null && penanganan.kategoriKerusakan != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(
-                  Icons.category_outlined,
-                  size: 15,
-                  color: Colors.grey,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Kategori: ${penanganan.kategoriKerusakan}',
                   style: const TextStyle(fontSize: 13, color: Colors.grey),
                 ),
               ],
@@ -711,19 +694,13 @@ class _TrackingTimelineTileTeknisi extends StatelessWidget {
 
   Color _getTimelineColor(String jenisEvent) {
     switch (jenisEvent.toLowerCase()) {
+      case 'selesai':
       case 'penanganan_selesai':
-        return const Color(0xFF2E7D32); // hijau — selesai
+        return const Color(0xFF2E7D32);
+      case 'diproses':
       case 'penanganan_dimulai':
-      case 'teknisi_mulai_periksa':
-        return const Color(0xFF1565C0); // biru — sedang dikerjakan
-      case 'diteruskan_ke_pusat':
-        return const Color(0xFFE65100); // oranye — eskalasi
-      case 'teknisi_ditugaskan':
-        return const Color(0xFF6A1B9A); // ungu — ditugaskan
-      case 'laporan_diterima_admin':
-        return const Color(0xFF00838F); // teal — diterima admin
-      case 'laporan_dibuat':
-        return const Color(0xFF455A64); // abu tua — laporan baru
+      case 'status_berubah':
+        return const Color(0xFF1565C0);
       default:
         return const Color(0xFF6B7280);
     }
@@ -731,20 +708,12 @@ class _TrackingTimelineTileTeknisi extends StatelessWidget {
 
   IconData _getTimelineIcon(String jenisEvent) {
     switch (jenisEvent.toLowerCase()) {
+      case 'selesai':
       case 'penanganan_selesai':
         return Icons.check_circle_outline;
+      case 'diproses':
       case 'penanganan_dimulai':
         return Icons.build_outlined;
-      case 'teknisi_mulai_periksa':
-        return Icons.search;
-      case 'diteruskan_ke_pusat':
-        return Icons.forward_outlined;
-      case 'teknisi_ditugaskan':
-        return Icons.person_add_outlined;
-      case 'laporan_diterima_admin':
-        return Icons.assignment_turned_in_outlined;
-      case 'laporan_dibuat':
-        return Icons.note_add_outlined;
       default:
         return Icons.schedule;
     }

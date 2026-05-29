@@ -48,10 +48,6 @@ class LaporanProvider extends ChangeNotifier {
     return _laporanList.take(limit).toList();
   }
 
-  LaporanLokal? getLaporanById(String formulirId) {
-    return _laporanLocal.getLaporanById(formulirId);
-  }
-
   List<LaporanLokal> filterLaporan({
     String filterStatus = 'semua',
     String searchQuery = '',

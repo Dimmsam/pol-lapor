@@ -13,7 +13,8 @@ class TrackingRemoteDatasource {
   /// Catat satu baris tracking ke tabel `public.tracking`.
   ///
   /// [jenisEvent] — nilai enum `jenis_event_enum` di Supabase (NOT NULL).
-  /// Gunakan constants dari [JenisEvent] di `app_constants.dart`.
+  /// Wajib diisi setelah enum values dikonfirmasi (lihat check_schema.sql).
+  /// TODO(B10): jadikan required setelah enum dikonfirmasi.
   Future<void> catatTracking({
     required String formulirId,
     String? aktorId,

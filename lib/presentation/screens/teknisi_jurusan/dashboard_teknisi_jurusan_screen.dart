@@ -7,13 +7,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../logic/providers/teknisi_dashboard_provider.dart';
-import '../../../logic/providers/notifikasi_provider.dart';
 import '../../../data/models/user_session.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../widgets/common/status_badge.dart';
 import 'widgets/bottom_nav_teknisi.dart'; // ← pakai navbar baru
 import 'profil_teknisi_screen.dart';
-import 'detail_laporan_teknisi_screen.dart';
 
 class DashboardTeknisiJurusanScreen extends StatefulWidget {
   final UserSession userSession;
@@ -186,52 +184,15 @@ class _DashboardTeknisiJurusanScreenState
                       ),
                     ],
                   ),
-                  Consumer<NotifikasiProvider>(
-                    builder: (context, notifProvider, _) {
-                      final notifCount = notifProvider.unreadCount;
-                      return Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/notif');
-                            },
-                            icon: const Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.white,
-                              size: 26,
-                            ),
-                          ),
-                          if (notifCount > 0)
-                            Positioned(
-                              top: 6,
-                              right: 6,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                constraints: const BoxConstraints(
-                                  minWidth: 16,
-                                  minHeight: 16,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: _primaryColor, width: 1.5),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    notifCount > 9 ? '9+' : notifCount.toString(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
+                  IconButton(
+                    onPressed: () {
+                      // TODO: Navigate ke NotifikasiScreen
                     },
+                    icon: const Icon(
+                      Icons.notifications_outlined,
+                      color: Colors.white,
+                      size: 26,
+                    ),
                   ),
                 ],
               ),
@@ -430,15 +391,7 @@ class _DashboardTeknisiJurusanScreenState
           ],
         ),
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DetailLaporanTeknisiScreen(
-                laporan: laporan,
-                userSession: widget.userSession,
-              ),
-            ),
-          );
+          // TODO: Navigate ke DetailLaporanScreen
         },
       ),
     );

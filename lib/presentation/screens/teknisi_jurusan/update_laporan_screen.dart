@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase/supabase_service.dart';
 import '../../../data/models/laporan_lokal.dart';
-import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
 import '../../../logic/providers/penanganan_provider.dart';
 import 'profil_teknisi_screen.dart';
@@ -158,9 +157,6 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
                   _buildStatusDropdown(),
                   const SizedBox(height: 18),
 
-                  // Foto progres sebelumnya
-                  _buildExistingPhotos(),
-
                   // Ambil Foto
                   const Text(
                     'Ambil Foto Bukti Perbaikan',
@@ -226,125 +222,6 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
             ),
           ],
           onChanged: (v) => setState(() => _status = v ?? _status),
-        ),
-      ),
-    );
-  }
-
-  // ─── FOTO PROGRES YANG SUDAH ADA (DARI DB) ──────────────────────────────
-  Widget _buildExistingPhotos() {
-    final provider = context.watch<PenangananProvider>();
-    final penanganan = provider.getPenangananByFormulir(
-      widget.laporan.formulirId,
-    );
-    final existingPhotos = penanganan?.fotoProgresUrl ?? [];
-
-    if (existingPhotos.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.photo_library_outlined,
-                size: 16, color: Colors.black54),
-            const SizedBox(width: 6),
-            const Text(
-              'Foto Progres Sebelumnya',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              '${existingPhotos.length} foto',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 110,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: existingPhotos.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () => _showPhotoDialog(existingPhotos[index]),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    existingPhotos[index],
-                    width: 110,
-                    height: 110,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 110,
-                      height: 110,
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.broken_image_outlined,
-                          color: Colors.grey),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 18),
-      ],
-    );
-  }
-
-  void _showPhotoDialog(String url) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(16),
-        child: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: InteractiveViewer(
-                child: Image.network(
-                  url,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 300,
-                    color: Colors.grey.shade800,
-                    child: const Center(
-                      child: Icon(Icons.broken_image, color: Colors.white54,
-                          size: 48),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 20),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

@@ -77,14 +77,6 @@ class NotifikasiRemoteDatasource {
         .eq('is_read', false);
   }
 
-  // ── Hapus satu notifikasi ────────────────────────────────────────────────
-  Future<void> deleteNotifikasi(String notifikasiId) async {
-    await _db
-        .from('notifikasi')
-        .delete()
-        .eq('notifikasi_id', notifikasiId);
-  }
-
   // ── Subscribe realtime untuk notifikasi user tertentu ───────────────────
   /// Mengembalikan RealtimeChannel yang bisa di-cancel via removeChannel.
   /// [onNew] dipanggil setiap ada notifikasi INSERT baru untuk user ini.

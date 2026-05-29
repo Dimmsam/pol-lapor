@@ -4,18 +4,13 @@
 //                Teknisi mengisi kategori kerusakan + alasan eskalasi.
 // ============================================================
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../logic/providers/penanganan_provider.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/supabase/supabase_service.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
-import '../pelapor/camera_picker_screen.dart';
 
 class FormEskalasiScreen extends StatefulWidget {
   final LaporanLokal laporan;
@@ -36,15 +31,11 @@ class FormEskalasiScreen extends StatefulWidget {
 class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
   static const Color _primaryColor = Color(0xFF1A237E);
   static const Color _accentColor = Color(0xFFFF6F00);
-  static const int _maxFoto = 3;
 
   final _formKey = GlobalKey<FormState>();
   final _alasanController = TextEditingController();
   String? _kategoriTerpilih;
   bool _isSubmitting = false;
-
-  /// Path foto lokal yang dipilih teknisi (maks 3).
-  final List<String> _fotoTambahanPaths = [];
 
   @override
   void dispose() {
@@ -52,62 +43,6 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
     super.dispose();
   }
 
-  // ─── PICK FOTO ─────────────────────────────────────────────────────────────
-  Future<void> _pickFoto() async {
-    if (_fotoTambahanPaths.length >= _maxFoto) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Maksimal 3 foto sudah dipilih'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    final path = await Navigator.push<String?>(
-      context,
-      MaterialPageRoute(builder: (_) => const CameraPickerScreen()),
-    );
-
-    if (path != null && mounted) {
-      setState(() => _fotoTambahanPaths.add(path));
-    }
-  }
-
-  // ─── UPLOAD SEMUA FOTO ─────────────────────────────────────────────────────
-  Future<List<String>> _uploadFotoTambahan() async {
-    final urls = <String>[];
-    final storage = SupabaseService.storage;
-
-    for (int i = 0; i < _fotoTambahanPaths.length; i++) {
-      final filePath = _fotoTambahanPaths[i];
-      final file = File(filePath);
-      if (!await file.exists()) continue;
-
-      try {
-        final ext = filePath.split('.').last;
-        final fileName =
-            'eskalasi_${widget.laporan.formulirId}_${DateTime.now().millisecondsSinceEpoch}_$i.$ext';
-        final storagePath = 'foto_eskalasi/$fileName';
-
-        await storage.from('bukti_laporan').upload(
-              storagePath,
-              file,
-              fileOptions: const FileOptions(upsert: true),
-            );
-
-        final publicUrl =
-            storage.from('bukti_laporan').getPublicUrl(storagePath);
-        urls.add(publicUrl);
-      } catch (e) {
-        debugPrint('Upload foto eskalasi [$i] gagal: $e');
-      }
-    }
-
-    return urls;
-  }
-
-  // ─── SUBMIT ────────────────────────────────────────────────────────────────
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_kategoriTerpilih == null) {
@@ -150,18 +85,11 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
       penangananId = widget.penanganan!.penangananId;
     }
 
-    // Upload foto jika ada
-    List<String> fotoUrls = [];
-    if (_fotoTambahanPaths.isNotEmpty) {
-      fotoUrls = await _uploadFotoTambahan();
-    }
-
     await provider.eskalasiKeAdminJurusan(
       penangananId: penangananId,
       formulirId: widget.laporan.formulirId,
       catatanEskalasi: _alasanController.text.trim(),
       kategoriKerusakan: _kategoriTerpilih!,
-      fotoTambahan: fotoUrls,
     );
 
     if (!mounted) return;
@@ -339,133 +267,45 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
               const SizedBox(height: 20),
 
               // ── Foto Tambahan (Opsional) ────────────────────────────
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Tambah Foto Detail Kerusakan (Opsional)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A2E),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${_fotoTambahanPaths.length}/$_maxFoto',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _fotoTambahanPaths.length >= _maxFoto
-                          ? Colors.red
-                          : Colors.grey,
-                    ),
-                  ),
-                ],
+              const Text(
+                'Tambah Foto Detail Kerusakan (Opsional)',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A2E),
+                ),
               ),
               const SizedBox(height: 8),
-
-              // Grid preview foto yang sudah dipilih
-              if (_fotoTambahanPaths.isNotEmpty) ...[
-                SizedBox(
-                  height: 110,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _fotoTambahanPaths.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      return Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.file(
-                              File(_fotoTambahanPaths[index]),
-                              width: 110,
-                              height: 110,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _fotoTambahanPaths.removeAt(index);
-                                });
-                              },
-                              child: Container(
-                                width: 26,
-                                height: 26,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+              GestureDetector(
+                onTap: () {
+                  // TODO: Implementasi image picker
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.camera_alt_outlined,
+                          size: 36, color: _accentColor),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Klik untuk ambil foto atau pilih dari galeri',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const Text(
+                        'Maksimal 3 foto. Format JPG/PNG',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 10),
-              ],
-
-              // Tombol tambah foto
-              if (_fotoTambahanPaths.length < _maxFoto)
-                GestureDetector(
-                  onTap: _pickFoto,
-                  child: Container(
-                    width: double.infinity,
-                    height: _fotoTambahanPaths.isEmpty ? 120 : 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: _fotoTambahanPaths.isEmpty
-                        ? Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.camera_alt_outlined,
-                                  size: 36, color: _accentColor),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Klik untuk ambil foto atau pilih dari galeri',
-                                style:
-                                    TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              const Text(
-                                'Maksimal 3 foto. Format JPG/PNG',
-                                style:
-                                    TextStyle(fontSize: 11, color: Colors.grey),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.add_a_photo_outlined,
-                                  size: 22, color: _accentColor),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Tambah foto lagi (${_maxFoto - _fotoTambahanPaths.length} tersisa)',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: _accentColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
+              ),
 
               const SizedBox(height: 32),
 

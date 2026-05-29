@@ -8,10 +8,6 @@ import 'package:provider/provider.dart';
 
 import '../../../data/models/notifikasi.dart';
 import '../../../logic/providers/notifikasi_provider.dart';
-import '../../../logic/providers/laporan_provider.dart';
-import '../../../logic/providers/penanganan_provider.dart';
-import 'detail_laporan_screen.dart';
-import '../teknisi_jurusan/detail_laporan_teknisi_screen.dart';
 
 class NotifScreen extends StatefulWidget {
   const NotifScreen({super.key});
@@ -77,25 +73,10 @@ class _NotifScreenState extends State<NotifScreen> {
               itemCount: provider.notifikasiList.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
-                final notif = provider.notifikasiList[index];
-                return Dismissible(
-                  key: Key(notif.notifikasiId),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.delete_outline, color: Colors.white),
-                  ),
-                  onDismissed: (direction) {
-                    provider.deleteNotifikasi(notif.notifikasiId);
-                  },
-                  child: _NotifItem(
-                    notif: notif,
-                    onTap: () => _handleNotifTap(context, notif),
+                return _NotifItem(
+                  notif: provider.notifikasiList[index],
+                  onTap: () => provider.markAsRead(
+                    provider.notifikasiList[index].notifikasiId,
                   ),
                 );
               },
@@ -104,61 +85,6 @@ class _NotifScreenState extends State<NotifScreen> {
         },
       ),
     );
-  }
-
-  void _handleNotifTap(BuildContext context, Notifikasi notif) {
-    // 1. Tandai sebagai dibaca
-    context.read<NotifikasiProvider>().markAsRead(notif.notifikasiId);
-
-    // 2. Navigasi jika ada formulirId
-    if (notif.formulirId != null && notif.formulirId!.isNotEmpty) {
-      final session = context.read<LaporanProvider>().session;
-      if (session == null) return;
-
-      final role = session.role;
-      
-      // Jika teknisi
-      if (role == 'teknisi_jurusan' || role == 'teknisi') {
-        final penangananProvider = context.read<PenangananProvider>();
-        // Cari dari daftarTugas (karena teknisi)
-        try {
-          final laporan = penangananProvider.daftarTugas.firstWhere(
-            (l) => l.formulirId == notif.formulirId,
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DetailLaporanTeknisiScreen(
-                laporan: laporan,
-                userSession: session,
-              ),
-            ),
-          );
-        } catch (_) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Laporan tidak ditemukan di daftar tugas Anda')),
-          );
-        }
-      } 
-      // Jika pelapor
-      else {
-        final laporanProvider = context.read<LaporanProvider>();
-        final laporan = laporanProvider.getLaporanById(notif.formulirId!);
-        
-        if (laporan != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DetailLaporanScreen(laporan: laporan),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Laporan tidak ditemukan')),
-          );
-        }
-      }
-    }
   }
 }
 
