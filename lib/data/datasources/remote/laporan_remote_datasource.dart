@@ -102,4 +102,32 @@ class LaporanRemoteDatasource {
       throw Exception('Laporan tidak ditemukan atau tidak punya akses hapus');
     }
   }
+
+  /// Fetch semua laporan milik pelapor dari Supabase untuk sinkronisasi.
+  Future<List<Map<String, dynamic>>> fetchLaporanByPelapor(
+    String pelaporId,
+  ) async {
+    try {
+      final response = await _db
+          .from('formulir_laporan')
+          .select('''
+            formulir_id,
+            pelapor_id,
+            nama_sarana,
+            keterangan_kerusakan,
+            foto_kerusakan_url,
+            status,
+            created_at,
+            updated_at,
+            lokasi:lokasi_id (nama_ruangan)
+          ''')
+          .eq('pelapor_id', pelaporId)
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('fetchLaporanByPelapor error: $e');
+      return [];
+    }
+  }
 }

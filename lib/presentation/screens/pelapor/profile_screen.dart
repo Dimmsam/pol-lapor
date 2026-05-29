@@ -275,7 +275,7 @@ class ProfileScreen extends StatelessWidget {
                     final nama = namaCtrl.text.trim();
                     if (nama.isEmpty) return;
 
-                    await context.read<AuthProvider>().updateLocalNama(nama);
+                    await context.read<AuthProvider>().updateNama(nama);
                     home.init();
 
                     if (ctx.mounted) Navigator.pop(ctx);

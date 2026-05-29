@@ -76,6 +76,14 @@ class PenangananProvider extends ChangeNotifier {
     _setLoading(true);
 
     try {
+      // Cek dulu apakah sudah ada penanganan untuk formulir ini
+      final existing = _mapPenanganan[formulirId];
+      if (existing != null) {
+        debugPrint('Penanganan sudah ada untuk formulir $formulirId');
+        _setLoading(false);
+        return; // Skip jika sudah ada
+      }
+
       final penangananBaru = Penanganan(
         penangananId: const Uuid().v4(),
         formulirId: formulirId,
@@ -127,61 +135,6 @@ class PenangananProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> selesaikanPenanganan({
-    required String penangananId,
-    required String formulirId,
-    required String deskripsiHasil,
-    String? fotoHasilUrl,
-  }) async {
-    _setLoading(true);
-
-    try {
-      final now = DateTime.now();
-      final index = _daftarPenangananLokal
-          .indexWhere((p) => p.penangananId == penangananId);
-      if (index != -1) {
-        final updated = _daftarPenangananLokal[index].copyWith(
-          statusPenanganan: StatusPenanganan.selesai,
-          deskripsiHasil: deskripsiHasil,
-          fotoHasilUrl: fotoHasilUrl,
-          tanggalSelesai: now,
-        );
-        _daftarPenangananLokal[index] = updated;
-        _mapPenanganan[formulirId] = updated;
-        notifyListeners();
-      }
-
-      final nowStr = now.toIso8601String();
-
-      await _remote.updatePenanganan(penangananId, {
-        'status_penanganan': StatusPenanganan.selesai,
-        'deskripsi_hasil': deskripsiHasil,
-        if (fotoHasilUrl != null) 'foto_hasil_url': fotoHasilUrl,
-        'tanggal_selesai': nowStr,
-        'updated_at': nowStr,
-      });
-
-      await _remote.updateStatusFormulir(
-        formulirId,
-        StatusLaporan.selesai,
-        updatedAt: nowStr,
-      );
-
-      // Kirim notifikasi selesai ke pelapor
-      await _kirimNotifikasiPelapor(
-        formulirId: formulirId,
-        judul: 'Laporan selesai ditangani',
-        pesan: 'Laporan kerusakanmu telah selesai diperbaiki oleh teknisi.',
-        tipe: TipeNotifikasi.selesai,
-      );
-    } catch (e) {
-      _errorMessage = 'Gagal menyelesaikan penanganan: $e';
-      debugPrint('selesaikanPenanganan error: $e');
-    } finally {
-      _setLoading(false);
-    }
-  }
-
   Future<void> eskalasiKeAdminJurusan({
     required String penangananId,
     required String formulirId,
@@ -189,6 +142,19 @@ class PenangananProvider extends ChangeNotifier {
     required String kategoriKerusakan,
     List<String> fotoTambahan = const [],
   }) async {
+    // Validasi input
+    if (catatanEskalasi.trim().isEmpty) {
+      _errorMessage = 'Catatan eskalasi tidak boleh kosong';
+      notifyListeners();
+      return;
+    }
+    
+    if (kategoriKerusakan.trim().isEmpty) {
+      _errorMessage = 'Kategori kerusakan harus dipilih';
+      notifyListeners();
+      return;
+    }
+
     _setLoading(true);
 
     try {
@@ -289,9 +255,11 @@ class PenangananProvider extends ChangeNotifier {
         if (finalStatusPenanganan == StatusPenanganan.selesai) {
           updateData['foto_hasil_url'] = fotoProgresUrl;
         } else {
-          // Append ke array yang sudah ada, bukan overwrite
+          // Append ke array yang sudah ada, cek duplikasi
           final existing = penanganan.fotoProgresUrl;
-          updateData['foto_progres_url'] = [...existing, fotoProgresUrl];
+          if (!existing.contains(fotoProgresUrl)) {
+            updateData['foto_progres_url'] = [...existing, fotoProgresUrl];
+          }
         }
       }
 

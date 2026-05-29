@@ -37,6 +37,14 @@ class TrackingProvider extends ChangeNotifier {
 
   // ─── REALTIME: Subscribe ke tracking baru secara realtime ─────────────────
   void startRealtimeListener(String formulirId) {
+    // Jika sudah listening ke formulir yang sama, skip
+    if (_currentFormulirId == formulirId && _trackingRemote.isListening) {
+      return;
+    }
+    
+    // Stop listener sebelumnya jika ada
+    stopRealtimeListener();
+    
     _currentFormulirId = formulirId;
 
     _trackingRemote.subscribeRealtime(
@@ -48,6 +56,12 @@ class TrackingProvider extends ChangeNotifier {
         );
         if (!exists) {
           _riwayatTracking.add(newTracking);
+          _riwayatTracking.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          notifyListeners();
+        }
+      },
+    );
+  }
           notifyListeners();
         }
       },

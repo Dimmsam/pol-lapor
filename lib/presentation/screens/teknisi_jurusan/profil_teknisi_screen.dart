@@ -260,7 +260,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                             final namaBaru = namaCtrl.text.trim();
                             if (namaBaru.isEmpty) return;
 
-                            await context.read<AuthProvider>().updateLocalNama(
+                            await context.read<AuthProvider>().updateNama(
                               namaBaru,
                             );
 

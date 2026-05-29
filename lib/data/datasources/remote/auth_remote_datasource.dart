@@ -45,6 +45,14 @@ class AuthRemoteDatasource {
     );
   }
 
+  // ── Update nama lengkap di tabel pengguna ─────────────────────────────────
+  Future<void> updateNamaLengkap(String userId, String namaLengkap) async {
+    await SupabaseService.db
+        .from('pengguna')
+        .update({'nama_lengkap': namaLengkap})
+        .eq('user_id', userId);
+  }
+
   // ── Cek session masih valid ───────────────────────────────────────────────
   Future<UserSession?> getSessionFromSupabase() async {
     final supabaseSession = SupabaseService.auth.currentSession;

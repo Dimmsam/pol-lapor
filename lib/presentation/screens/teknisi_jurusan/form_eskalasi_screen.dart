@@ -4,13 +4,17 @@
 //                Teknisi mengisi kategori kerusakan + alasan eskalasi.
 // ============================================================
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../logic/providers/penanganan_provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../data/datasources/remote/storage_remote_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
+import '../pelapor/camera_picker_screen.dart';
 
 class FormEskalasiScreen extends StatefulWidget {
   final LaporanLokal laporan;
@@ -36,11 +40,39 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
   final _alasanController = TextEditingController();
   String? _kategoriTerpilih;
   bool _isSubmitting = false;
+  final List<String> _fotoTambahanPaths = []; // Menyimpan path foto tambahan
 
   @override
   void dispose() {
     _alasanController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickFoto() async {
+    if (_fotoTambahanPaths.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maksimal 3 foto'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final path = await Navigator.push<String?>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CameraPickerScreen(),
+      ),
+    );
+
+    if (path != null && mounted) {
+      setState(() => _fotoTambahanPaths.add(path));
+    }
+  }
+
+  void _removeFoto(int index) {
+    setState(() => _fotoTambahanPaths.removeAt(index));
   }
 
   Future<void> _submit() async {
@@ -85,11 +117,27 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
       penangananId = widget.penanganan!.penangananId;
     }
 
+    // Upload foto tambahan jika ada
+    final List<String> fotoUrls = [];
+    if (_fotoTambahanPaths.isNotEmpty) {
+      final storage = StorageRemoteDatasource();
+      for (final path in _fotoTambahanPaths) {
+        final url = await storage.uploadFotoProgres(
+          filePath: path,
+          formulirId: widget.laporan.formulirId,
+        );
+        if (url != null) {
+          fotoUrls.add(url);
+        }
+      }
+    }
+
     await provider.eskalasiKeAdminJurusan(
       penangananId: penangananId,
       formulirId: widget.laporan.formulirId,
       catatanEskalasi: _alasanController.text.trim(),
       kategoriKerusakan: _kategoriTerpilih!,
+      fotoTambahan: fotoUrls,
     );
 
     if (!mounted) return;
@@ -276,10 +324,56 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+              
+              // Area preview foto yang sudah dipilih
+              if (_fotoTambahanPaths.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _fotoTambahanPaths.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final path = entry.value;
+                    return Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            File(path),
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => _removeFoto(index),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              
+              if (_fotoTambahanPaths.isNotEmpty)
+                const SizedBox(height: 8),
+              
+              // Tombol tambah foto
               GestureDetector(
-                onTap: () {
-                  // TODO: Implementasi image picker
-                },
+                onTap: _pickFoto,
                 child: Container(
                   width: double.infinity,
                   height: 120,
@@ -294,9 +388,11 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
                       Icon(Icons.camera_alt_outlined,
                           size: 36, color: _accentColor),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Klik untuk ambil foto atau pilih dari galeri',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      Text(
+                        _fotoTambahanPaths.isEmpty
+                            ? 'Klik untuk ambil foto atau pilih dari galeri'
+                            : 'Tambah foto lagi (${_fotoTambahanPaths.length}/3)',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       const Text(
                         'Maksimal 3 foto. Format JPG/PNG',

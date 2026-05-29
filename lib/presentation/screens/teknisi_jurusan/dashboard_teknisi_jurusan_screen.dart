@@ -186,7 +186,12 @@ class _DashboardTeknisiJurusanScreenState
                   ),
                   IconButton(
                     onPressed: () {
-                      // TODO: Navigate ke NotifikasiScreen
+                      // Navigate ke NotifikasiScreen
+                      Navigator.pushNamed(
+                        context,
+                        '/notifikasi',
+                        arguments: widget.userSession,
+                      );
                     },
                     icon: const Icon(
                       Icons.notifications_outlined,
@@ -391,7 +396,15 @@ class _DashboardTeknisiJurusanScreenState
           ],
         ),
         onTap: () {
-          // TODO: Navigate ke DetailLaporanScreen
+          // Navigate ke DetailLaporanScreen
+          Navigator.pushNamed(
+            context,
+            '/detail-laporan-teknisi',
+            arguments: {
+              'laporan': laporan,
+              'userSession': widget.userSession,
+            },
+          );
         },
       ),
     );

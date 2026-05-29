@@ -425,7 +425,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => const HomeScreen(initialIndex: 1),
+            builder: (context) => const HomeScreen(initialIndex: 0), // 0 = Dashboard
           ),
           (route) => false,
         );
