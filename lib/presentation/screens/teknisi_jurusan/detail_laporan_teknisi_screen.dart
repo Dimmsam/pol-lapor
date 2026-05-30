@@ -256,7 +256,7 @@ class _DetailLaporanTeknisiScreenState
               const Icon(Icons.person_outline, size: 15, color: Colors.grey),
               const SizedBox(width: 4),
               Text(
-                'Pelapor: ${widget.laporan.pelaporId.substring(0, 8)}...',
+                'Pelapor: ${widget.laporan.pelaporId}',
                 style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ],
@@ -519,98 +519,89 @@ class _DetailLaporanTeknisiScreenState
   Widget _buildTrackingCard() {
     return Consumer<TrackingProvider>(
       builder: (context, tp, _) {
-        final timelineItems = tp.riwayatTracking;
+        final riwayat = tp.riwayatTracking;
+        
+        final stepsData = [
+          {'title': 'Laporan Dibuat', 'events': ['laporan_dibuat']},
+          {'title': 'Ditinjau Admin', 'events': ['laporan_diterima_admin']},
+          {'title': 'Teknisi Ditugaskan', 'events': ['teknisi_ditugaskan']},
+          {'title': 'Dalam Penanganan', 'events': ['penanganan_dimulai', 'teknisi_mulai_periksa']},
+          {'title': 'Selesai', 'events': ['penanganan_selesai']},
+        ];
+
+        int currentStep = 0;
+        if (riwayat.any((e) => e.jenisEvent == 'penanganan_selesai')) {
+          currentStep = 4;
+        } else if (riwayat.any((e) => e.jenisEvent == 'penanganan_dimulai' || e.jenisEvent == 'teknisi_mulai_periksa')) {
+          currentStep = 3;
+        } else if (riwayat.any((e) => e.jenisEvent == 'teknisi_ditugaskan')) {
+          currentStep = 2;
+        } else if (riwayat.any((e) => e.jenisEvent == 'laporan_diterima_admin')) {
+          currentStep = 1;
+        } else if (riwayat.any((e) => e.jenisEvent == 'laporan_dibuat')) {
+          currentStep = 0;
+        }
 
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFF3F4F6)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.timeline_rounded,
-                    size: 18,
-                    color: Color(0xFF1A237E),
-                  ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Tracking Status',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _showTracking = !_showTracking;
-                      });
-                    },
-                    icon: Icon(
-                      _showTracking
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      size: 20,
-                    ),
-                    label: Text(
-                      _showTracking ? 'Sembunyikan' : 'Lihat',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Riwayat perubahan status laporan dari awal hingga sekarang.',
+              const Text(
+                'Status Laporan',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                  height: 1.4,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1F2937),
                 ),
               ),
+              const SizedBox(height: 20),
               if (tp.isLoading)
-                const Padding(
-                  padding: EdgeInsets.only(top: 16),
-                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                )
-              else if (timelineItems.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Text(
-                    'Belum ada update tracking.',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      height: 1.4,
-                    ),
-                  ),
-                )
-              else if (_showTracking)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Column(
-                    children: timelineItems.asMap().entries.map((entry) {
-                      final isLast = entry.key == timelineItems.length - 1;
-                      return _TrackingTimelineTileTeknisi(
-                        tracking: entry.value,
-                        isLast: isLast,
-                      );
-                    }).toList(),
-                  ),
+                const Center(child: CircularProgressIndicator())
+              else
+                Column(
+                  children: List.generate(stepsData.length, (index) {
+                    final data = stepsData[index];
+                    final isCompleted = index < currentStep;
+                    final isActive = index == currentStep;
+                    final isWaiting = index > currentStep;
+                    final isLast = index == stepsData.length - 1;
+
+                    // Find the date
+                    DateTime? stepDate;
+                    final events = data['events'] as List<String>;
+                    try {
+                      final found = riwayat.firstWhere(
+                          (r) => r.jenisEvent != null && events.contains(r.jenisEvent));
+                      stepDate = found.createdAt;
+                    } catch (_) {}
+
+                    // Fallback using laporan creation for step 0 if not found
+                    if (index == 0 && stepDate == null) {
+                       stepDate = widget.laporan.createdAt;
+                    }
+
+                    return _buildStepItem(
+                      title: data['title'] as String,
+                      date: stepDate,
+                      isCompleted: isCompleted,
+                      isActive: isActive,
+                      isWaiting: isWaiting,
+                      isLast: isLast,
+                    );
+                  }),
                 ),
             ],
           ),
@@ -618,142 +609,123 @@ class _DetailLaporanTeknisiScreenState
       },
     );
   }
-}
 
-// ─── TIMELINE TILE WIDGET ────────────────────────────────────────────────────
-class _TrackingTimelineTileTeknisi extends StatelessWidget {
-  const _TrackingTimelineTileTeknisi({
-    required this.tracking,
-    required this.isLast,
-  });
+  Widget _buildStepItem({
+    required String title,
+    DateTime? date,
+    required bool isCompleted,
+    required bool isActive,
+    required bool isWaiting,
+    required bool isLast,
+  }) {
+    Color titleColor = isWaiting ? const Color(0xFF9CA3AF) : (isActive ? const Color(0xFF2563EB) : const Color(0xFF1F2937));
+    Color subtitleColor = isWaiting ? const Color(0xFFD1D5DB) : const Color(0xFF9CA3AF);
 
-  final Tracking tracking;
-  final bool isLast;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _getTimelineColor(tracking.jenisEvent ?? ''),
-              ),
-              child: Icon(
-                _getTimelineIcon(tracking.jenisEvent ?? ''),
-                color: Colors.white,
-                size: 16,
-              ),
-            ),
-            if (!isLast)
-              Container(width: 2, height: 50, color: const Color(0xFFE5E7EB)),
-          ],
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Indicator column
+          SizedBox(
+            width: 24,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        tracking.jenisEvent != null 
-                            ? StatusMapper.formatJenisEvent(tracking.jenisEvent!)
-                            : tracking.pesanNarasi,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF111827),
-                        ),
-                      ),
+                _buildIndicator(isCompleted: isCompleted, isActive: isActive, isWaiting: isWaiting),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      // Sangat samar atau transparan agar terlihat rapi tanpa garis tebal
+                      color: const Color(0xFFF3F4F6), 
                     ),
-                    Text(
-                      _formatDateTime(tracking.createdAt),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF6B7280),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  tracking.pesanNarasi,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    height: 1.4,
-                    color: Color(0xFF4B5563),
                   ),
-                ),
               ],
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 16),
+          // Content column
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 20.0), // Spacing between steps
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: isActive || isCompleted ? FontWeight.w600 : FontWeight.w500,
+                      color: titleColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isWaiting ? 'Menunggu...' : _formatTrackingDate(date),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: subtitleColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Color _getTimelineColor(String jenisEvent) {
-    switch (jenisEvent.toLowerCase()) {
-      case 'penanganan_selesai':
-        return const Color(0xFF2E7D32); // hijau — selesai
-      case 'penanganan_dimulai':
-      case 'teknisi_mulai_periksa':
-        return const Color(0xFF1565C0); // biru — sedang dikerjakan
-      case 'diteruskan_ke_pusat':
-        return const Color(0xFFE65100); // oranye — eskalasi
-      case 'teknisi_ditugaskan':
-        return const Color(0xFF6A1B9A); // ungu — ditugaskan
-      case 'laporan_diterima_admin':
-        return const Color(0xFF00838F); // teal — diterima admin
-      case 'laporan_dibuat':
-        return const Color(0xFF455A64); // abu tua — laporan baru
-      default:
-        return const Color(0xFF6B7280);
+  Widget _buildIndicator({required bool isCompleted, required bool isActive, required bool isWaiting}) {
+    if (isCompleted) {
+      return Container(
+        width: 24,
+        height: 24,
+        decoration: const BoxDecoration(
+          color: Color(0xFF2563EB),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.check, color: Colors.white, size: 16),
+      );
+    } else if (isActive) {
+      return Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFF1F2937), width: 2),
+        ),
+        child: Center(
+          child: Container(
+            width: 10,
+            height: 10,
+            decoration: const BoxDecoration(
+              color: Color(0xFF2563EB),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      );
+    } else {
+      return Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 2),
+        ),
+      );
     }
   }
 
-  IconData _getTimelineIcon(String jenisEvent) {
-    switch (jenisEvent.toLowerCase()) {
-      case 'penanganan_selesai':
-        return Icons.check_circle_outline;
-      case 'penanganan_dimulai':
-        return Icons.build_outlined;
-      case 'teknisi_mulai_periksa':
-        return Icons.search;
-      case 'diteruskan_ke_pusat':
-        return Icons.forward_outlined;
-      case 'teknisi_ditugaskan':
-        return Icons.person_add_outlined;
-      case 'laporan_diterima_admin':
-        return Icons.assignment_turned_in_outlined;
-      case 'laporan_dibuat':
-        return Icons.note_add_outlined;
-      default:
-        return Icons.schedule;
-    }
-  }
-
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day.toString().padLeft(2, '0')}/'
-        '${dateTime.month.toString().padLeft(2, '0')}/'
-        '${dateTime.year} '
-        '${dateTime.hour.toString().padLeft(2, '0')}:'
-        '${dateTime.minute.toString().padLeft(2, '0')}';
+  String _formatTrackingDate(DateTime? dateTime) {
+    if (dateTime == null) return '';
+    final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final day = dateTime.day;
+    final month = monthNames[dateTime.month - 1];
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$day $month, $hour:$minute';
   }
 }

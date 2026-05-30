@@ -266,6 +266,15 @@ class PenangananProvider extends ChangeNotifier {
 
       if (finalStatusPenanganan == StatusPenanganan.selesai) {
         updateData['tanggal_selesai'] = nowStr;
+
+        try {
+          await SupabaseService.db
+              .from('pengguna')
+              .update({'is_busy': false})
+              .eq('user_id', penanganan.teknisiId);
+        } catch (e) {
+          debugPrint('Gagal update is_busy: $e');
+        }
       }
 
       await _remote.updatePenanganan(penanganan.penangananId, updateData);

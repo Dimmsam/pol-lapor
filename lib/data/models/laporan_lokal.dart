@@ -116,7 +116,9 @@ class LaporanLokal extends HiveObject {
       nomorInventaris: json['nomor_inventaris'] as String?,
       fotoKerusakanUrl: json['foto_kerusakan_url'] as String?,
       status: json['status'] as String? ?? StatusLaporan.menungguKlasifikasi,
-      pelaporId: json['pelapor_id'] as String? ?? '',
+      pelaporId: (json['pengguna'] != null && json['pengguna'] is Map && json['pengguna']['nama_lengkap'] != null)
+          ? json['pengguna']['nama_lengkap'] as String
+          : json['pelapor_id'] as String? ?? '',
       isSynced: true,
       createdAt: DateTime.parse(
         json['created_at'] as String? ?? DateTime.now().toIso8601String(),

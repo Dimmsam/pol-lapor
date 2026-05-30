@@ -18,7 +18,9 @@ class PenangananRemoteDatasource {
             updated_at,
             penanganan!inner (
               teknisi_id
-            )
+            ),
+            lokasi:lokasi_id (nama_ruangan),
+            pengguna:pelapor_id (nama_lengkap)
           ''';
 
   Future<List<Map<String, dynamic>>> fetchPenangananRows(
