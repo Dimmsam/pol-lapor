@@ -46,6 +46,9 @@ Future<void> handleLogin() async {
     if (!mounted) return;
 
     if (provider.status == LoginStatus.success) {
+      // Init post-login services (notifikasi realtime, dll)
+      provider.initPostLoginServices(context);
+      
       final role = provider.session?.role;
       final session = provider.session!;
 

@@ -15,7 +15,6 @@ import '../../widgets/common/status_badge.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
-import 'widgets/bottom_nav_teknisi.dart';
 import 'detail_laporan_teknisi_screen.dart';
 import 'profil_teknisi_screen.dart';
 
@@ -37,7 +36,6 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
 
   // ─── State ───────────────────────────────────────────────────────────────
   late TabController _tabController;
-  int _currentNavIndex = 1; // Tab "Tugas" aktif
 
   // ─── Tab Filter ──────────────────────────────────────────────────────────
   final List<_TabFilter> _tabs = const [
@@ -71,29 +69,6 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
     super.dispose();
   }
 
-  // ─── Navigation ──────────────────────────────────────────────────────────
-  void _onNavTap(int index) {
-    setState(() => _currentNavIndex = index);
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(
-          context,
-          '/dashboard-teknisi-jurusan',
-          arguments: widget.userSession,
-        );
-        break;
-      case 1:
-        // already on Tugas
-        break;
-      case 2:
-        // Navigate to ProfilTeknisiScreen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ProfilTeknisiScreen()),
-        );
-        break;
-    }
-  }
 
   // ─── Build ───────────────────────────────────────────────────────────────
   @override
@@ -137,12 +112,6 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavTeknisi(
-        currentIndex: _currentNavIndex,
-        onTap: _onNavTap,
-        primaryColor: _primaryColor,
-        accentColor: _accentColor,
       ),
     );
   }

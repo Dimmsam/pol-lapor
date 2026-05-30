@@ -76,4 +76,60 @@ class LaporanLocalDatasource {
       return sameLokasi && masihAktif;
     }).toList();
   }
+
+  /// Sinkronkan laporan dari remote ke lokal (merge/update/delete deleted records).
+  Future<void> syncFromRemote(List<Map<String, dynamic>> remoteLaporan, String pelaporId) async {
+    final remoteIds = <String>{};
+    for (final json in remoteLaporan) {
+      try {
+        final formulirId = json['formulir_id'] as String;
+        final existing = _box.get(formulirId);
+
+        // Parse lokasi dari nested object dengan fallback
+        String lokasiNama = 'Lokasi tidak diketahui';
+        if (json['lokasi'] != null) {
+          if (json['lokasi'] is Map) {
+            lokasiNama = json['lokasi']['nama_ruangan'] as String? ?? 
+                         json['lokasi']['lokasi_id'] as String? ?? 
+                         'Lokasi tidak diketahui';
+          } else if (json['lokasi'] is String) {
+            lokasiNama = json['lokasi'] as String;
+          }
+        }
+
+        final laporan = LaporanLokal(
+          formulirId: formulirId,
+          pelaporId: json['pelapor_id'] as String,
+          namaSarana: json['nama_sarana'] as String,
+          keteranganKerusakan: json['keterangan_kerusakan'] as String,
+          lokasiPerbaikan: lokasiNama,
+          fotoKerusakanUrl: json['foto_kerusakan_url'] as String?,
+          status: json['status'] as String,
+          createdAt: DateTime.parse(json['created_at'] as String),
+          updatedAt: DateTime.parse(json['updated_at'] as String),
+          isSynced: true,
+        );
+
+        // Hanya update jika belum ada atau versi remote lebih baru
+        if (existing == null ||
+            laporan.updatedAt.isAfter(existing.updatedAt)) {
+          await _box.put(formulirId, laporan);
+        }
+        
+        remoteIds.add(formulirId);
+      } catch (e) {
+        debugPrint('syncFromRemote error untuk item: $e');
+      }
+    }
+
+    // 2. Hapus data lokal yang sudah tidak ada di server (yang dihapus lewat admin/dashboard web)
+    final allLokal = _box.values.toList();
+    for (final lokal in allLokal) {
+      if (lokal.pelaporId == pelaporId && lokal.isSynced) {
+        if (!remoteIds.contains(lokal.formulirId)) {
+          await _box.delete(lokal.formulirId);
+        }
+      }
+    }
+  }
 }

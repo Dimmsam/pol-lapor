@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -25,6 +27,9 @@ class SyncService {
   final StorageRemoteDatasource _storage;
   final LokasiRemoteDatasource _lokasi;
   final _uuid = const Uuid();
+  
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  bool _isSyncing = false;
 
   SyncService({
     LaporanLocalDatasource? laporanLocal,
@@ -34,25 +39,66 @@ class SyncService {
         _storage = storage ?? StorageRemoteDatasource(),
         _lokasi = lokasi ?? LokasiRemoteDatasource();
 
+  // ── AUTO-SYNC: Start listening to connectivity changes ────────────────────
+  void startAutoSync() {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+      (List<ConnectivityResult> results) {
+        // Jika ada koneksi (wifi atau mobile data) dan tidak sedang syncing
+        if (!_isSyncing &&
+            (results.contains(ConnectivityResult.wifi) ||
+                results.contains(ConnectivityResult.mobile))) {
+          debugPrint('SyncService: Koneksi terdeteksi, memulai auto-sync...');
+          syncUnsyncedData();
+        }
+      },
+    );
+    debugPrint('SyncService: Auto-sync listener started');
+  }
+
+  // ── AUTO-SYNC: Stop listening ─────────────────────────────────────────────
+  void stopAutoSync() {
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription = null;
+    debugPrint('SyncService: Auto-sync listener stopped');
+  }
+
   // ── FUNGSI UTAMA: Pemicu Sinkronisasi ─────────────────────────────────────
   Future<void> syncUnsyncedData() async {
-    final authUser = SupabaseService.auth.currentUser;
-    if (authUser == null) {
-      debugPrint('SyncService: dibatalkan — user belum login.');
+    if (_isSyncing) {
+      debugPrint('SyncService: sync sudah berjalan, skip.');
       return;
     }
 
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      debugPrint('SyncService: tidak ada internet, sync ditunda.');
-      return;
-    }
+    _isSyncing = true;
 
-    final unsyncedLaporan = _laporanLocal.getUnsyncedLaporan();
-    if (unsyncedLaporan.isEmpty) return;
+    try {
+      final authUser = SupabaseService.auth.currentUser;
+      if (authUser == null) {
+        debugPrint('SyncService: dibatalkan — user belum login.');
+        return;
+      }
 
-    for (final laporan in unsyncedLaporan) {
-      await _syncSingleLaporan(laporan, authUser.id);
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult.contains(ConnectivityResult.none)) {
+        debugPrint('SyncService: tidak ada internet, sync ditunda.');
+        return;
+      }
+
+      final unsyncedLaporan = _laporanLocal.getUnsyncedLaporan();
+      if (unsyncedLaporan.isEmpty) {
+        debugPrint('SyncService: tidak ada laporan yang perlu di-sync.');
+        return;
+      }
+
+      debugPrint('SyncService: memulai sync ${unsyncedLaporan.length} laporan...');
+
+      for (final laporan in unsyncedLaporan) {
+        await _syncSingleLaporan(laporan, authUser.id);
+      }
+
+      debugPrint('SyncService: sync selesai.');
+    } finally {
+      _isSyncing = false;
     }
   }
 
@@ -66,6 +112,11 @@ class SyncService {
           filePath: laporan.fotoLokalPath!,
           formulirId: laporan.formulirId,
         );
+        
+        // Jika upload foto gagal, batalkan sync
+        if (cloudImageUrl == null) {
+          throw Exception('Gagal upload foto, sync dibatalkan untuk laporan ${laporan.formulirId}');
+        }
       }
 
       // Step B: Upsert data laporan ke Supabase
@@ -87,6 +138,7 @@ class SyncService {
       debugPrint('SyncService: laporan ${laporan.formulirId} berhasil di-sync.');
     } catch (e) {
       debugPrint('SyncService: gagal sync laporan ${laporan.formulirId}: $e');
+      rethrow; // Re-throw untuk handling di level atas
     }
   }
 
@@ -102,7 +154,7 @@ class SyncService {
     // Mapping status lokal → enum Supabase
     final statusCloud = StatusMapper.toSupabaseStatus(laporan.status);
 
-    await SupabaseService.db.from('formulir_laporan').insert({
+    await SupabaseService.db.from('formulir_laporan').upsert({
       'formulir_id': laporan.formulirId,
       'pelapor_id': pelaporId,
       'nama_sarana': laporan.namaSarana,
@@ -111,7 +163,6 @@ class SyncService {
       'nomor_inventaris': laporan.nomorInventaris,
       'foto_kerusakan_url': imageUrl ?? laporan.fotoKerusakanUrl,
       'status': statusCloud,
-      'is_synced': true,
       'created_at': laporan.createdAt.toIso8601String(),
       'updated_at': laporan.updatedAt.toIso8601String(),
     });

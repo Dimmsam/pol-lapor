@@ -79,17 +79,9 @@ class LaporanRemoteDatasource {
       throw Exception('Kamu hanya bisa menghapus laporan milikmu sendiri');
     }
 
-    try {
-      await _db.from('tracking').delete().eq('formulir_id', formulirId);
-    } catch (e) {
-      debugPrint('Gagal hapus tracking untuk $formulirId: $e');
-    }
-
-    try {
-      await _db.from('penanganan').delete().eq('formulir_id', formulirId);
-    } catch (e) {
-      debugPrint('Gagal hapus penanganan untuk $formulirId: $e');
-    }
+    // Hapus baris terkait di tracking & penanganan agar tidak terjadi orphaned records
+    await _db.from('tracking').delete().eq('formulir_id', formulirId);
+    await _db.from('penanganan').delete().eq('formulir_id', formulirId);
 
     final response = await _db
         .from('formulir_laporan')
@@ -99,7 +91,35 @@ class LaporanRemoteDatasource {
         .select();
 
     if (response.isEmpty) {
-      throw Exception('Laporan tidak ditemukan atau tidak punya akses hapus');
+      debugPrint('Laporan $formulirId tidak ditemukan di server atau sudah dihapus. Melanjutkan hapus lokal.');
+    }
+  }
+
+  /// Fetch semua laporan milik pelapor dari Supabase untuk sinkronisasi.
+  Future<List<Map<String, dynamic>>> fetchLaporanByPelapor(
+    String pelaporId,
+  ) async {
+    try {
+      final response = await _db
+          .from('formulir_laporan')
+          .select('''
+            formulir_id,
+            pelapor_id,
+            nama_sarana,
+            keterangan_kerusakan,
+            foto_kerusakan_url,
+            status,
+            created_at,
+            updated_at,
+            lokasi:lokasi_id (nama_ruangan)
+          ''')
+          .eq('pelapor_id', pelaporId)
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('fetchLaporanByPelapor error: $e');
+      return [];
     }
   }
 }

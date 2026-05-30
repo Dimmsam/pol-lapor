@@ -9,6 +9,9 @@ class TrackingRemoteDatasource {
   final _supabase = SupabaseService.db;
 
   RealtimeChannel? _realtimeChannel;
+  
+  /// Getter untuk mengecek apakah sedang listening
+  bool get isListening => _realtimeChannel != null;
 
   /// Catat satu baris tracking ke tabel `public.tracking`.
   ///

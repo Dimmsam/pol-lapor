@@ -422,11 +422,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
 
         _showSnackBar('Laporan berhasil dikirim!');
 
-        Navigator.pushAndRemoveUntil(
+        Navigator.pushNamedAndRemoveUntil(
           context,
-          MaterialPageRoute(
-            builder: (context) => const HomeScreen(initialIndex: 1),
-          ),
+          '/home',
           (route) => false,
         );
       }
@@ -725,6 +723,17 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                 ),
               ),
             ),
+          ),
+          Consumer<FormLaporanProvider>(
+            builder: (context, provider, child) {
+              if (!provider.isSubmitting) return const SizedBox.shrink();
+              return Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            },
           ),
         ],
       ),

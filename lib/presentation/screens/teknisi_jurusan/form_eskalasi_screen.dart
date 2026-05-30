@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../logic/providers/penanganan_provider.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/supabase/supabase_service.dart';
+import '../../../data/datasources/remote/storage_remote_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
@@ -42,7 +42,6 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
   final _alasanController = TextEditingController();
   String? _kategoriTerpilih;
   bool _isSubmitting = false;
-
   /// Path foto lokal yang dipilih teknisi (maks 3).
   final List<String> _fotoTambahanPaths = [];
 
@@ -74,37 +73,8 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
     }
   }
 
-  // ─── UPLOAD SEMUA FOTO ─────────────────────────────────────────────────────
-  Future<List<String>> _uploadFotoTambahan() async {
-    final urls = <String>[];
-    final storage = SupabaseService.storage;
-
-    for (int i = 0; i < _fotoTambahanPaths.length; i++) {
-      final filePath = _fotoTambahanPaths[i];
-      final file = File(filePath);
-      if (!await file.exists()) continue;
-
-      try {
-        final ext = filePath.split('.').last;
-        final fileName =
-            'eskalasi_${widget.laporan.formulirId}_${DateTime.now().millisecondsSinceEpoch}_$i.$ext';
-        final storagePath = 'foto_eskalasi/$fileName';
-
-        await storage.from('bukti_laporan').upload(
-              storagePath,
-              file,
-              fileOptions: const FileOptions(upsert: true),
-            );
-
-        final publicUrl =
-            storage.from('bukti_laporan').getPublicUrl(storagePath);
-        urls.add(publicUrl);
-      } catch (e) {
-        debugPrint('Upload foto eskalasi [$i] gagal: $e');
-      }
-    }
-
-    return urls;
+  void _removeFoto(int index) {
+    setState(() => _fotoTambahanPaths.removeAt(index));
   }
 
   // ─── SUBMIT ────────────────────────────────────────────────────────────────
@@ -150,10 +120,19 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
       penangananId = widget.penanganan!.penangananId;
     }
 
-    // Upload foto jika ada
-    List<String> fotoUrls = [];
+    // Upload foto tambahan jika ada
+    final List<String> fotoUrls = [];
     if (_fotoTambahanPaths.isNotEmpty) {
-      fotoUrls = await _uploadFotoTambahan();
+      final storage = StorageRemoteDatasource();
+      for (final path in _fotoTambahanPaths) {
+        final url = await storage.uploadFotoProgres(
+          filePath: path,
+          formulirId: widget.laporan.formulirId,
+        );
+        if (url != null) {
+          fotoUrls.add(url);
+        }
+      }
     }
 
     await provider.eskalasiKeAdminJurusan(
@@ -364,7 +343,6 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-
               // Grid preview foto yang sudah dipilih
               if (_fotoTambahanPaths.isNotEmpty) ...[
                 SizedBox(
@@ -389,11 +367,7 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
                             top: 4,
                             right: 4,
                             child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _fotoTambahanPaths.removeAt(index);
-                                });
-                              },
+                              onTap: () => _removeFoto(index),
                               child: Container(
                                 width: 26,
                                 height: 26,

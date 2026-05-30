@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../../core/constants/app_constants.dart';
 import '../../data/datasources/local/auth_local_datasource.dart';
 import '../../data/datasources/local/laporan_local_datasource.dart';
 import '../../data/datasources/remote/laporan_remote_datasource.dart';
@@ -42,6 +41,26 @@ class LaporanProvider extends ChangeNotifier {
     _session = _auth.getSession();
     _refresh();
     _listenRealtimeLaporan();
+    _syncFromRemote(); // Sinkronkan dari Supabase saat init
+  }
+
+  /// Sinkronkan laporan dari Supabase ke Hive lokal
+  Future<void> _syncFromRemote() async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
+    try {
+      final remoteLaporan = await _laporanRemote.fetchLaporanByPelapor(userId);
+      await _laporanLocal.syncFromRemote(remoteLaporan, userId);
+      _refresh();
+    } catch (e) {
+      debugPrint('_syncFromRemote error: $e');
+    }
+  }
+
+  /// Method publik untuk trigger sync manual (misal pull-to-refresh)
+  Future<void> syncFromRemote() async {
+    await _syncFromRemote();
   }
 
   List<LaporanLokal> recentLaporan({int limit = 3}) {
@@ -128,6 +147,11 @@ class LaporanProvider extends ChangeNotifier {
   }
 
   void _listenRealtimeLaporan() {
+    // Remove existing listener first to prevent duplicates
+    if (_listenable != null && _listener != null) {
+      _listenable!.removeListener(_listener!);
+    }
+    
     _listenable = _laporanLocal.listenable();
 
     _listener = () {

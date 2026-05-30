@@ -157,21 +157,32 @@ class NotifikasiProvider extends ChangeNotifier {
 
   // ── Reset saat logout ────────────────────────────────────────────────────
   void reset() {
-    if (_realtimeSub != null) {
-      SupabaseService.db.removeChannel(_realtimeSub!);
+    try {
+      if (_realtimeSub != null) {
+        SupabaseService.db.removeChannel(_realtimeSub!);
+      }
+    } catch (e) {
+      debugPrint('Error removing channel: $e');
+    } finally {
       _realtimeSub = null;
+      _notifikasiList = [];
+      _currentUserId = null;
+      _isLoading = false;
+      _errorMessage = null;
+      notifyListeners();
     }
-    _notifikasiList = [];
-    _currentUserId = null;
-    _isLoading = false;
-    _errorMessage = null;
-    notifyListeners();
   }
 
   @override
   void dispose() {
-    if (_realtimeSub != null) {
-      SupabaseService.db.removeChannel(_realtimeSub!);
+    try {
+      if (_realtimeSub != null) {
+        SupabaseService.db.removeChannel(_realtimeSub!);
+      }
+    } catch (e) {
+      debugPrint('Error disposing channel: $e');
+    } finally {
+      _realtimeSub = null;
     }
     super.dispose();
   }

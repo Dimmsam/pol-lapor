@@ -43,6 +43,15 @@ class AppConstants {
   // Tingkat kerusakan
   static const String tingkatRingan = 'rusak_ringan';
   static const String tingkatBerat = 'rusak_berat';
+
+  // Status progres untuk dropdown update laporan
+  static const String statusDiproses = 'Diproses';
+  static const String statusSelesai = 'Selesai';
+  
+  static const List<Map<String, String>> statusProgresOptions = [
+    {'value': 'Diproses', 'label': 'Masih Dikerjakan'},
+    {'value': 'Selesai', 'label': 'Selesai Diperbaiki'},
+  ];
 }
 
 /// Nilai enum `jenis_event_enum` di tabel `tracking` Supabase.

@@ -25,17 +25,9 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      const SimplePlaceholder(title: 'Beranda'),
-      const SimplePlaceholder(title: 'Tugas'),
-      const SimplePlaceholder(title: 'Riwayat'),
-      _buildProfileContent(context),
-    ];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      body: SafeArea(child: pages[_selectedIndex]),
-      bottomNavigationBar: _buildBottomNav(context),
+      body: SafeArea(child: _buildProfileContent(context)),
     );
   }
 
@@ -260,7 +252,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                             final namaBaru = namaCtrl.text.trim();
                             if (namaBaru.isEmpty) return;
 
-                            await context.read<AuthProvider>().updateLocalNama(
+                            await context.read<AuthProvider>().updateNama(
                               namaBaru,
                             );
 

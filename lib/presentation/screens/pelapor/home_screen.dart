@@ -45,18 +45,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // TAMBAHAN: set index awal dari luar (misal dari form)
     currentIndex = widget.initialIndex;
-
-    // Inisialisasi session & statistik laporan saat home pertama dibuka
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final laporanProvider = context.read<LaporanProvider>();
-      laporanProvider.init();
-
-      // Init NotifikasiProvider dengan userId pelapor yang sedang login
-      final userId = laporanProvider.currentUserId;
-      if (userId != null) {
-        context.read<NotifikasiProvider>().init(userId);
-      }
-    });
   }
 
   void onTabTapped(int index) {

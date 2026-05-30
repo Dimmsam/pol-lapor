@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../data/datasources/local/laporan_local_datasource.dart';
 import '../../data/datasources/remote/laporan_remote_datasource.dart';
@@ -16,27 +18,36 @@ class FormLaporanProvider extends ChangeNotifier {
   bool _isCheckingSerupa = false;
   bool _isSubmitting = false;
   String? _errorMessage;
+  Timer? _debounce;
 
   int get jumlahLaporanSerupa => _jumlahLaporanSerupa;
   bool get isCheckingSerupa => _isCheckingSerupa;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
 
-  Future<void> checkLaporanSerupa(String lokasi) async {
-    _isCheckingSerupa = true;
-    _jumlahLaporanSerupa = 0;
-    notifyListeners();
+  void checkLaporanSerupa(String lokasi) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      _isCheckingSerupa = true;
+      _jumlahLaporanSerupa = 0;
+      notifyListeners();
 
-    var count = _local.getLaporanAktifByLokasi(lokasi).length;
+      try {
+        var count = _local.getLaporanAktifByLokasi(lokasi).length;
+        final remoteCount = await _remote.countLaporanAktifByLokasi(lokasi);
+        if (remoteCount != null && remoteCount > count) {
+          count = remoteCount;
+        }
 
-    final remoteCount = await _remote.countLaporanAktifByLokasi(lokasi);
-    if (remoteCount != null && remoteCount > count) {
-      count = remoteCount;
-    }
-
-    _jumlahLaporanSerupa = count;
-    _isCheckingSerupa = false;
-    notifyListeners();
+        _jumlahLaporanSerupa = count;
+      } catch (e) {
+        debugPrint('Error checkLaporanSerupa: $e');
+      } finally {
+        _isCheckingSerupa = false;
+        notifyListeners();
+      }
+    });
   }
 
   Future<LaporanLokal> createLaporan({

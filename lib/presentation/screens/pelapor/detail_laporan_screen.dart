@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -21,20 +22,30 @@ class DetailLaporanScreen extends StatefulWidget {
 
 class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
   bool _showTracking = true;
+  bool _isDisposed = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final tp = context.read<TrackingProvider>();
-      tp.fetchRiwayat(widget.laporan.formulirId);
-      tp.startRealtimeListener(widget.laporan.formulirId);
+      if (!_isDisposed && mounted) {
+        final tp = context.read<TrackingProvider>();
+        tp.fetchRiwayat(widget.laporan.formulirId);
+        tp.startRealtimeListener(widget.laporan.formulirId);
+      }
     });
   }
 
   @override
   void dispose() {
-    context.read<TrackingProvider>().stopRealtimeListener();
+    _isDisposed = true;
+    if (mounted) {
+      try {
+        context.read<TrackingProvider>().stopRealtimeListener();
+      } catch (e) {
+        debugPrint('Error stopping listener: $e');
+      }
+    }
     super.dispose();
   }
 

@@ -22,6 +22,10 @@ class StorageRemoteDatasource {
       return null;
     }
 
+    if (file.lengthSync() > 5 * 1024 * 1024) {
+      throw Exception('Ukuran file foto kerusakan maksimal 5 MB');
+    }
+
     try {
       final ext = filePath.split('.').last;
       final fileName = 'formulir_$formulirId.$ext';
@@ -49,6 +53,53 @@ class StorageRemoteDatasource {
       return null;
     } catch (e) {
       debugPrint('StorageRemote: unexpected error saat upload: $e');
+      return null;
+    }
+  }
+
+  /// Upload foto progres penanganan ke Supabase Storage.
+  Future<String?> uploadFotoProgres({
+    required String filePath,
+    required String formulirId,
+  }) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      debugPrint('StorageRemote: file tidak ada di path "$filePath"');
+      return null;
+    }
+
+    if (file.lengthSync() > 5 * 1024 * 1024) {
+      throw Exception('Ukuran file foto progres maksimal 5 MB');
+    }
+
+    try {
+      final ext = filePath.split('.').last;
+      final fileName =
+          'progres_${formulirId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final storagePath = 'foto_progres/$fileName';
+
+      await _storage
+          .from(_bucketBuktiFoto)
+          .upload(
+            storagePath,
+            file,
+            fileOptions: const FileOptions(upsert: true),
+          );
+
+      final publicUrl = _storage
+          .from(_bucketBuktiFoto)
+          .getPublicUrl(storagePath);
+
+      debugPrint('StorageRemote: upload foto progres berhasil → $publicUrl');
+      return publicUrl;
+    } on StorageException catch (e) {
+      debugPrint(
+        'StorageRemote: gagal upload foto progres: '
+        '${e.message} (status: ${e.statusCode})',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('StorageRemote: unexpected error saat upload progres: $e');
       return null;
     }
   }

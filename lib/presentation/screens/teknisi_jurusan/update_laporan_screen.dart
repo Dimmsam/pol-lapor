@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/supabase/supabase_service.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../data/datasources/remote/storage_remote_datasource.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
@@ -30,8 +30,8 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
   static const Color bgLight = Color(0xFFF8F9FA);
   static const Color accentWarn = Color(0xFFD97706);
 
-  // Nilai harus lowercase agar match dengan logika di updateProgresLaporan
-  String _status = 'Diproses';
+  // Gunakan konstanta dari AppConstants
+  String _status = AppConstants.statusDiproses;
   final TextEditingController _catatanCtrl = TextEditingController();
   String? _pickedImagePath;
   bool _isSubmitting = false;
@@ -51,22 +51,13 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
     try {
       String? fotoUrl;
 
-      // Upload foto ke Supabase Storage jika ada
+      // Upload foto ke Supabase Storage melalui StorageRemoteDatasource
       if (_pickedImagePath != null && _pickedImagePath!.isNotEmpty) {
-        final file = File(_pickedImagePath!);
-        if (await file.exists()) {
-          final storage = SupabaseService.storage;
-          final ext = _pickedImagePath!.split('.').last;
-          final fileName =
-              'progres_${widget.laporan.formulirId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
-          final path = 'foto_progres/$fileName';
-
-          await storage
-              .from('bukti_laporan')
-              .upload(path, file, fileOptions: const FileOptions(upsert: true));
-
-          fotoUrl = storage.from('bukti_laporan').getPublicUrl(path);
-        }
+        final storage = StorageRemoteDatasource();
+        fotoUrl = await storage.uploadFotoProgres(
+          filePath: _pickedImagePath!,
+          formulirId: widget.laporan.formulirId,
+        );
       }
 
       // Update via provider
@@ -215,16 +206,12 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
           value: _status,
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down),
-          items: const [
-            DropdownMenuItem(
-              value: 'Diproses',
-              child: Text('Masih Dikerjakan'),
-            ),
-            DropdownMenuItem(
-              value: 'Selesai',
-              child: Text('Selesai Diperbaiki'),
-            ),
-          ],
+          items: AppConstants.statusProgresOptions.map((option) {
+            return DropdownMenuItem(
+              value: option['value'],
+              child: Text(option['label']!),
+            );
+          }).toList(),
           onChanged: (v) => setState(() => _status = v ?? _status),
         ),
       ),
