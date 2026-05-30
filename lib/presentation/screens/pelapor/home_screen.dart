@@ -3,11 +3,6 @@
 // File: home_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-// Import provider
-import '../../../logic/providers/laporan_provider.dart';
-import '../../../logic/providers/notifikasi_provider.dart';
 import 'dashboard_screen.dart';
 import 'laporan_screen.dart';
 import 'profile_screen.dart';

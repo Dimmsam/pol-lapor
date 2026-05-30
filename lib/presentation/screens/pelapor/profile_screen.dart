@@ -276,7 +276,7 @@ class ProfileScreen extends StatelessWidget {
                     if (nama.isEmpty) return;
 
                     await context.read<AuthProvider>().updateNama(nama);
-                    home.init();
+                    home.refreshSession();
 
                     if (ctx.mounted) Navigator.pop(ctx);
                     if (context.mounted) {
@@ -380,6 +380,7 @@ class ProfileScreen extends StatelessWidget {
                       // Pakai backend auth yang sudah ada untuk ubah password
                       try {
                         await context.read<AuthProvider>().updatePassword(
+                          oldCtrl.text,
                           newCtrl.text,
                         );
                         if (ctx.mounted) Navigator.pop(ctx);
@@ -694,6 +695,7 @@ class _LogoutButton extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(ctx);
               await context.read<AuthProvider>().logout();
+              await context.read<LaporanProvider>().clear();
               if (context.mounted) {
                 Navigator.pushReplacementNamed(context, '/login');
               }

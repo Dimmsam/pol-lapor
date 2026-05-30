@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../logic/providers/auth_provider.dart';
-import 'widgets/bottom_nav_teknisi.dart';
+import '../../../logic/providers/teknisi_dashboard_provider.dart';
 
 class ProfilTeknisiScreen extends StatefulWidget {
   const ProfilTeknisiScreen({Key? key}) : super(key: key);
@@ -12,9 +12,6 @@ class ProfilTeknisiScreen extends StatefulWidget {
 
 class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
   static const navy = Color(0xFF0B3A66);
-  static const lightBlue = Color(0xFF7FB6E6);
-
-  int _selectedIndex = 3; // default to Profil tab
 
   String _initials(String nama) {
     final parts = nama.trim().split(' ');
@@ -408,6 +405,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
 
                             try {
                               await context.read<AuthProvider>().updatePassword(
+                                oldCtrl.text,
                                 newCtrl.text,
                               );
                               if (ctx.mounted) Navigator.pop(ctx);
@@ -471,6 +469,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
                   onPressed: () async {
                     Navigator.pop(dialogContext);
                     await screenContext.read<AuthProvider>().logout();
+                    screenContext.read<TeknisiDashboardProvider>().clear();
                     if (screenContext.mounted) {
                       Navigator.pushNamedAndRemoveUntil(
                         screenContext,
@@ -489,57 +488,6 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
     );
   }
 
-  Widget _buildBottomNav(BuildContext context) {
-    final login = context.read<AuthProvider>();
-    final session = login.getExistingSession() ?? login.session;
-
-    // Map internal _selectedIndex (0..3) to BottomNavTeknisi indexes (0..2)
-    int navIndex;
-    if (_selectedIndex == 3) {
-      navIndex = 2; // profil
-    } else if (_selectedIndex >= 0 && _selectedIndex <= 1) {
-      navIndex = _selectedIndex;
-    } else {
-      navIndex = 0;
-    }
-
-    return BottomNavTeknisi(
-      currentIndex: navIndex,
-      primaryColor: navy,
-      accentColor: lightBlue,
-      onTap: (index) {
-        switch (index) {
-          case 0:
-            if (session != null) {
-              Navigator.pushNamed(
-                context,
-                '/dashboard-teknisi-jurusan',
-                arguments: session,
-              );
-            } else {
-              Navigator.pushNamed(context, '/home');
-            }
-            break;
-          case 1:
-            if (session != null) {
-              Navigator.pushNamed(
-                context,
-                '/daftar-tugas-teknisi-jurusan',
-                arguments: session,
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Harap login terlebih dahulu')),
-              );
-            }
-            break;
-          case 2:
-            setState(() => _selectedIndex = 3);
-            break;
-        }
-      },
-    );
-  }
 }
 
 class SimplePlaceholder extends StatelessWidget {

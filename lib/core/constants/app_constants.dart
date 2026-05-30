@@ -5,6 +5,7 @@ class AppConstants {
 
   // Role pengguna
   static const String roleMahasiswa = 'pelapor';
+  static const String rolePelapor = 'pelapor'; // alias dari roleMahasiswa
   static const String roleTeknisiJurusan = 'teknisi';
   static const String roleAdminJurusan = 'admin_jurusan';
   static const String roleKajur = 'kajur';

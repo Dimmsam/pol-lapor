@@ -5,8 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/datasources/local/auth_local_datasource.dart';
 import '../../data/datasources/remote/auth_remote_datasource.dart';
 import '../../data/models/user_session.dart';
-import '../../services/sync_service.dart';
 import '../providers/notifikasi_provider.dart';
+import '../providers/laporan_provider.dart';
 import 'package:provider/provider.dart';
 
 enum LoginStatus { idle, loading, success, error }
@@ -44,6 +44,38 @@ class AuthProvider extends ChangeNotifier {
     return null;
   }
 
+  Future<void> register({
+    required String namaLengkap,
+    required String email,
+    required String password,
+    String? nomorTelepon,
+  }) async {
+    _status = LoginStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final session = await _remoteAuth.register(
+        namaLengkap: namaLengkap,
+        email: email,
+        password: password,
+        nomorTelepon: nomorTelepon,
+      );
+      await _localAuth.saveSession(session);
+      _session = session;
+      _status = LoginStatus.success;
+    } on AuthException catch (e) {
+      _status = LoginStatus.error;
+      _errorMessage = _mapRegisterError(e.message);
+    } catch (e) {
+      _status = LoginStatus.error;
+      _errorMessage = 'Terjadi kesalahan: ${e.toString()}';
+      debugPrint('AuthProvider register error: $e');
+    }
+
+    notifyListeners();
+  }
+
   Future<void> login(String email, String password) async {
     _status = LoginStatus.loading;
     _errorMessage = null;
@@ -75,6 +107,7 @@ class AuthProvider extends ChangeNotifier {
     // Init NotifikasiProvider untuk realtime notifications
     try {
       context.read<NotifikasiProvider>().init(_session!.userId);
+      context.read<LaporanProvider>().init();
     } catch (e) {
       debugPrint('Error init NotifikasiProvider: $e');
     }
@@ -93,8 +126,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updatePassword(String newPassword) async {
-    await _remoteAuth.updatePassword(newPassword);
+  Future<void> updatePassword(String oldPassword, String newPassword) async {
+    final current = _session ?? _localAuth.getSession();
+    if (current == null) throw Exception('Sesi tidak ditemukan');
+
+    await _remoteAuth.updatePassword(current.email, oldPassword, newPassword);
   }
 
   Future<void> updateNama(String nama) async {
@@ -144,5 +180,22 @@ class AuthProvider extends ChangeNotifier {
       return 'Tidak ada koneksi internet.';
     }
     return 'Login gagal: $message';
+  }
+
+  String _mapRegisterError(String message) {
+    if (message.contains('User already registered') ||
+        message.contains('already been registered')) {
+      return 'Email ini sudah terdaftar. Silakan login atau gunakan email lain.';
+    }
+    if (message.contains('Password should be at least')) {
+      return 'Password minimal 6 karakter.';
+    }
+    if (message.contains('valid email')) {
+      return 'Format email tidak valid.';
+    }
+    if (message.contains('network') || message.contains('connect')) {
+      return 'Tidak ada koneksi internet.';
+    }
+    return 'Registrasi gagal: $message';
   }
 }

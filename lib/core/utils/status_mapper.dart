@@ -48,6 +48,28 @@ class StatusMapper {
     }
   }
 
+  /// Mengonversi status dari Supabase (enum DB) ke status lokal Flutter.
+  /// Dipanggil saat sync dari server → lokal agar nilai status konsisten.
+  static String fromSupabaseStatus(String statusCloud) {
+    switch (statusCloud) {
+      case 'menunggu':
+        return 'menunggu_klasifikasi';
+      case 'ditugaskan':
+      case 'sedang_dikerjakan':
+        return 'diproses';
+      case 'selesai':
+        return 'selesai';
+      case 'diteruskan_ke_pusat':
+        return 'diproses'; // tampilkan sebagai diproses di UI pelapor
+      default:
+        debugPrint(
+          'StatusMapper.fromSupabaseStatus: status "$statusCloud" tidak dikenal, '
+          'fallback ke "menunggu_klasifikasi".',
+        );
+        return 'menunggu_klasifikasi';
+    }
+  }
+
   /// Format nilai enum jenis_event menjadi teks yang mudah dibaca
   static String formatJenisEvent(String jenisEvent) {
     switch (jenisEvent) {
@@ -69,7 +91,7 @@ class StatusMapper {
         return jenisEvent
             .split('_')
             .map((word) => word.isNotEmpty
-                ? '\${word[0].toUpperCase()}\${word.substring(1)}'
+                ? '${word[0].toUpperCase()}${word.substring(1)}'
                 : '')
             .join(' ');
     }
