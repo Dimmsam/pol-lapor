@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/status_mapper.dart';
 import '../../models/laporan_lokal.dart';
 
 class LaporanLocalDatasource {
@@ -104,7 +105,7 @@ class LaporanLocalDatasource {
           keteranganKerusakan: json['keterangan_kerusakan'] as String,
           lokasiPerbaikan: lokasiNama,
           fotoKerusakanUrl: json['foto_kerusakan_url'] as String?,
-          status: json['status'] as String,
+          status: StatusMapper.fromSupabaseStatus(json['status'] as String? ?? 'menunggu'),
           createdAt: DateTime.parse(json['created_at'] as String),
           updatedAt: DateTime.parse(json['updated_at'] as String),
           isSynced: true,
@@ -131,5 +132,9 @@ class LaporanLocalDatasource {
         }
       }
     }
+  }
+
+  Future<void> clearAll() async {
+    await _box.clear();
   }
 }

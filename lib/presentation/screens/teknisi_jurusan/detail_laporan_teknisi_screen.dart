@@ -37,7 +37,6 @@ class DetailLaporanTeknisiScreen extends StatefulWidget {
 class _DetailLaporanTeknisiScreenState
     extends State<DetailLaporanTeknisiScreen> {
   static const Color _primaryColor = Color(0xFF1A237E);
-  static const Color _accentColor = Color(0xFFFF6F00);
   static const Color _bgColor = Color(0xFFF5F6FA);
 
   bool _isStarting = false;

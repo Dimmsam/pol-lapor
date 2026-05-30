@@ -47,6 +47,19 @@ class TeknisiDashboardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clear() {
+    _laporanTerbaru = [];
+    _stats = {
+      'belum_dimulai': 0,
+      'aktif': 0,
+      'selesai': 0,
+      'total': 0,
+    };
+    _isLoading = false;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../data/datasources/local/laporan_local_datasource.dart';
 import '../../data/datasources/remote/laporan_remote_datasource.dart';

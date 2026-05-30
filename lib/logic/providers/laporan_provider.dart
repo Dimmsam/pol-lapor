@@ -44,6 +44,26 @@ class LaporanProvider extends ChangeNotifier {
     _syncFromRemote(); // Sinkronkan dari Supabase saat init
   }
 
+  void refreshSession() {
+    _session = _auth.getSession();
+    notifyListeners();
+  }
+
+  Future<void> clear() async {
+    _session = null;
+    _laporanList.clear();
+    _totalLaporan = 0;
+    _totalUnsynced = 0;
+    _totalDiproses = 0;
+    _totalSelesai = 0;
+    _totalMenunggu = 0;
+    if (_listenable != null && _listener != null) {
+      _listenable!.removeListener(_listener!);
+    }
+    await _laporanLocal.clearAll();
+    notifyListeners();
+  }
+
   /// Sinkronkan laporan dari Supabase ke Hive lokal
   Future<void> _syncFromRemote() async {
     final userId = currentUserId;
@@ -132,10 +152,23 @@ class LaporanProvider extends ChangeNotifier {
     }
 
     if (laporan.isSynced) {
+      // Laporan sudah ada di server → hapus remote dulu, jika gagal jangan hapus lokal
+      // agar data tetap konsisten (tidak ghost di lokal saja)
       await _laporanRemote.deleteLaporan(
         formulirId: laporan.formulirId,
         pelaporId: laporan.pelaporId,
       );
+    } else {
+      // Laporan belum pernah dikirim ke server → coba hapus remote juga untuk berjaga-jaga
+      // (misal sync sudah berjalan di background tapi isSynced belum ter-update)
+      try {
+        await _laporanRemote.deleteLaporan(
+          formulirId: laporan.formulirId,
+          pelaporId: laporan.pelaporId,
+        );
+      } catch (e) {
+        debugPrint('deleteLaporan remote skip (belum pernah sync): $e');
+      }
     }
 
     await _laporanLocal.deleteLaporan(laporan.formulirId);

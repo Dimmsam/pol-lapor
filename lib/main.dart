@@ -19,6 +19,7 @@ import 'logic/providers/tracking_provider.dart';
 import 'presentation/screens/pelapor/home_screen.dart';
 import 'presentation/screens/pelapor/notif_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
+import 'presentation/screens/auth/register_screen.dart';
 import 'presentation/screens/pelapor/form_laporan_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/teknisi_jurusan/dashboard_teknisi_jurusan_screen.dart';
@@ -108,6 +109,7 @@ class _PolLaporAppState extends State<PolLaporApp> {
         ),
         routes: {
           '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
           '/form': (context) => const FormLaporanScreen(),
           '/notif': (context) => const NotifScreen(),

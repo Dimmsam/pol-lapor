@@ -16,7 +16,6 @@ import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
 import 'detail_laporan_teknisi_screen.dart';
-import 'profil_teknisi_screen.dart';
 
 class DaftarTugasScreen extends StatefulWidget {
   final UserSession userSession;
