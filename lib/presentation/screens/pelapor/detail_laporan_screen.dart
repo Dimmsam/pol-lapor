@@ -32,6 +32,9 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
         final tp = context.read<TrackingProvider>();
         tp.fetchRiwayat(widget.laporan.formulirId);
         tp.startRealtimeListener(widget.laporan.formulirId);
+
+        // Fetch penanganan untuk mendapatkan fotoHasilUrl
+        context.read<PenangananProvider>().fetchPenangananForFormulir(widget.laporan.formulirId);
       }
     });
   }
@@ -72,6 +75,14 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
           _buildPhotoCard(laporan),
           const SizedBox(height: 16),
           _buildTrackingCard(),
+          if (penanganan != null && penanganan.fotoProgresUrl.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildFotoProgresCard(penanganan),
+          ],
+          if (laporan.status == StatusLaporan.selesai && penanganan != null) ...[
+            const SizedBox(height: 16),
+            _buildHasilPerbaikanCard(penanganan),
+          ],
           const SizedBox(height: 24),
         ],
       ),
@@ -320,6 +331,134 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
           size: 48,
           color: Color(0xFFD1D5DB),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHasilPerbaikanCard(Penanganan penanganan) {
+    if (penanganan.fotoHasilUrl == null || penanganan.fotoHasilUrl!.isEmpty) {
+      return const SizedBox();
+    }
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bukti Penyelesaian',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              penanganan.fotoHasilUrl!,
+              width: double.infinity,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: double.infinity,
+                height: 200,
+                color: const Color(0xFFF3F4F6),
+                child: const Icon(Icons.broken_image_outlined, color: Color(0xFFD1D5DB)),
+              ),
+            ),
+          ),
+          if (penanganan.deskripsiHasil != null && penanganan.deskripsiHasil!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              penanganan.deskripsiHasil!,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF4B5563),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFotoProgresCard(Penanganan penanganan) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Foto Progres Pengerjaan',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 140,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: penanganan.fotoProgresUrl.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final url = penanganan.fotoProgresUrl[index];
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    url,
+                    width: 140,
+                    height: 140,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 140,
+                      height: 140,
+                      color: const Color(0xFFF3F4F6),
+                      child: const Icon(Icons.broken_image_outlined, color: Color(0xFFD1D5DB)),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          if (penanganan.catatanProgres != null && penanganan.catatanProgres!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Catatan: ${penanganan.catatanProgres!}',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF4B5563),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

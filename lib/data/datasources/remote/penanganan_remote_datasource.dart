@@ -48,6 +48,29 @@ class PenangananRemoteDatasource {
     return List<Map<String, dynamic>>.from(response as List);
   }
 
+  Future<Map<String, dynamic>?> fetchPenangananByFormulir(String formulirId) async {
+    final response = await _db
+        .from('penanganan')
+        .select('''
+            penanganan_id,
+            formulir_id,
+            teknisi_id,
+            status_penanganan,
+            catatan_progres,
+            deskripsi_hasil,
+            kategori_kerusakan,
+            foto_progres_url,
+            foto_hasil_url,
+            tanggal_mulai,
+            tanggal_selesai,
+            updated_at
+          ''')
+        .eq('formulir_id', formulirId)
+        .maybeSingle();
+
+    return response != null ? Map<String, dynamic>.from(response as Map) : null;
+  }
+
   Future<Map<String, int>> fetchStats(String teknisiId) async {
     final response = await _db
         .from('penanganan')
