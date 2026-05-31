@@ -8,10 +8,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../logic/providers/penanganan_provider.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../data/datasources/remote/storage_remote_datasource.dart';
+
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
@@ -94,53 +94,12 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
 
     final provider = context.read<PenangananProvider>();
 
-    // Jika belum ada penanganan, mulai dulu
-    String penangananId;
-    if (widget.penanganan == null) {
-      await provider.mulaiPenangananLangsung(
-        formulirId: widget.laporan.formulirId,
-        teknisiId: widget.userSession.userId,
-      );
-      final p =
-          provider.getPenangananByFormulir(widget.laporan.formulirId);
-      if (p == null) {
-        setState(() => _isSubmitting = false);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gagal membuat penanganan'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-      penangananId = p.penangananId;
-    } else {
-      penangananId = widget.penanganan!.penangananId;
-    }
-
-    // Upload foto tambahan jika ada
-    final List<String> fotoUrls = [];
-    if (_fotoTambahanPaths.isNotEmpty) {
-      final storage = StorageRemoteDatasource();
-      for (final path in _fotoTambahanPaths) {
-        final url = await storage.uploadFotoProgres(
-          filePath: path,
-          formulirId: widget.laporan.formulirId,
-        );
-        if (url != null) {
-          fotoUrls.add(url);
-        }
-      }
-    }
-
     await provider.eskalasiKeAdminJurusan(
-      penangananId: penangananId,
       formulirId: widget.laporan.formulirId,
+      teknisiId: widget.userSession.userId,
       catatanEskalasi: _alasanController.text.trim(),
       kategoriKerusakan: _kategoriTerpilih!,
-      fotoTambahan: fotoUrls,
+      fotoTambahanPaths: _fotoTambahanPaths,
     );
 
     if (!mounted) return;

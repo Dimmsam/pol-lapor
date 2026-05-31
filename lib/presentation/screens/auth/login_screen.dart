@@ -5,6 +5,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/routes/app_router.dart';
+import '../../../core/utils/auth_validator.dart';
 import '../../../logic/providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -30,10 +32,12 @@ class _LoginScreenState extends State<LoginScreen> {
 Future<void> handleLogin() async {
     final provider = context.read<AuthProvider>();
 
-    if (emailController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty) {
+    final emailErr = AuthValidator.validateEmail(emailController.text);
+    final passErr = AuthValidator.validatePassword(passwordController.text);
+
+    if (emailErr != null || passErr != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan password wajib diisi')),
+        const SnackBar(content: Text('Email dan password wajib diisi dengan benar')),
       );
       return;
     }
@@ -52,15 +56,7 @@ Future<void> handleLogin() async {
       final role = provider.session?.role;
       final session = provider.session!;
 
-      if (role == AppConstants.roleTeknisiJurusan) {
-        Navigator.pushReplacementNamed(
-          context,
-          '/dashboard-teknisi-jurusan',
-          arguments: session,
-        );
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+      AppRouter.navigatePostLogin(context, role, session);
     }
   } 
 

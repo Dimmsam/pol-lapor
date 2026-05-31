@@ -4,6 +4,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/routes/app_router.dart';
+import '../../../core/utils/auth_validator.dart';
 import '../../../logic/providers/auth_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -73,7 +75,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           behavior: SnackBarBehavior.floating,
         ),
       );
-      Navigator.pushReplacementNamed(context, '/home');
+      AppRouter.navigatePostLogin(context, provider.session?.role, provider.session);
     }
   }
 
@@ -155,15 +157,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                             controller: _namaController,
                             hint: 'Masukkan nama lengkap',
                             icon: Icons.person_outline_rounded,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'Nama lengkap wajib diisi';
-                              }
-                              if (v.trim().length < 3) {
-                                return 'Nama minimal 3 karakter';
-                              }
-                              return null;
-                            },
+                            validator: AuthValidator.validateNamaLengkap,
                             onChanged: (_) => _resetErrorIfAny(provider),
                           ),
 
@@ -177,16 +171,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                             hint: 'contoh@polban.ac.id',
                             icon: Icons.email_outlined,
                             keyboardType: TextInputType.emailAddress,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'Email wajib diisi';
-                              }
-                              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
-                                  .hasMatch(v.trim())) {
-                                return 'Format email tidak valid';
-                              }
-                              return null;
-                            },
+                            validator: AuthValidator.validateEmail,
                             onChanged: (_) => _resetErrorIfAny(provider),
                           ),
 
@@ -200,15 +185,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                             hint: '08xxxxxxxxxx',
                             icon: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
-                            validator: (v) {
-                              if (v != null && v.trim().isNotEmpty) {
-                                if (!RegExp(r'^[0-9+\-\s]{8,15}$')
-                                    .hasMatch(v.trim())) {
-                                  return 'Format nomor telepon tidak valid';
-                                }
-                              }
-                              return null;
-                            },
+                            validator: AuthValidator.validateTelepon,
                           ),
 
                           const SizedBox(height: 16),
@@ -232,15 +209,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                               onPressed: () => setState(
                                   () => _obscurePassword = !_obscurePassword),
                             ),
-                            validator: (v) {
-                              if (v == null || v.isEmpty) {
-                                return 'Password wajib diisi';
-                              }
-                              if (v.length < 6) {
-                                return 'Password minimal 6 karakter';
-                              }
-                              return null;
-                            },
+                            validator: AuthValidator.validatePassword,
                             onChanged: (_) => _resetErrorIfAny(provider),
                           ),
 
@@ -266,15 +235,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                   _obscureConfirmPassword =
                                       !_obscureConfirmPassword),
                             ),
-                            validator: (v) {
-                              if (v == null || v.isEmpty) {
-                                return 'Konfirmasi password wajib diisi';
-                              }
-                              if (v != _passwordController.text) {
-                                return 'Password tidak sama';
-                              }
-                              return null;
-                            },
+                            validator: (v) => AuthValidator.validateConfirmPassword(v, _passwordController.text),
                           ),
 
                           // Error message

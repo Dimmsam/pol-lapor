@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../logic/providers/laporan_provider.dart';
 import '../../../logic/providers/auth_provider.dart';
+import '../../../core/utils/auth_validator.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -360,19 +361,12 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     onPressed: () async {
-                      if (newCtrl.text != confirmCtrl.text) {
+                      final err = AuthValidator.validatePassword(newCtrl.text) ?? 
+                                  AuthValidator.validateConfirmPassword(confirmCtrl.text, newCtrl.text);
+                      
+                      if (err != null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Password baru tidak cocok'),
-                          ),
-                        );
-                        return;
-                      }
-                      if (newCtrl.text.length < 6) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Password minimal 6 karakter'),
-                          ),
+                          SnackBar(content: Text(err)),
                         );
                         return;
                       }

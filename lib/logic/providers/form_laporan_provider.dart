@@ -49,6 +49,42 @@ class FormLaporanProvider extends ChangeNotifier {
     });
   }
 
+  Future<bool> submitLaporan({
+    LaporanLokal? laporanEdit,
+    required String namaSarana,
+    required String keteranganKerusakan,
+    required String lokasiPerbaikan,
+    required String? fotoLokalPath,
+    String? pelaporId,
+    String? nomorInventaris,
+  }) async {
+    try {
+      if (laporanEdit != null) {
+        await updateLaporan(
+          laporanEdit,
+          namaSarana: namaSarana,
+          keteranganKerusakan: keteranganKerusakan,
+          lokasiPerbaikan: lokasiPerbaikan,
+          fotoLokalPath: fotoLokalPath,
+          nomorInventaris: nomorInventaris,
+        );
+      } else {
+        if (fotoLokalPath == null) throw Exception("Foto wajib ada");
+        await createLaporan(
+          namaSarana: namaSarana,
+          keteranganKerusakan: keteranganKerusakan,
+          lokasiPerbaikan: lokasiPerbaikan,
+          fotoLokalPath: fotoLokalPath,
+          pelaporId: pelaporId ?? '',
+          nomorInventaris: nomorInventaris,
+        );
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<LaporanLokal> createLaporan({
     required String namaSarana,
     required String keteranganKerusakan,

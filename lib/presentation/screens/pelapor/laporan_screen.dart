@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/utils/laporan_icon_mapper.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../logic/providers/laporan_provider.dart';
 import '../../../presentation/widgets/common/status_badge.dart';
@@ -322,21 +323,9 @@ class _LaporanScreenState extends State<LaporanScreen> {
   }
 
   Widget _buildEmpty({required bool isPublic}) {
-    String message = isPublic ? 'Belum ada laporan publik' : 'Belum ada laporan';
-    String sub = isPublic
-        ? 'Laporan dari orang lain akan muncul di sini'
-        : 'Laporan yang dibuat akan muncul di sini';
-
-    if (_filterStatus == StatusLaporan.menungguKlasifikasi) {
-      message = 'Tidak ada laporan menunggu';
-      sub = 'Semua laporan sudah diproses';
-    } else if (_filterStatus == StatusLaporan.diproses) {
-      message = 'Tidak ada laporan diproses';
-      sub = 'Belum ada laporan yang sedang diproses';
-    } else if (_filterStatus == StatusLaporan.selesai) {
-      message = 'Belum ada laporan selesai';
-      sub = 'Laporan yang selesai akan muncul di sini';
-    }
+    final emptyData = LaporanIconMapper.getEmptyStateData(_filterStatus, isPublic);
+    final message = emptyData['message']!;
+    final sub = emptyData['sub']!;
 
     return Center(
       child: Column(
@@ -391,20 +380,7 @@ class _LaporanCard extends StatelessWidget {
     this.onEdit,
   });
 
-  IconData get _icon {
-    final nama = laporan.namaSarana.toLowerCase();
-    if (nama.contains('ac') || nama.contains('kipas'))
-      return Icons.air_outlined;
-    if (nama.contains('lampu') || nama.contains('listrik'))
-      return Icons.lightbulb_outline_rounded;
-    if (nama.contains('pintu') || nama.contains('jendela'))
-      return Icons.door_back_door_outlined;
-    if (nama.contains('proyektor') || nama.contains('komputer'))
-      return Icons.monitor_outlined;
-    if (nama.contains('toilet') || nama.contains('wc'))
-      return Icons.wc_outlined;
-    return Icons.construction_outlined;
-  }
+  IconData get _icon => LaporanIconMapper.getIconForSarana(laporan.namaSarana);
 
   @override
   Widget build(BuildContext context) {

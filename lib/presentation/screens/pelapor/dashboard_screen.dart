@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../logic/providers/laporan_provider.dart';
 import '../../../logic/providers/notifikasi_provider.dart';
 import '../../../presentation/widgets/common/status_badge.dart';
+import '../../../presentation/widgets/common/notif_badge.dart';
 
 
 class DashboardScreen extends StatelessWidget {
@@ -66,7 +67,6 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final notifCount  = context.watch<NotifikasiProvider>().unreadCount;
 
     return Container(
       color: Colors.white,
@@ -108,50 +108,7 @@ class _TopBar extends StatelessWidget {
           const Spacer(),
 
           // ─── NOTIFICATION ──────────────────────
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Color(0xFF374151),
-                  size: 24,
-                ),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/notif');
-                },
-              ),
-
-              // BADGE REALTIME dari NotifikasiProvider
-              if (notifCount > 0)
-                Positioned(
-                  top: -2,
-                  right: -2,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white, width: 1.5),
-                    ),
-                    child: Center(
-                      child: Text(
-                        notifCount > 9 ? '9+' : notifCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          const NotifBadge(),
         ],
       ),
     );
@@ -351,96 +308,6 @@ class _NotifSection extends StatelessWidget {
   }
 }
 
-class NotifSectionDynamic extends StatelessWidget {
-  const NotifSectionDynamic({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<NotifikasiProvider>();
-    final count = provider.unreadCount;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18),
-          child: Text(
-            'Notifikasi',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0D1B3E),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-
-        if (count == 0)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text("Tidak ada notifikasi"),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text("$count notifikasi baru"),
-          ),
-      ],
-    );
-  }
-}
-
-// ======================
-// NOTIFICATION BADGE EXTENSION
-// ======================
-
-extension TopBarNotifExtension on BuildContext {
-  Widget buildNotifBadge(Widget icon) {
-    final provider = watch<NotifikasiProvider>();
-    final count = provider.unreadCount;
-
-    return Stack(
-      children: [
-        icon,
-
-        if (count > 0)
-          Positioned(
-            top: 2,
-            right: 2,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF4444),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white, width: 1.5),
-              ),
-              child: Center(
-                child: Text(
-                  count > 9 ? '9+' : count.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-// ======================
-// TRIGGER NOTIF GLOBAL
-// ======================
-
-void clearDashboardNotif(BuildContext context) {
-  try {
-    context.read<NotifikasiProvider>().markAllAsRead();
-  } catch (_) {}
-}
 
 // ─── LAPORAN TERBARU ───────────────────────────────────────────────────────
 

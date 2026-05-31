@@ -10,6 +10,7 @@ import '../../../data/models/tracking.dart';
 import '../../../logic/providers/penanganan_provider.dart';
 import '../../../logic/providers/tracking_provider.dart';
 import '../../../core/utils/status_mapper.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../widgets/common/status_badge.dart';
 
 class DetailLaporanScreen extends StatefulWidget {
@@ -329,26 +330,8 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
       builder: (context, tp, _) {
         final riwayat = tp.riwayatTracking;
         
-        final stepsData = [
-          {'title': 'Laporan Dibuat', 'events': ['laporan_dibuat']},
-          {'title': 'Ditinjau Admin', 'events': ['laporan_diterima_admin']},
-          {'title': 'Teknisi Ditugaskan', 'events': ['teknisi_ditugaskan']},
-          {'title': 'Dalam Penanganan', 'events': ['penanganan_dimulai', 'teknisi_mulai_periksa']},
-          {'title': 'Selesai', 'events': ['penanganan_selesai']},
-        ];
-
-        int currentStep = 0;
-        if (riwayat.any((e) => e.jenisEvent == 'penanganan_selesai')) {
-          currentStep = 4;
-        } else if (riwayat.any((e) => e.jenisEvent == 'penanganan_dimulai' || e.jenisEvent == 'teknisi_mulai_periksa')) {
-          currentStep = 3;
-        } else if (riwayat.any((e) => e.jenisEvent == 'teknisi_ditugaskan')) {
-          currentStep = 2;
-        } else if (riwayat.any((e) => e.jenisEvent == 'laporan_diterima_admin')) {
-          currentStep = 1;
-        } else if (riwayat.any((e) => e.jenisEvent == 'laporan_dibuat')) {
-          currentStep = 0;
-        }
+        final stepsData = AppConstants.trackingStepsData;
+        final currentStep = tp.currentStep;
 
         return Container(
           padding: const EdgeInsets.all(20),

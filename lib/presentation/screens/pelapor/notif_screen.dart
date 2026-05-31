@@ -8,10 +8,7 @@ import 'package:provider/provider.dart';
 
 import '../../../data/models/notifikasi.dart';
 import '../../../logic/providers/notifikasi_provider.dart';
-import '../../../logic/providers/laporan_provider.dart';
-import '../../../logic/providers/penanganan_provider.dart';
-import 'detail_laporan_screen.dart';
-import '../teknisi_jurusan/detail_laporan_teknisi_screen.dart';
+import '../../../core/routes/app_router.dart';
 
 class NotifScreen extends StatefulWidget {
   const NotifScreen({super.key});
@@ -112,52 +109,7 @@ class _NotifScreenState extends State<NotifScreen> {
 
     // 2. Navigasi jika ada formulirId
     if (notif.formulirId != null && notif.formulirId!.isNotEmpty) {
-      final session = context.read<LaporanProvider>().session;
-      if (session == null) return;
-
-      final role = session.role;
-      
-      // Jika teknisi
-      if (role == 'teknisi_jurusan' || role == 'teknisi') {
-        final penangananProvider = context.read<PenangananProvider>();
-        // Cari dari daftarTugas (karena teknisi)
-        try {
-          final laporan = penangananProvider.daftarTugas.firstWhere(
-            (l) => l.formulirId == notif.formulirId,
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DetailLaporanTeknisiScreen(
-                laporan: laporan,
-                userSession: session,
-              ),
-            ),
-          );
-        } catch (_) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Laporan tidak ditemukan di daftar tugas Anda')),
-          );
-        }
-      } 
-      // Jika pelapor
-      else {
-        final laporanProvider = context.read<LaporanProvider>();
-        final laporan = laporanProvider.getLaporanById(notif.formulirId!);
-        
-        if (laporan != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DetailLaporanScreen(laporan: laporan),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Laporan tidak ditemukan')),
-          );
-        }
-      }
+      AppRouter.navigateToDetailFromNotif(context, notif.formulirId!);
     }
   }
 }

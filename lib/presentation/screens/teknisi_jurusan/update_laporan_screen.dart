@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../data/datasources/remote/storage_remote_datasource.dart';
+
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
@@ -49,17 +49,6 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      String? fotoUrl;
-
-      // Upload foto ke Supabase Storage melalui StorageRemoteDatasource
-      if (_pickedImagePath != null && _pickedImagePath!.isNotEmpty) {
-        final storage = StorageRemoteDatasource();
-        fotoUrl = await storage.uploadFotoProgres(
-          filePath: _pickedImagePath!,
-          formulirId: widget.laporan.formulirId,
-        );
-      }
-
       // Update via provider
       if (!mounted) return;
       final provider = context.read<PenangananProvider>();
@@ -67,7 +56,7 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
         formulirId: widget.laporan.formulirId,
         statusBaru: _status,
         catatanProgres: catatan.isNotEmpty ? catatan : null,
-        fotoProgresUrl: fotoUrl,
+        fotoProgresPath: _pickedImagePath,
       );
 
       if (!mounted) return;

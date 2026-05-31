@@ -10,6 +10,7 @@ import '../../../logic/providers/teknisi_dashboard_provider.dart';
 import '../../../logic/providers/notifikasi_provider.dart';
 import '../../../data/models/user_session.dart';
 import '../../../data/models/laporan_lokal.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../widgets/common/status_badge.dart';
 import 'widgets/bottom_nav_teknisi.dart'; // ← pakai navbar baru
 import 'profil_teknisi_screen.dart';
@@ -161,7 +162,7 @@ class _DashboardTeknisiJurusanScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Halo, ${_getRoleLabel(widget.userSession.role)}',
+                            'Halo, ${AppConstants.roleDisplayNames[widget.userSession.role] ?? widget.userSession.role}',
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
@@ -484,14 +485,6 @@ class _DashboardTeknisiJurusanScreenState
     return nama[0].toUpperCase();
   }
 
-  String _getRoleLabel(String role) {
-    switch (role) {
-      case 'teknisi_jurusan':
-      case 'teknisi':
-        return 'Teknisi JTK';
-      default:
-        return role;
-    }
-  }
+
 
 }

@@ -8,6 +8,14 @@ class TrackingProvider extends ChangeNotifier {
   List<Tracking> _riwayatTracking = [];
   List<Tracking> get riwayatTracking => _riwayatTracking;
 
+  int get currentStep {
+    if (_riwayatTracking.any((e) => e.jenisEvent == 'penanganan_selesai')) return 4;
+    if (_riwayatTracking.any((e) => e.jenisEvent == 'penanganan_dimulai' || e.jenisEvent == 'teknisi_mulai_periksa')) return 3;
+    if (_riwayatTracking.any((e) => e.jenisEvent == 'teknisi_ditugaskan')) return 2;
+    if (_riwayatTracking.any((e) => e.jenisEvent == 'laporan_diterima_admin')) return 1;
+    return 0; // Default / laporan_dibuat
+  }
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 

@@ -13,6 +13,17 @@ class AppConstants {
   static const String roleKetuaUptPp = 'ketua_upt_pp';
   static const String roleTeknisiUptPp = 'teknisi_upt_pp';
 
+  static const Map<String, String> roleDisplayNames = {
+    roleMahasiswa: 'Pelapor',
+    roleTeknisiJurusan: 'Teknisi JTK',
+    'teknisi_jurusan': 'Teknisi JTK', 
+    roleAdminJurusan: 'Admin Jurusan',
+    roleKajur: 'Ketua Jurusan',
+    roleAdminUptPp: 'Admin UPT PP',
+    roleKetuaUptPp: 'Ketua UPT PP',
+    roleTeknisiUptPp: 'Teknisi UPT PP',
+  };
+
   // Kategori kerusakan
   static const List<String> kategoriList = [
     'AC / Kipas',
@@ -24,7 +35,7 @@ class AppConstants {
   ];
 
   // Status laporan & penanganan
-  static const List<String> lokasiPerbaikanOptions = [
+  static const List<String> lokasiLantai1 = [
     'D101 - Kelas',
     'D102 - Lab. MT',
     'D105 - Kelas',
@@ -35,6 +46,9 @@ class AppConstants {
     'D112 - Kelas',
     'D115 - Lab. PjBL-1',
     'D116 - Lab. PjBL-2',
+  ];
+
+  static const List<String> lokasiLantai2 = [
     'D217 - Kelas',
     'D219 - Kelas',
     'D223 - Kelas',
@@ -52,6 +66,14 @@ class AppConstants {
   static const List<Map<String, String>> statusProgresOptions = [
     {'value': 'Diproses', 'label': 'Masih Dikerjakan'},
     {'value': 'Selesai', 'label': 'Selesai Diperbaiki'},
+  ];
+
+  static const List<Map<String, dynamic>> trackingStepsData = [
+    {'title': 'Laporan Dibuat', 'events': ['laporan_dibuat']},
+    {'title': 'Ditinjau Admin', 'events': ['laporan_diterima_admin']},
+    {'title': 'Teknisi Ditugaskan', 'events': ['teknisi_ditugaskan']},
+    {'title': 'Dalam Penanganan', 'events': ['penanganan_dimulai', 'teknisi_mulai_periksa']},
+    {'title': 'Selesai', 'events': ['penanganan_selesai']},
   ];
 }
 

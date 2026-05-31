@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/routes/app_router.dart';
 import '../../../logic/providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -28,12 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (session != null) {
       auth.initPostLoginServices(context);
-      final route = switch (session.role) {
-        AppConstants.roleTeknisiJurusan => '/dashboard-teknisi-jurusan',
-        AppConstants.roleTeknisiUptPp => '/dashboard-teknisi-jurusan',
-        _ => '/home',
-      };
-      Navigator.pushReplacementNamed(context, route, arguments: session);
+      AppRouter.navigatePostLogin(context, session.role, session);
       return;
     }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/laporan_validator.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../logic/providers/form_laporan_provider.dart';
 import '../../../logic/providers/laporan_provider.dart';
@@ -243,9 +244,8 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   }
 
   Future<String?> _showLocationPicker() async {
-    final options = AppConstants.lokasiPerbaikanOptions;
-    final floor1 = options.take(10).toList();
-    final floor2 = options.skip(10).toList();
+    final floor1 = AppConstants.lokasiLantai1;
+    final floor2 = AppConstants.lokasiLantai2;
 
     return await showModalBottomSheet<String>(
       context: context,
@@ -382,34 +382,24 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
         ? null
         : _nomorInventarisController.text.trim();
 
-    try {
-      if (_isEditMode) {
-        await formProvider.updateLaporan(
-          widget.laporanEdit!,
-          namaSarana: _judulController.text.trim(),
-          keteranganKerusakan: _deskripsiController.text.trim(),
-          lokasiPerbaikan: _lokasiPerbaikan!.trim(),
-          fotoLokalPath: _fotoPath,
-          nomorInventaris: nomorInv,
-        );
+    final success = await formProvider.submitLaporan(
+      laporanEdit: widget.laporanEdit,
+      namaSarana: _judulController.text.trim(),
+      keteranganKerusakan: _deskripsiController.text.trim(),
+      lokasiPerbaikan: _lokasiPerbaikan!.trim(),
+      fotoLokalPath: _fotoPath,
+      pelaporId: laporanProvider.session?.userId,
+      nomorInventaris: nomorInv,
+    );
 
-        if (!mounted) return;
-        laporanProvider.onReturnFromForm();
+    if (!mounted) return;
+
+    if (success) {
+      laporanProvider.onReturnFromForm();
+      if (_isEditMode) {
         _showSnackBar('Laporan berhasil diperbarui!');
         Navigator.pop(context);
       } else {
-        await formProvider.createLaporan(
-          namaSarana: _judulController.text.trim(),
-          keteranganKerusakan: _deskripsiController.text.trim(),
-          lokasiPerbaikan: _lokasiPerbaikan!.trim(),
-          fotoLokalPath: _fotoPath!,
-          pelaporId: laporanProvider.session?.userId ?? '',
-          nomorInventaris: nomorInv,
-        );
-
-        if (!mounted) return;
-        laporanProvider.onReturnFromForm();
-
         _formKey.currentState?.reset();
         _judulController.clear();
         _deskripsiController.clear();
@@ -418,23 +408,12 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
           _lokasiPerbaikan = null;
           _fotoPath = null;
         });
-
         _showSnackBar('Laporan berhasil dikirim!');
-
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       }
-    } catch (e) {
-      if (!mounted) return;
-      _showSnackBar(
-        formProvider.errorMessage ??
-            (_isEditMode
-                ? 'Gagal memperbarui laporan.'
-                : 'Gagal menyimpan laporan lokal.'),
-      );
+    } else {
+      _showSnackBar(formProvider.errorMessage ??
+          (_isEditMode ? 'Gagal memperbarui laporan.' : 'Gagal menyimpan laporan lokal.'));
     }
   }
 
@@ -617,13 +596,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                           decoration: _fieldDecoration(
                             hintText: 'Contoh: AC Mati di Ruang 201',
                           ).copyWith(counterText: ''),
-                          validator: (value) {
-                            final text = value?.trim() ?? '';
-                            if (text.isEmpty)
-                              return 'Nama sarana tidak boleh kosong';
-                            if (text.length < 6) return 'Minimal 6 karakter';
-                            return null;
-                          },
+                          validator: LaporanValidator.validateNamaSarana,
                         ),
                         const SizedBox(height: 12),
 
@@ -653,12 +626,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                             hintText:
                                 'Jelaskan detail kerusakan yang terlihat...',
                           ).copyWith(counterText: ''),
-                          validator: (value) {
-                            final text = value?.trim() ?? '';
-                            if (text.isEmpty) return 'Deskripsi harus diisi';
-                            if (text.length < 12) return 'Minimal 12 karakter';
-                            return null;
-                          },
+                          validator: LaporanValidator.validateDeskripsi,
                         ),
                         const SizedBox(height: 16),
 

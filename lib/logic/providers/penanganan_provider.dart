@@ -6,6 +6,7 @@ import '../../core/supabase/supabase_service.dart';
 import '../../data/datasources/remote/notifikasi_remote_datasource.dart';
 import '../../data/datasources/remote/penanganan_remote_datasource.dart';
 import '../../data/datasources/remote/tracking_remote_datasource.dart';
+import '../../data/datasources/remote/storage_remote_datasource.dart';
 import '../../data/models/laporan_lokal.dart';
 import '../../data/models/notifikasi.dart';
 import '../../data/models/penanganan.dart';
@@ -14,6 +15,7 @@ class PenangananProvider extends ChangeNotifier {
   final PenangananRemoteDatasource _remote = PenangananRemoteDatasource();
   final TrackingRemoteDatasource _trackingRemote = TrackingRemoteDatasource();
   final NotifikasiRemoteDatasource _notifRemote = NotifikasiRemoteDatasource();
+  final StorageRemoteDatasource _storage = StorageRemoteDatasource();
 
   List<Penanganan> _daftarPenangananLokal = [];
   List<LaporanLokal> _daftarTugas = [];
@@ -137,11 +139,11 @@ class PenangananProvider extends ChangeNotifier {
   }
 
   Future<void> eskalasiKeAdminJurusan({
-    required String penangananId,
     required String formulirId,
+    required String teknisiId,
     required String catatanEskalasi,
     required String kategoriKerusakan,
-    List<String> fotoTambahan = const [],
+    List<String> fotoTambahanPaths = const [],
   }) async {
     // Validasi input
     if (catatanEskalasi.trim().isEmpty) {
@@ -159,6 +161,35 @@ class PenangananProvider extends ChangeNotifier {
     _setLoading(true);
 
     try {
+      // Pastikan ada penanganan
+      var penanganan = _mapPenanganan[formulirId];
+      if (penanganan == null) {
+        await mulaiPenangananLangsung(
+          formulirId: formulirId,
+          teknisiId: teknisiId,
+        );
+        penanganan = _mapPenanganan[formulirId];
+        if (penanganan == null) {
+           _errorMessage = 'Gagal membuat penanganan sebelum eskalasi';
+           return;
+        }
+      }
+      final penangananId = penanganan.penangananId;
+
+      // Upload foto tambahan jika ada
+      final List<String> fotoUrls = [];
+      if (fotoTambahanPaths.isNotEmpty) {
+        for (final path in fotoTambahanPaths) {
+          final url = await _storage.uploadFotoProgres(
+            filePath: path,
+            formulirId: formulirId,
+          );
+          if (url != null) {
+            fotoUrls.add(url);
+          }
+        }
+      }
+
       final now = DateTime.now();
       final nowStr = now.toIso8601String();
 
@@ -169,7 +200,7 @@ class PenangananProvider extends ChangeNotifier {
         'catatan_progres':    catatanEskalasi,
         'tanggal_selesai':    nowStr,
         'updated_at':         nowStr,
-        if (fotoTambahan.isNotEmpty) 'foto_progres_url': fotoTambahan,
+        if (fotoUrls.isNotEmpty) 'foto_progres_url': fotoUrls,
       });
 
       await _remote.updateStatusFormulir(
@@ -221,7 +252,7 @@ class PenangananProvider extends ChangeNotifier {
     required String formulirId,
     required String statusBaru,
     String? catatanProgres,
-    String? fotoProgresUrl,
+    String? fotoProgresPath,
   }) async {
     _setLoading(true);
 
@@ -230,6 +261,14 @@ class PenangananProvider extends ChangeNotifier {
       final penanganan = _mapPenanganan[formulirId];
       if (penanganan == null) {
         throw Exception('Penanganan tidak ditemukan untuk formulir ini.');
+      }
+
+      String? fotoProgresUrl;
+      if (fotoProgresPath != null && fotoProgresPath.isNotEmpty) {
+        fotoProgresUrl = await _storage.uploadFotoProgres(
+          filePath: fotoProgresPath,
+          formulirId: formulirId,
+        );
       }
 
       String finalStatusLaporan = StatusLaporan.diproses;
