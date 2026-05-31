@@ -3,13 +3,15 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/string_extension.dart';
 
 import '../../../data/models/laporan_lokal.dart';
-import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
 import '../../../logic/providers/penanganan_provider.dart';
 import 'profil_teknisi_screen.dart';
-import '../pelapor/camera_picker_screen.dart';
+import '../../widgets/teknisi_jurusan/update_laporan/update_status_dropdown.dart';
+import '../../widgets/teknisi_jurusan/update_laporan/update_foto_picker.dart';
+import '../../widgets/teknisi_jurusan/update_laporan/update_keterangan_field.dart';
 
 class UpdateLaporanScreen extends StatefulWidget {
   final LaporanLokal laporan;
@@ -135,23 +137,18 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _buildStatusDropdown(),
+                  UpdateStatusDropdown(
+                    status: _status,
+                    onChanged: (v) => setState(() => _status = v ?? _status),
+                  ),
                   const SizedBox(height: 18),
 
-                  // Foto progres sebelumnya
-                  _buildExistingPhotos(),
-
-                  // Ambil Foto
-                  const Text(
-                    'Ambil Foto Bukti Perbaikan',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
+                  // Foto progres
+                  UpdateFotoPicker(
+                    laporan: widget.laporan,
+                    pickedImagePath: _pickedImagePath,
+                    onImagePicked: (path) => setState(() => _pickedImagePath = path),
                   ),
-                  const SizedBox(height: 8),
-                  _buildImagePicker(),
                   const SizedBox(height: 18),
 
                   // Catatan Teknisi
@@ -164,11 +161,10 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _buildCatatanField(),
-                  const SizedBox(height: 18),
-
-                  // Warning box
-                  _buildWarningBox(),
+                  UpdateKeteranganField(
+                    controller: _catatanCtrl,
+                    accentWarn: accentWarn,
+                  ),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -181,301 +177,6 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
       bottomNavigationBar: _buildBottomArea(),
     );
   }
-
-  Widget _buildStatusDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _status,
-          isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down),
-          items: AppConstants.statusProgresOptions.map((option) {
-            return DropdownMenuItem(
-              value: option['value'],
-              child: Text(option['label']!),
-            );
-          }).toList(),
-          onChanged: (v) => setState(() => _status = v ?? _status),
-        ),
-      ),
-    );
-  }
-
-  // ─── FOTO PROGRES YANG SUDAH ADA (DARI DB) ──────────────────────────────
-  Widget _buildExistingPhotos() {
-    final provider = context.watch<PenangananProvider>();
-    final penanganan = provider.getPenangananByFormulir(
-      widget.laporan.formulirId,
-    );
-    final existingPhotos = penanganan?.fotoProgresUrl ?? [];
-
-    if (existingPhotos.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.photo_library_outlined,
-                size: 16, color: Colors.black54),
-            const SizedBox(width: 6),
-            const Text(
-              'Foto Progres Sebelumnya',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              '${existingPhotos.length} foto',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 110,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: existingPhotos.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () => _showPhotoDialog(existingPhotos[index]),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    existingPhotos[index],
-                    width: 110,
-                    height: 110,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 110,
-                      height: 110,
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.broken_image_outlined,
-                          color: Colors.grey),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 18),
-      ],
-    );
-  }
-
-  void _showPhotoDialog(String url) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(16),
-        child: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: InteractiveViewer(
-                child: Image.network(
-                  url,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 300,
-                    color: Colors.grey.shade800,
-                    child: const Center(
-                      child: Icon(Icons.broken_image, color: Colors.white54,
-                          size: 48),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 20),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImagePicker() {
-    return GestureDetector(
-      onTap: () async {
-        final path = await Navigator.push<String?>(
-          context,
-          MaterialPageRoute(builder: (_) => const CameraPickerScreen()),
-        );
-        if (path != null && mounted) {
-          setState(() => _pickedImagePath = path);
-        }
-      },
-      child: Container(
-        height: 180,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.grey.shade300,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: DottedBorderPlaceholder(
-          child: _pickedImagePath == null
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFE6CF),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 6,
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.camera_alt, color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Klik untuk membuka kamera',
-                      style: TextStyle(
-                        color: Colors.blue.shade700,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Format JPG atau PNG (Maks 5MB)',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                  ],
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          File(_pickedImagePath!),
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _pickedImagePath!.split(RegExp(r'[\\/]')).last,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCatatanField() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 120, maxHeight: 200),
-        child: TextField(
-          controller: _catatanCtrl,
-          maxLines: null,
-          decoration: const InputDecoration(
-            hintText: 'Tuliskan detail perbaikan yang telah dilakukan...',
-            border: InputBorder.none,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWarningBox() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 6,
-            height: 48,
-            decoration: BoxDecoration(
-              color: accentWarn,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'PERINGATAN',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF8B4B00),
-                  ),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  'Pastikan semua alat kerja telah dirapikan kembali sebelum menutup laporan ini.',
-                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBottomArea() {
     return Container(
       color: Colors.white,
@@ -601,22 +302,6 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
           ),
         ),
       ],
-    );
-  }
-}
-
-// Simple dashed border placeholder (visual only)
-class DottedBorderPlaceholder extends StatelessWidget {
-  final Widget child;
-  const DottedBorderPlaceholder({Key? key, required this.child})
-    : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-      child: child,
     );
   }
 }

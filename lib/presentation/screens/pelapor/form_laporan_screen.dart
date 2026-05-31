@@ -6,6 +6,9 @@ import '../../../data/models/laporan_lokal.dart';
 import '../../../logic/providers/form_laporan_provider.dart';
 import '../../../logic/providers/laporan_provider.dart';
 import '../../widgets/pelapor/laporan_photo_field.dart';
+import '../../widgets/pelapor/form_laporan/form_warning_banner.dart';
+import '../../widgets/pelapor/form_laporan/form_section_label.dart';
+import '../../widgets/pelapor/form_laporan/form_lokasi_selector.dart';
 
 import 'dart:async';
 
@@ -60,81 +63,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     context.read<FormLaporanProvider>().checkLaporanSerupa(lokasi);
   }
 
-  // ── Banner peringatan laporan serupa ──────────────────────────────────────
-  Widget _buildWarningBanner() {
-    final form = context.watch<FormLaporanProvider>();
 
-    if (form.isCheckingSerupa) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Memeriksa laporan serupa...',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (form.jumlahLaporanSerupa <= 0) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF8E1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFFFC107), width: 1.2),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(
-              Icons.warning_amber_rounded,
-              color: Color(0xFFF59E0B),
-              size: 20,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Laporan serupa sudah ada!',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                      color: Color(0xFF78350F),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Terdapat ${form.jumlahLaporanSerupa} laporan aktif '
-                    'di lokasi ini. Pastikan belum dilaporkan '
-                    'sebelum mengirim laporan baru.',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF92400E),
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   InputDecoration _fieldDecoration({required String hintText}) {
     return InputDecoration(
@@ -158,201 +87,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     );
   }
 
-  Widget _sectionLabel(String label, {bool required = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-            color: Color(0xFF1F2937),
-          ),
-          children: [
-            TextSpan(text: label),
-            if (required)
-              const TextSpan(
-                text: ' *',
-                style: TextStyle(color: Color(0xFFDC2626)),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  // ── Lokasi selector ───────────────────────────────────────────────────────
-  Widget _lokasiSelector() {
-    return FormField<String>(
-      initialValue: _lokasiPerbaikan,
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) return 'Lokasi harus diisi';
-        return null;
-      },
-      builder: (state) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              onTap: context.watch<FormLaporanProvider>().isSubmitting
-                  ? null
-                  : () async {
-                      final selected = await _showLocationPicker();
-                      if (selected != null) {
-                        setState(() => _lokasiPerbaikan = selected);
-                        state.didChange(selected);
-                        _checkLaporanSerupa(selected);
-                      }
-                    },
-              child: InputDecorator(
-                decoration: _fieldDecoration(hintText: 'Pilih Ruangan')
-                    .copyWith(
-                      prefixIcon: const Icon(
-                        Icons.location_on_outlined,
-                        color: Color(0xFF6B7280),
-                      ),
-                      suffixIcon: const Icon(
-                        Icons.expand_more_rounded,
-                        color: Color(0xFF0D47A1),
-                      ),
-                    ),
-                child: Text(
-                  _lokasiPerbaikan ?? 'Pilih Gedung & Ruangan',
-                  style: TextStyle(
-                    color: _lokasiPerbaikan == null
-                        ? Colors.grey.shade600
-                        : Colors.black,
-                  ),
-                ),
-              ),
-            ),
-            if (state.hasError)
-              Padding(
-                padding: const EdgeInsets.only(top: 6, left: 12),
-                child: Text(
-                  state.errorText ?? '',
-                  style: const TextStyle(
-                    color: Color(0xFFDC2626),
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<String?> _showLocationPicker() async {
-    final floor1 = AppConstants.lokasiLantai1;
-    final floor2 = AppConstants.lokasiLantai2;
-
-    return await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.6,
-          minChildSize: 0.3,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            String query = '';
-            List<String> filter(List<String> src) {
-              if (query.isEmpty) return src;
-              return src
-                  .where((s) => s.toLowerCase().contains(query.toLowerCase()))
-                  .toList();
-            }
-
-            return StatefulBuilder(
-              builder: (c, setModalState) {
-                final f1 = filter(floor1);
-                final f2 = filter(floor2);
-
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 12),
-                      Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: TextField(
-                          decoration: const InputDecoration(
-                            hintText: 'Cari lokasi...',
-                            prefixIcon: Icon(Icons.search),
-                          ),
-                          onChanged: (v) => setModalState(() => query = v),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: ListView(
-                          controller: scrollController,
-                          children: [
-                            if (f1.isNotEmpty) ...[
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                child: Text(
-                                  'Lantai 1',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                              ...f1.map(
-                                (lok) => ListTile(
-                                  title: Text(lok),
-                                  onTap: () => Navigator.of(context).pop(lok),
-                                ),
-                              ),
-                            ],
-                            if (f2.isNotEmpty) ...[
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                child: Text(
-                                  'Lantai 2',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                              ...f2.map(
-                                (lok) => ListTile(
-                                  title: Text(lok),
-                                  onTap: () => Navigator.of(context).pop(lok),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
 
   void _showSnackBar(String message) {
     if (!mounted) return;
@@ -588,7 +323,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                         ),
                         const SizedBox(height: 18),
 
-                        _sectionLabel('Nama Sarana', required: true),
+                        const FormSectionLabel(label: 'Nama Sarana', isRequired: true),
                         TextFormField(
                           controller: _judulController,
                           textInputAction: TextInputAction.next,
@@ -600,7 +335,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        _sectionLabel('Nomor Inventaris'),
+                        const FormSectionLabel(label: 'Nomor Inventaris'),
                         TextFormField(
                           controller: _nomorInventarisController,
                           textInputAction: TextInputAction.next,
@@ -610,13 +345,16 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        _sectionLabel('Lokasi Perbaikan', required: true),
-                        _lokasiSelector(),
+                        const FormSectionLabel(label: 'Lokasi Perbaikan', isRequired: true),
+                        FormLokasiSelector(
+                          initialValue: _lokasiPerbaikan,
+                          onChanged: (val) => setState(() => _lokasiPerbaikan = val),
+                        ),
                         const SizedBox(height: 10),
 
-                        _buildWarningBanner(),
+                        const FormWarningBanner(),
 
-                        _sectionLabel('Keterangan Kerusakan', required: true),
+                        const FormSectionLabel(label: 'Keterangan Kerusakan', isRequired: true),
                         TextFormField(
                           controller: _deskripsiController,
                           minLines: 4,
@@ -630,7 +368,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        _sectionLabel('Foto Bukti Kerusakan', required: true),
+                        const FormSectionLabel(label: 'Foto Bukti Kerusakan', isRequired: true),
                         LaporanPhotoField(
                           imagePath: _fotoPath,
                           enabled: !context.watch<FormLaporanProvider>().isSubmitting,

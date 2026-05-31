@@ -7,15 +7,14 @@ import 'package:provider/provider.dart';
 import '../../../logic/providers/laporan_provider.dart';
 import '../../../logic/providers/auth_provider.dart';
 import '../../../core/utils/auth_validator.dart';
+import '../../../core/utils/string_extension.dart';
+
+import '../../widgets/pelapor/profile/profile_info_card.dart';
+import '../../widgets/pelapor/profile/profile_menu_item.dart';
+import '../../widgets/pelapor/profile/profile_logout_button.dart';
+
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
-
-  String _initials(String nama) {
-    final parts = nama.trim().split(' ');
-    if (parts.isEmpty) return 'U';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +30,7 @@ class ProfileScreen extends StatelessWidget {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    _buildHeader(home),
+                    ProfileInfoCard(home: home),
                     const SizedBox(height: 20),
                     _buildMenuSection(context, home),
                     const SizedBox(height: 24),
@@ -65,74 +64,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(LaporanProvider home) {
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFF0D47A1),
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-      child: Column(
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-                width: 1.5,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                _initials(home.namaUser),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            home.namaUser,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            home.emailUser,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.65),
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              home.roleUser,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildMenuSection(BuildContext context, LaporanProvider home) {
     return Padding(
@@ -143,7 +75,7 @@ class ProfileScreen extends StatelessWidget {
           // AKUN
           _sectionLabel('AKUN'),
           _menuGroup([
-            _MenuItem(
+            ProfileMenuItem(
               icon: Icons.person_outline_rounded,
               iconBg: const Color(0xFFEEF2FF),
               iconColor: const Color(0xFF4F46E5),
@@ -151,7 +83,7 @@ class ProfileScreen extends StatelessWidget {
               sub: 'Ubah nama dan info akun',
               onTap: () => _showEditProfil(context, home),
             ),
-            _MenuItem(
+            ProfileMenuItem(
               icon: Icons.lock_outline_rounded,
               iconBg: const Color(0xFFFEF3C7),
               iconColor: const Color(0xFFD97706),
@@ -166,7 +98,7 @@ class ProfileScreen extends StatelessWidget {
           // LAINNYA
           _sectionLabel('LAINNYA'),
           _menuGroup([
-            _MenuItem(
+            ProfileMenuItem(
               icon: Icons.info_outline_rounded,
               iconBg: const Color(0xFFD1FAE5),
               iconColor: const Color(0xFF059669),
@@ -179,7 +111,7 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           // LOGOUT
-          _LogoutButton(),
+          const ProfileLogoutButton(),
         ],
       ),
     );
@@ -547,160 +479,9 @@ class ProfileScreen extends StatelessWidget {
 
 // ─── MENU ITEM ────────────────────────────────────────────────────────────
 
-class _MenuItem extends StatelessWidget {
-  final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
-  final String label;
-  final String sub;
-  final VoidCallback onTap;
 
-  const _MenuItem({
-    required this.icon,
-    required this.iconBg,
-    required this.iconColor,
-    required this.label,
-    required this.sub,
-    required this.onTap,
-  });
 
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: iconColor, size: 18),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
-                  Text(
-                    sub,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF9CA3AF),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 13,
-              color: Color(0xFFD1D5DB),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
-// ─── LOGOUT BUTTON ────────────────────────────────────────────────────────
-
-class _LogoutButton extends StatelessWidget {
-  const _LogoutButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFFF7ED),
-          foregroundColor: const Color(0xFFEA580C),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-            side: const BorderSide(color: Color(0xFFFED7AA), width: 0.8),
-          ),
-        ),
-        onPressed: () => _showLogoutDialog(context),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.logout_rounded, size: 18),
-            SizedBox(width: 8),
-            Text(
-              'Keluar dari Akun',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Keluar dari Akun?',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF0D1B3E),
-          ),
-        ),
-        content: const Text(
-          'Kamu akan keluar dari aplikasi. Data lokal yang belum tersinkron mungkin tidak tersimpan di cloud.',
-          style: TextStyle(fontSize: 13, color: Color(0xFF6B7280), height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Batal',
-              style: TextStyle(color: Color(0xFF6B7280)),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEA580C),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await context.read<AuthProvider>().logout();
-              await context.read<LaporanProvider>().clear();
-              if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
-              }
-            },
-            child: const Text('Ya, Keluar'),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ─── BOTTOM SHEET WRAPPER ─────────────────────────────────────────────────
 

@@ -4,7 +4,6 @@
 //                Teknisi mengisi kategori kerusakan + alasan eskalasi.
 // ============================================================
 
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +15,9 @@ import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/penanganan.dart';
 import '../../../data/models/user_session.dart';
 import '../pelapor/camera_picker_screen.dart';
+import '../../widgets/teknisi_jurusan/form_eskalasi/eskalasi_info_card.dart';
+import '../../widgets/teknisi_jurusan/form_eskalasi/eskalasi_alasan_field.dart';
+import '../../widgets/teknisi_jurusan/form_eskalasi/eskalasi_foto_picker.dart';
 
 class FormEskalasiScreen extends StatefulWidget {
   final LaporanLokal laporan;
@@ -146,49 +148,8 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Info Banner ────────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline,
-                        color: Colors.blue.shade700, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Laporan ini akan diteruskan ke Admin Jurusan untuk proses persetujuan lebih lanjut.',
-                        style: TextStyle(
-                            fontSize: 13, color: Colors.blue.shade700),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── ID Laporan ──────────────────────────────────────────
-              _buildReadOnlyField(
-                label: 'ID Laporan',
-                value:
-                    '#${widget.laporan.formulirId.substring(0, 8).toUpperCase()}',
-                icon: Icons.tag,
-              ),
-
-              const SizedBox(height: 14),
-
-              // ── Lokasi ─────────────────────────────────────────────
-              _buildReadOnlyField(
-                label: 'Lokasi',
-                value: widget.laporan.lokasiPerbaikan,
-                icon: Icons.location_on_outlined,
-              ),
-
+              // ── Info Card (Banner, ID Laporan, Lokasi) ─────────────
+              EskalasiInfoCard(laporan: widget.laporan),
               const SizedBox(height: 20),
 
               // ── Kategori Kerusakan ─────────────────────────────────
@@ -237,168 +198,21 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
               const SizedBox(height: 20),
 
               // ── Alasan Eskalasi ────────────────────────────────────
-              const Text(
-                'Analisis Teknisi / Alasan Eskalasi *',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A2E),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
+              EskalasiAlasanField(
                 controller: _alasanController,
-                maxLines: 5,
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
-                decoration: InputDecoration(
-                  hintText:
-                      'Berikan alasan teknis mengapa permasalahan ini perlu dieskalasi ke tingkat jurusan...',
-                  hintStyle:
-                      const TextStyle(fontSize: 13, color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: _primaryColor, width: 1.5),
-                  ),
-                ),
+                primaryColor: _primaryColor,
               ),
 
               const SizedBox(height: 20),
 
               // ── Foto Tambahan (Opsional) ────────────────────────────
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Tambah Foto Detail Kerusakan (Opsional)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A2E),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${_fotoTambahanPaths.length}/$_maxFoto',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _fotoTambahanPaths.length >= _maxFoto
-                          ? Colors.red
-                          : Colors.grey,
-                    ),
-                  ),
-                ],
+              EskalasiFotoPicker(
+                fotoPaths: _fotoTambahanPaths,
+                maxFoto: _maxFoto,
+                onPickFoto: _pickFoto,
+                onRemoveFoto: _removeFoto,
+                accentColor: _accentColor,
               ),
-              const SizedBox(height: 8),
-              // Grid preview foto yang sudah dipilih
-              if (_fotoTambahanPaths.isNotEmpty) ...[
-                SizedBox(
-                  height: 110,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _fotoTambahanPaths.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      return Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.file(
-                              File(_fotoTambahanPaths[index]),
-                              width: 110,
-                              height: 110,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => _removeFoto(index),
-                              child: Container(
-                                width: 26,
-                                height: 26,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
-
-              // Tombol tambah foto
-              if (_fotoTambahanPaths.length < _maxFoto)
-                GestureDetector(
-                  onTap: _pickFoto,
-                  child: Container(
-                    width: double.infinity,
-                    height: _fotoTambahanPaths.isEmpty ? 120 : 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: _fotoTambahanPaths.isEmpty
-                        ? Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.camera_alt_outlined,
-                                  size: 36, color: _accentColor),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Klik untuk ambil foto atau pilih dari galeri',
-                                style:
-                                    TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              const Text(
-                                'Maksimal 3 foto. Format JPG/PNG',
-                                style:
-                                    TextStyle(fontSize: 11, color: Colors.grey),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.add_a_photo_outlined,
-                                  size: 22, color: _accentColor),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Tambah foto lagi (${_maxFoto - _fotoTambahanPaths.length} tersisa)',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: _accentColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
 
               const SizedBox(height: 32),
 
@@ -444,47 +258,5 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
     );
   }
 
-  Widget _buildReadOnlyField({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A2E),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          width: double.infinity,
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 16, color: Colors.grey),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  value,
-                  style:
-                      const TextStyle(fontSize: 14, color: Colors.black87),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+
 }

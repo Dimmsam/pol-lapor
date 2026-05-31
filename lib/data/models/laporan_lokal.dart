@@ -220,11 +220,3 @@ extension LaporanStatusHelper on LaporanLokal {
       status == StatusLaporan.selesai;
 }
 
-// FORMAT TANGGAL
-extension DateFormatHelper on DateTime {
-  String toFormatted() {
-    return '${day.toString().padLeft(2, '0')}/'
-        '${month.toString().padLeft(2, '0')}/'
-        '$year';
-  }
-}

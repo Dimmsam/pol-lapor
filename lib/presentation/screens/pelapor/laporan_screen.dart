@@ -8,6 +8,9 @@ import '../../../core/utils/laporan_icon_mapper.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../logic/providers/laporan_provider.dart';
 import '../../../presentation/widgets/common/status_badge.dart';
+import '../../../core/utils/date_extension.dart';
+import '../../widgets/pelapor/laporan/laporan_card.dart';
+import '../../widgets/pelapor/laporan/laporan_empty_state.dart';
 import 'detail_laporan_screen.dart';
 import 'form_laporan_screen.dart';
 
@@ -294,7 +297,12 @@ class _LaporanScreenState extends State<LaporanScreen> {
       data = data.where((l) => laporanProvider.isOwner(l)).toList();
     }
 
-    if (data.isEmpty) return _buildEmpty(isPublic: isPublic);
+    if (data.isEmpty) {
+      return LaporanEmptyState(
+        filterStatus: _filterStatus,
+        isPublic: isPublic,
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -307,7 +315,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
         itemCount: data.length,
         itemBuilder: (context, index) {
           final laporan = data[index];
-          return _LaporanCard(
+          return LaporanCard(
             laporan: laporan,
             canDelete: laporanProvider.canDelete(laporan),
             onDelete: laporanProvider.canDelete(laporan)
@@ -321,277 +329,4 @@ class _LaporanScreenState extends State<LaporanScreen> {
       ),
     );
   }
-
-  Widget _buildEmpty({required bool isPublic}) {
-    final emptyData = LaporanIconMapper.getEmptyStateData(_filterStatus, isPublic);
-    final message = emptyData['message']!;
-    final sub = emptyData['sub']!;
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF2FF),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(
-              Icons.inbox_outlined,
-              color: Color(0xFF4F46E5),
-              size: 30,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            message,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF374151),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            sub,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 }
-
-// ─── LAPORAN CARD ───────────────────────────────────────────────────────────
-
-class _LaporanCard extends StatelessWidget {
-  final LaporanLokal laporan;
-  final bool canDelete;
-  final VoidCallback? onDelete;
-  final VoidCallback? onEdit; // null berarti tombol edit tidak ditampilkan
-
-  const _LaporanCard({
-    required this.laporan,
-    required this.canDelete,
-    required this.onDelete,
-    this.onEdit,
-  });
-
-  IconData get _icon => LaporanIconMapper.getIconForSarana(laporan.namaSarana);
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DetailLaporanScreen(laporan: laporan),
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE9ECEF), width: 0.5),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Baris atas: ikon + nama + lokasi + status badge ──────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0F4FF),
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    child: Icon(
-                      _icon,
-                      color: const Color(0xFF0D47A1),
-                      size: 19,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          laporan.namaSarana,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF111827),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          laporan.lokasiPerbaikan,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF9CA3AF),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  StatusBadge(status: laporan.status),
-                ],
-              ),
-
-              // ── Divider ──────────────────────────────────────────────────
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 11),
-                child: Divider(
-                  height: 0,
-                  thickness: 0.5,
-                  color: Color(0xFFF3F4F6),
-                ),
-              ),
-
-              // ── Keterangan kerusakan ─────────────────────────────────────
-              Text(
-                laporan.keteranganKerusakan,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF6B7280),
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // ── Footer: tanggal + sync + tombol aksi ─────────────────────
-              Row(
-                children: [
-                  // Tanggal
-                  const Icon(
-                    Icons.calendar_today_outlined,
-                    size: 12,
-                    color: Color(0xFF9CA3AF),
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    '${laporan.createdAt.day.toString().padLeft(2, '0')}/'
-                    '${laporan.createdAt.month.toString().padLeft(2, '0')}/'
-                    '${laporan.createdAt.year}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF9CA3AF),
-                    ),
-                  ),
-
-                  // Indikator belum sinkron
-                  if (!laporan.isSynced) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Text(
-                      'Belum tersinkron',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFFEF4444),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-
-                  const Spacer(),
-
-                  // ── Tombol Edit (hanya jika status menunggu) ─────────────
-                  if (onEdit != null) ...[
-                    _ActionButton(
-                      icon: Icons.edit_outlined,
-                      label: 'Edit',
-                      color: const Color(0xFF0D47A1),
-                      bgColor: const Color(0xFFEEF2FF),
-                      onTap: onEdit!,
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-
-                  // ── Tombol Hapus (hanya milik sendiri) ────────────────────
-                  if (canDelete && onDelete != null)
-                    _ActionButton(
-                      icon: Icons.delete_outline_rounded,
-                      label: 'Hapus',
-                      color: const Color(0xFFEF4444),
-                      bgColor: const Color(0xFFFEF2F2),
-                      onTap: onDelete!,
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── ACTION BUTTON ──────────────────────────────────────────────────────────
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final Color bgColor;
-  final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.bgColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
