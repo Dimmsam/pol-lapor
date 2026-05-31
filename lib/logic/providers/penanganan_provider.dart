@@ -72,6 +72,19 @@ class PenangananProvider extends ChangeNotifier {
     }).toList();
   }
 
+  Future<void> fetchPenangananForFormulir(String formulirId) async {
+    try {
+      final data = await _remote.fetchPenangananByFormulir(formulirId);
+      if (data != null) {
+        final p = Penanganan.fromJson(data);
+        _mapPenanganan[formulirId] = p;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Gagal fetch penanganan by formulir: $e');
+    }
+  }
+
   Future<void> mulaiPenangananLangsung({
     required String formulirId,
     required String teknisiId,
