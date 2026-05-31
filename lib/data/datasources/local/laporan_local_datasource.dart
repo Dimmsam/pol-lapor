@@ -79,7 +79,7 @@ class LaporanLocalDatasource {
   }
 
   /// Sinkronkan laporan dari remote ke lokal (merge/update/delete deleted records).
-  Future<void> syncFromRemote(List<Map<String, dynamic>> remoteLaporan, String pelaporId) async {
+  Future<void> syncFromRemote(List<Map<String, dynamic>> remoteLaporan, String pelaporId, {bool isFullSync = false}) async {
     final remoteIds = <String>{};
     for (final json in remoteLaporan) {
       try {
@@ -126,8 +126,15 @@ class LaporanLocalDatasource {
     // 2. Hapus data lokal yang sudah tidak ada di server (yang dihapus lewat admin/dashboard web)
     final allLokal = _box.values.toList();
     for (final lokal in allLokal) {
-      if (lokal.pelaporId == pelaporId && lokal.isSynced) {
-        if (!remoteIds.contains(lokal.formulirId)) {
+      if (lokal.isSynced) {
+        bool shouldDelete = false;
+        if (isFullSync) {
+          shouldDelete = !remoteIds.contains(lokal.formulirId);
+        } else {
+          shouldDelete = lokal.pelaporId == pelaporId && !remoteIds.contains(lokal.formulirId);
+        }
+        
+        if (shouldDelete) {
           await _box.delete(lokal.formulirId);
         }
       }

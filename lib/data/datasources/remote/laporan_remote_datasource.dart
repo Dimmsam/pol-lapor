@@ -122,4 +122,29 @@ class LaporanRemoteDatasource {
       return [];
     }
   }
+
+  /// Fetch semua laporan (publik)
+  Future<List<Map<String, dynamic>>> fetchAllLaporan() async {
+    try {
+      final response = await _db
+          .from('formulir_laporan')
+          .select('''
+            formulir_id,
+            pelapor_id,
+            nama_sarana,
+            keterangan_kerusakan,
+            foto_kerusakan_url,
+            status,
+            created_at,
+            updated_at,
+            lokasi:lokasi_id (nama_ruangan)
+          ''')
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('fetchAllLaporan error: $e');
+      return [];
+    }
+  }
 }

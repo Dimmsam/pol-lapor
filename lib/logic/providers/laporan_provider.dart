@@ -70,8 +70,8 @@ class LaporanProvider extends ChangeNotifier {
     if (userId == null) return;
 
     try {
-      final remoteLaporan = await _laporanRemote.fetchLaporanByPelapor(userId);
-      await _laporanLocal.syncFromRemote(remoteLaporan, userId);
+      final remoteLaporan = await _laporanRemote.fetchAllLaporan();
+      await _laporanLocal.syncFromRemote(remoteLaporan, userId, isFullSync: true);
       _refresh();
     } catch (e) {
       debugPrint('_syncFromRemote error: $e');
@@ -84,7 +84,7 @@ class LaporanProvider extends ChangeNotifier {
   }
 
   List<LaporanLokal> recentLaporan({int limit = 3}) {
-    return _laporanList.take(limit).toList();
+    return _laporanList.where((l) => isOwner(l)).take(limit).toList();
   }
 
   LaporanLokal? getLaporanById(String formulirId) {
@@ -123,13 +123,15 @@ class LaporanProvider extends ChangeNotifier {
   }
 
   void _updateStats(List<LaporanLokal> semua) {
-    _totalLaporan = semua.length;
-    _totalUnsynced = semua.where((l) => !l.isSynced).length;
+    final milikku = semua.where((l) => isOwner(l)).toList();
+    
+    _totalLaporan = milikku.length;
+    _totalUnsynced = milikku.where((l) => !l.isSynced).length;
     _totalDiproses =
-        semua.where((l) => l.status == StatusLaporan.diproses).length;
+        milikku.where((l) => l.status == StatusLaporan.diproses).length;
     _totalSelesai =
-        semua.where((l) => l.status == StatusLaporan.selesai).length;
-    _totalMenunggu = semua
+        milikku.where((l) => l.status == StatusLaporan.selesai).length;
+    _totalMenunggu = milikku
         .where((l) => l.status == StatusLaporan.menungguKlasifikasi)
         .length;
   }

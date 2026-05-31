@@ -134,16 +134,27 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            _buildSearchBar(),
-            _buildFilterChips(),
-            Expanded(child: _buildList()),
-          ],
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF4F6FA),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildTopBar(),
+              _buildTabBar(),
+              _buildSearchBar(),
+              _buildFilterChips(),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildList(isPublic: false),
+                    _buildList(isPublic: true),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -164,6 +175,24 @@ class _LaporanScreenState extends State<LaporanScreen> {
               letterSpacing: -0.3,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      color: Colors.white,
+      child: const TabBar(
+        labelColor: Color(0xFF0D47A1),
+        unselectedLabelColor: Color(0xFF6B7280),
+        indicatorColor: Color(0xFF0D47A1),
+        indicatorWeight: 3,
+        labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        tabs: [
+          Tab(text: 'Laporanku'),
+          Tab(text: 'Laporan Publik'),
         ],
       ),
     );
@@ -249,37 +278,54 @@ class _LaporanScreenState extends State<LaporanScreen> {
     );
   }
 
-  Widget _buildList() {
+  Widget _buildList({required bool isPublic}) {
     final laporanProvider = context.watch<LaporanProvider>();
-    final data = laporanProvider.filterLaporan(
+    var data = laporanProvider.filterLaporan(
       filterStatus: _filterStatus,
       searchQuery: _searchQuery,
     );
 
-    if (data.isEmpty) return _buildEmpty();
+    if (isPublic) {
+      // Menampilkan semua laporan (publik), termasuk milik sendiri agar mudah di-test
+      // data = data; (tidak perlu difilter)
+    } else {
+      // Menampilkan laporan milik sendiri
+      data = data.where((l) => laporanProvider.isOwner(l)).toList();
+    }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-      itemCount: data.length,
-      itemBuilder: (context, index) {
-        final laporan = data[index];
-        return _LaporanCard(
-          laporan: laporan,
-          canDelete: laporanProvider.canDelete(laporan),
-          onDelete: laporanProvider.canDelete(laporan)
-              ? () => _confirmDelete(context, laporan)
-              : null,
-          onEdit: laporanProvider.canEdit(laporan)
-              ? () => _navigateToEdit(context, laporan)
-              : null,
-        );
+    if (data.isEmpty) return _buildEmpty(isPublic: isPublic);
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await context.read<LaporanProvider>().syncFromRemote();
       },
+      color: const Color(0xFF0D47A1),
+      backgroundColor: Colors.white,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+        itemCount: data.length,
+        itemBuilder: (context, index) {
+          final laporan = data[index];
+          return _LaporanCard(
+            laporan: laporan,
+            canDelete: laporanProvider.canDelete(laporan),
+            onDelete: laporanProvider.canDelete(laporan)
+                ? () => _confirmDelete(context, laporan)
+                : null,
+            onEdit: laporanProvider.canEdit(laporan)
+                ? () => _navigateToEdit(context, laporan)
+                : null,
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildEmpty() {
-    String message = 'Belum ada laporan';
-    String sub = 'Laporan yang dibuat akan muncul di sini';
+  Widget _buildEmpty({required bool isPublic}) {
+    String message = isPublic ? 'Belum ada laporan publik' : 'Belum ada laporan';
+    String sub = isPublic
+        ? 'Laporan dari orang lain akan muncul di sini'
+        : 'Laporan yang dibuat akan muncul di sini';
 
     if (_filterStatus == StatusLaporan.menungguKlasifikasi) {
       message = 'Tidak ada laporan menunggu';
