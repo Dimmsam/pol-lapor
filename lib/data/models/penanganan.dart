@@ -1,6 +1,3 @@
-// lib/data/models/penanganan.dart
-// Model data Penanganan — sesuai skema DB tabel public.penanganan
-
 class Penanganan {
   final String penangananId;
   final String formulirId;
@@ -8,6 +5,7 @@ class Penanganan {
   final String statusPenanganan; // enum: mulai_dikerjakan | sedang_dikerjakan | selesai
   final String? catatanProgres;
   final String? deskripsiHasil;
+  final String? kategoriKerusakan; // kolom baru — diisi saat eskalasi
   final List<String> fotoProgresUrl; // ARRAY di DB
   final String? fotoHasilUrl;
   final DateTime? tanggalMulai;
@@ -21,6 +19,7 @@ class Penanganan {
     required this.statusPenanganan,
     this.catatanProgres,
     this.deskripsiHasil,
+    this.kategoriKerusakan,
     this.fotoProgresUrl = const [],
     this.fotoHasilUrl,
     this.tanggalMulai,
@@ -42,8 +41,9 @@ class Penanganan {
       teknisiId: json['teknisi_id'] as String,
       statusPenanganan:
           json['status_penanganan'] as String? ?? StatusPenanganan.mulaiDikerjakan,
-      catatanProgres: json['catatan_progres'] as String?,
-      deskripsiHasil: json['deskripsi_hasil'] as String?,
+      catatanProgres:    json['catatan_progres']    as String?,
+      deskripsiHasil:   json['deskripsi_hasil']    as String?,
+      kategoriKerusakan: json['kategori_kerusakan'] as String?,
       fotoProgresUrl: parseFotoProgres(json['foto_progres_url']),
       fotoHasilUrl: json['foto_hasil_url'] as String?,
       tanggalMulai: json['tanggal_mulai'] != null
@@ -57,17 +57,18 @@ class Penanganan {
   }
 
   Map<String, dynamic> toJson() => {
-        'penanganan_id': penangananId,
-        'formulir_id': formulirId,
-        'teknisi_id': teknisiId,
+        'penanganan_id':     penangananId,
+        'formulir_id':       formulirId,
+        'teknisi_id':        teknisiId,
         'status_penanganan': statusPenanganan,
-        'catatan_progres': catatanProgres,
-        'deskripsi_hasil': deskripsiHasil,
-        'foto_progres_url': fotoProgresUrl,
-        'foto_hasil_url': fotoHasilUrl,
-        'tanggal_mulai': tanggalMulai?.toIso8601String(),
-        'tanggal_selesai': tanggalSelesai?.toIso8601String(),
-        'updated_at': updatedAt.toIso8601String(),
+        'catatan_progres':   catatanProgres,
+        'deskripsi_hasil':   deskripsiHasil,
+        'kategori_kerusakan': kategoriKerusakan,
+        'foto_progres_url':  fotoProgresUrl,
+        'foto_hasil_url':    fotoHasilUrl,
+        'tanggal_mulai':     tanggalMulai?.toIso8601String(),
+        'tanggal_selesai':   tanggalSelesai?.toIso8601String(),
+        'updated_at':        updatedAt.toIso8601String(),
       };
 
   /// Copy-with untuk update partial state
@@ -75,46 +76,45 @@ class Penanganan {
     String? statusPenanganan,
     String? catatanProgres,
     String? deskripsiHasil,
+    String? kategoriKerusakan,
     List<String>? fotoProgresUrl,
     String? fotoHasilUrl,
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
   }) {
     return Penanganan(
-      penangananId: penangananId,
-      formulirId: formulirId,
-      teknisiId: teknisiId,
-      statusPenanganan: statusPenanganan ?? this.statusPenanganan,
-      catatanProgres: catatanProgres ?? this.catatanProgres,
-      deskripsiHasil: deskripsiHasil ?? this.deskripsiHasil,
-      fotoProgresUrl: fotoProgresUrl ?? this.fotoProgresUrl,
-      fotoHasilUrl: fotoHasilUrl ?? this.fotoHasilUrl,
-      tanggalMulai: tanggalMulai ?? this.tanggalMulai,
-      tanggalSelesai: tanggalSelesai ?? this.tanggalSelesai,
-      updatedAt: DateTime.now(),
+      penangananId:      penangananId,
+      formulirId:        formulirId,
+      teknisiId:         teknisiId,
+      statusPenanganan:  statusPenanganan  ?? this.statusPenanganan,
+      catatanProgres:    catatanProgres    ?? this.catatanProgres,
+      deskripsiHasil:   deskripsiHasil   ?? this.deskripsiHasil,
+      kategoriKerusakan: kategoriKerusakan ?? this.kategoriKerusakan,
+      fotoProgresUrl:    fotoProgresUrl    ?? this.fotoProgresUrl,
+      fotoHasilUrl:      fotoHasilUrl      ?? this.fotoHasilUrl,
+      tanggalMulai:      tanggalMulai      ?? this.tanggalMulai,
+      tanggalSelesai:    tanggalSelesai    ?? this.tanggalSelesai,
+      updatedAt:         DateTime.now(),
     );
   }
 }
 
 /// Konstanta untuk status_penanganan_enum di DB
+/// DB hanya punya: mulai_dikerjakan | selesai
 class StatusPenanganan {
   static const String mulaiDikerjakan = 'mulai_dikerjakan';
-  static const String sedangDikerjakan = 'sedang_dikerjakan';
+  // 'sedang_dikerjakan' TIDAK ada di enum DB - gunakan mulaiDikerjakan
   static const String selesai = 'selesai';
-  static const String menungguEskalasi = 'menunggu_eskalasi_jurusan';
+  // 'menunggu_eskalasi_jurusan' TIDAK ada di enum DB - gunakan status formulir diteruskan_ke_pusat
 
   static String toLabel(String status) {
     switch (status) {
       case mulaiDikerjakan:
-        return 'Mulai Dikerjakan';
-      case sedangDikerjakan:
         return 'Sedang Dikerjakan';
       case selesai:
         return 'Selesai';
-      case menungguEskalasi:
-        return 'Menunggu Eskalasi';
       default:
-        return 'Tidak Diketahui';
+        return 'Dikerjakan';
     }
   }
 
@@ -122,6 +122,5 @@ class StatusPenanganan {
   static bool isSelesai(String status) => status == selesai;
 
   /// Apakah status masih aktif (belum selesai)?
-  static bool isAktif(String status) =>
-      status == mulaiDikerjakan || status == sedangDikerjakan;
+  static bool isAktif(String status) => status == mulaiDikerjakan;
 }

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
+import '../../../core/services/permission_service.dart';
 
 class CameraPickerScreen extends StatefulWidget {
   const CameraPickerScreen({super.key, this.initialImagePath});
@@ -27,13 +27,8 @@ class _CameraPickerScreenState extends State<CameraPickerScreen> {
     }
   }
 
-  Future<bool> _requestCameraPermission() async {
-    final cameraStatus = await Permission.camera.request();
-    return cameraStatus.isGranted;
-  }
-
   Future<void> _pickImageFromCamera() async {
-    final hasPermission = await _requestCameraPermission();
+    final hasPermission = await PermissionService.requestCameraPermission();
     if (!hasPermission) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

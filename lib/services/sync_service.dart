@@ -1,35 +1,96 @@
-import 'dart:io';
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+
+import '../core/constants/app_constants.dart';
+import '../core/supabase/supabase_service.dart';
+import '../core/utils/status_mapper.dart';
 import '../data/models/laporan_lokal.dart';
-import 'hive_service.dart';
+import '../data/datasources/local/laporan_local_datasource.dart';
+import '../data/datasources/remote/lokasi_remote_datasource.dart';
+import '../data/datasources/remote/storage_remote_datasource.dart';
 
+/// Orchestrator sinkronisasi laporan dari penyimpanan lokal (Hive) ke Supabase.
+///
+/// [SyncService] memiliki satu tanggung jawab: mengkoordinasikan alur sync
+/// untuk setiap laporan yang belum tersinkronkan.
+///
+/// Detail operasi didelegasikan ke:
+/// - [StorageRemoteDatasource] → upload foto ke Supabase Storage
+/// - [LokasiRemoteDatasource]  → lookup lokasi_id dari nama ruangan
+/// - [StatusMapper]             → konversi status lokal ke enum Supabase
+/// - [LaporanLocalDatasource]  → baca/tulis data lokal (Hive)
 class SyncService {
-  final HiveService _hiveService = HiveService();
-  final supabase = Supabase.instance.client;
+  final LaporanLocalDatasource _laporanLocal;
+  final StorageRemoteDatasource _storage;
+  final LokasiRemoteDatasource _lokasi;
   final _uuid = const Uuid();
+  
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  bool _isSyncing = false;
 
-  // ── 1. FUNGSI UTAMA: Pemicu Sinkronisasi ─────────────────────────────────
+  SyncService({
+    LaporanLocalDatasource? laporanLocal,
+    StorageRemoteDatasource? storage,
+    LokasiRemoteDatasource? lokasi,
+  })  : _laporanLocal = laporanLocal ?? LaporanLocalDatasource(),
+        _storage = storage ?? StorageRemoteDatasource(),
+        _lokasi = lokasi ?? LokasiRemoteDatasource();
+
+  // ── AUTO-SYNC: Start listening to connectivity changes ────────────────────
+  void startAutoSync() {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+      (List<ConnectivityResult> results) {
+        // Jika ada koneksi (wifi atau mobile data) dan tidak sedang syncing
+        if (!_isSyncing &&
+            (results.contains(ConnectivityResult.wifi) ||
+                results.contains(ConnectivityResult.mobile))) {
+          debugPrint('SyncService: Koneksi terdeteksi, memulai auto-sync...');
+          syncUnsyncedData();
+        }
+      },
+    );
+    debugPrint('SyncService: Auto-sync listener started');
+  }
+
+  // ── AUTO-SYNC: Stop listening ─────────────────────────────────────────────
+  void stopAutoSync() {
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription = null;
+    debugPrint('SyncService: Auto-sync listener stopped');
+  }
+
+  // ── FUNGSI UTAMA: Pemicu Sinkronisasi ─────────────────────────────────────
   Future<void> syncUnsyncedData() async {
-    final authUser = supabase.auth.currentUser;
-    if (authUser == null) {
-      debugPrint('Sync dibatalkan: user belum login di Supabase Auth.');
+    if (_isSyncing) {
+      debugPrint('SyncService: sync sudah berjalan, skip.');
       return;
     }
 
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      debugPrint('Tidak ada internet. Sync ditunda.');
-      return;
-    }
+    _isSyncing = true;
 
-    final semuaLaporan = await _hiveService.getAllLaporan();
-    final unsyncedLaporan =
-        semuaLaporan.where((lap) => !lap.isSynced).toList();
+    try {
+      final authUser = SupabaseService.auth.currentUser;
+      if (authUser == null) {
+        debugPrint('SyncService: dibatalkan — user belum login.');
+        return;
+      }
 
-    if (unsyncedLaporan.isEmpty) return;
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult.contains(ConnectivityResult.none)) {
+        debugPrint('SyncService: tidak ada internet, sync ditunda.');
+        return;
+      }
+
+      final unsyncedLaporan = _laporanLocal.getUnsyncedLaporan();
+      if (unsyncedLaporan.isEmpty) {
+        debugPrint('SyncService: tidak ada laporan yang perlu di-sync.');
+        return;
+      }
+
+      debugPrint('SyncService: memulai sync ${unsyncedLaporan.length} laporan...');
 
     for (var laporan in unsyncedLaporan) {
       try {
@@ -44,197 +105,86 @@ class SyncService {
         }
 
         // Step B: Simpan data ke tabel formulir_laporan
-        final alreadyExists = await _laporanExistsOnCloud(laporan.formulirId);
         await _upsertDataToSupabase(laporan, cloudImageUrl);
 
-        // Step B2: Buat entry tracking awal hanya untuk laporan baru
-        if (!alreadyExists) {
-          await _insertInitialTracking(
-            formulirId: laporan.formulirId,
-            aktorId: authUser.id,
-            pesanNarasi: 'Tracking Sudah Dibuat',
-            status: _mapStatusForSupabase(laporan.status),
-          );
-          await _insertInitialTracking(
-            formulirId: laporan.formulirId,
-            aktorId: authUser.id,
-            pesanNarasi: 'Laporan sedang Ditinjau',
-            status: _mapStatusForSupabase(laporan.status),
-          );
-        }
-
-        // Step C: Tandai sebagai synced di Hive
-        await _hiveService.markSynced(laporan.formulirId);
-        debugPrint('Laporan ${laporan.formulirId} berhasil di-sync.');
-      } on StorageException catch (e) {
-        debugPrint(
-          'Gagal upload storage laporan ${laporan.formulirId}: ${e.message} '
-          '(status: ${e.statusCode})',
+        // Step B2: Buat entry tracking awal untuk laporan baru
+        await insertInitialTracking(
+          formulirId: laporan.formulirId,
+          aktorId: authUser.id,
+          pesanNarasi: 'Laporan sudah dibuat',
+          status: _mapStatusForSupabase(laporan.status),
         );
-      } catch (e) {
-        debugPrint('Gagal sync laporan ${laporan.formulirId}: $e');
+
+      // Step C: Tandai sebagai synced di Hive
+      if (cloudImageUrl != null && cloudImageUrl.isNotEmpty) {
+        await _laporanLocal.markAsSynced(laporan.formulirId, cloudImageUrl);
+      } else {
+        await _laporanLocal.markSynced(laporan.formulirId);
       }
+
+      // Step D: Insert tracking awal (non-critical — gagal tidak rollback laporan)
+      await insertInitialTracking(
+        formulirId: laporan.formulirId,
+        aktorId: aktorId,
+      );
+
+      debugPrint('SyncService: laporan ${laporan.formulirId} berhasil di-sync.');
+    } catch (e) {
+      debugPrint('SyncService: gagal sync laporan ${laporan.formulirId}: $e');
+      rethrow; // Re-throw untuk handling di level atas
     }
   }
 
-  // ── 2. Upload Foto ke Supabase Storage ───────────────────────────────────
-  Future<String?> _uploadFotoToSupabase(
-    String filePath,
-    String formulirId,
-  ) async {
-    final file = File(filePath);
-    if (!await file.exists()) return null;
+  // ── UPSERT FORMULIR LAPORAN ───────────────────────────────────────────────
+  Future<void> upsertLaporan(LaporanLokal laporan, String? imageUrl) async {
+    final pelaporId = laporan.pelaporId.isNotEmpty
+        ? laporan.pelaporId
+        : SupabaseService.auth.currentUser?.id ?? '';
 
-    final fileExt = filePath.split('.').last;
-    final fileName = 'formulir_$formulirId.$fileExt';
-    final pathTujuan = 'foto_kerusakan/$fileName';
+    // Resolve nama ruangan → UUID via tabel lokasi
+    final lokasiId = await _lokasi.lookupLokasiId(laporan.lokasiPerbaikan);
 
-    await supabase.storage
-        .from('bukti_laporan')
-        .upload(pathTujuan, file, fileOptions: const FileOptions(upsert: true));
+    // Mapping status lokal → enum Supabase
+    final statusCloud = StatusMapper.toSupabaseStatus(laporan.status);
 
-    return supabase.storage.from('bukti_laporan').getPublicUrl(pathTujuan);
-  }
-
-  // ── 3. Upsert Data ke formulir_laporan ───────────────────────────────────
-  Future<void> _upsertDataToSupabase(
-    LaporanLokal laporan,
-    String? imageUrl,
-  ) async {
-    String pelaporId = laporan.pelaporId;
-    if (pelaporId.isEmpty) {
-      pelaporId = await _getMyUserId();
-    }
-
-    // Lookup lokasi_id dari tabel lokasi berdasarkan nama ruangan
-    // lokasiPerbaikan di Hive menyimpan string nama ruangan (contoh: "D108 - Kelas")
-    final lokasiId = await _lookupLokasiId(laporan.lokasiPerbaikan);
-
-    final statusCloud = _mapStatusForSupabase(laporan.status);
-
-    await supabase.from('formulir_laporan').upsert({
-      'formulir_id':          laporan.formulirId,
-      'pelapor_id':           pelaporId,
-      'nama_sarana':          laporan.namaSarana,
+    await SupabaseService.db.from('formulir_laporan').upsert({
+      'formulir_id': laporan.formulirId,
+      'pelapor_id': pelaporId,
+      'nama_sarana': laporan.namaSarana,
       'keterangan_kerusakan': laporan.keteranganKerusakan,
-      'lokasi_id':            lokasiId,          // ← UUID FK, bukan string lagi
-      'nomor_inventaris':     laporan.nomorInventaris,
-      'foto_kerusakan_url':   imageUrl ?? laporan.fotoKerusakanUrl,
-      'status':               statusCloud,
-      'is_synced':            true,
-      'created_at':           laporan.createdAt.toIso8601String(),
-      'updated_at':           laporan.updatedAt.toIso8601String(),
-      // kolom yang dihapus dari schema baru:
-      // tanda_tangan_pelapor          → tidak ada
-      // tanggal_tanda_tangan_pelapor  → tidak ada
-      // lokasi_perbaikan              → tidak ada (diganti lokasi_id)
+      'lokasi_id': lokasiId,
+      'nomor_inventaris': laporan.nomorInventaris,
+      'foto_kerusakan_url': imageUrl ?? laporan.fotoKerusakanUrl,
+      'status': statusCloud,
+      'created_at': laporan.createdAt.toIso8601String(),
+      'updated_at': laporan.updatedAt.toIso8601String(),
     });
   }
 
-  Future<void> _insertInitialTracking({
+  // ── INSERT TRACKING AWAL ──────────────────────────────────────────────────
+  /// Insert tracking pertama saat laporan berhasil sync ke Supabase.
+  Future<void> insertInitialTracking({
     required String formulirId,
     required String aktorId,
-    required String pesanNarasi,
-    required String status,
   }) async {
-    await supabase.from('tracking').insert({
-      'tracking_id': _uuid.v4(),
-      'formulir_id': formulirId,
-      'aktor_id': aktorId,
-      'status': status,
-      'pesan_narasi': pesanNarasi,
-      'created_at': DateTime.now().toIso8601String(),
-    });
-  }
-
-  // ── 4. Lookup lokasi_id dari tabel lokasi ────────────────────────────────
-  // Mencari UUID lokasi berdasarkan nama_ruangan yang tersimpan di Hive.
-  // Jika tidak ditemukan, kirim null (lokasi_id nullable di schema).
-  Future<String?> _lookupLokasiId(String namaRuangan) async {
-    if (namaRuangan.trim().isEmpty) return null;
-
     try {
-      final resp = await supabase
-          .from('lokasi')
-          .select('lokasi_id')
-          .eq('nama_ruangan', namaRuangan.trim())
-          .eq('is_active', true)
-          .maybeSingle();
-
-      if (resp == null) {
-        debugPrint(
-          'Lokasi "$namaRuangan" tidak ditemukan di tabel lokasi. '
-          'lokasi_id akan dikirim sebagai NULL.',
-        );
-        return null;
-      }
-
-      return resp['lokasi_id'] as String?;
+      await SupabaseService.db.from('tracking').insert({
+        'tracking_id': _uuid.v4(),
+        'formulir_id': formulirId,
+        'aktor_id': aktorId,
+        'jenis_event': JenisEvent.laporanDibuat,
+        'pesan_narasi': 'Laporan berhasil dikirim.',
+        'created_at': DateTime.now().toIso8601String(),
+      });
     } catch (e) {
-      debugPrint('Gagal lookup lokasi_id untuk "$namaRuangan": $e');
-      return null;
+      debugPrint(
+        'SyncService: tracking awal gagal untuk $formulirId '
+        '(non-critical): $e',
+      );
     }
   }
 
-  // ── 5. Map status lokal → enum status_formulir di Supabase ───────────────
-  String _mapStatusForSupabase(String statusLokal) {
-    // Nilai valid di enum status_formulir (schema baru)
-    const validNewEnum = <String>{
-      'menunggu',
-      'ditugaskan',
-      'sedang_dikerjakan',
-      'selesai',
-      'diteruskan_ke_pusat',
-    };
-
-    if (validNewEnum.contains(statusLokal)) return statusLokal;
-
-    // Mapping dari status lama (Hive / schema lama) ke enum baru
-    switch (statusLokal) {
-      case 'menunggu_klasifikasi':
-      case 'draft':
-        return 'menunggu';
-      case 'klasifikasi_selesai':
-      case 'pengajuan_dibuat':
-      case 'terkirim':
-      case 'dicatat_admin':
-      case 'diketahui_ka_upt':
-      case 'surat_pengajuan_dibuat':
-      case 'surat_kerja_diterbitkan':
-        return 'ditugaskan';
-      case 'sedang_ditangani':
-      case 'selesai_ditangani':
-        return 'sedang_dikerjakan';
-      case 'berita_acara_dibuat':
-      case 'selesai':
-        return 'selesai';
-      default:
-        debugPrint(
-          'Status "$statusLokal" tidak dikenal, fallback ke "menunggu".',
-        );
-        return 'menunggu';
-    }
-  }
-
-  // ── 6. Helper: ambil user_id dari tabel pengguna ─────────────────────────
-  Future<String> _getMyUserId() async {
-    final authUser = supabase.auth.currentUser;
-    if (authUser == null) throw Exception('User tidak terautentikasi');
-
-    final resp = await supabase
-        .from('pengguna')
-        .select('user_id')
-        .eq('user_id', authUser.id)
-        .single();
-
-    if (resp['user_id'] == null) {
-      throw Exception('Profil pengguna tidak ditemukan di tabel pengguna');
-    }
-
-    return resp['user_id'] as String;
-  }
-
-  Future<bool> _laporanExistsOnCloud(String formulirId) async {
+  Future<bool> laporanExistsOnCloud(String formulirId) async {
     try {
       final resp = await supabase
           .from('formulir_laporan')

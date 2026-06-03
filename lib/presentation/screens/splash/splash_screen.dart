@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../data/datasources/remote/auth_remote_datasource.dart';
-import '../../../data/datasources/local/auth_local_datasource.dart';
+import '../../../core/routes/app_router.dart';
+import '../../../logic/providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,31 +22,17 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(milliseconds: 1200));
     if (!mounted) return;
 
-    // 1. Cek apakah Supabase masih punya session aktif (JWT belum expired)
-    final remoteAuth = AuthRemoteDatasource();
-    final supabaseSession = await remoteAuth.getSessionFromSupabase();
+    final auth = context.read<AuthProvider>();
+    final session = await auth.restoreSession();
 
-    if (supabaseSession != null) {
-      // Session Supabase masih valid → update lokal dan lanjut ke home
-      final localAuth = AuthLocalDatasource();
-      await localAuth.saveSession(supabaseSession);
-      if (!mounted) return;
-      final route = switch (supabaseSession.role) {
-        AppConstants.roleTeknisiJurusan => '/dashboard-teknisi-jurusan',
-        AppConstants.roleTeknisiUptPp => '/dashboard-teknisi-jurusan',
-        _ => '/home',
-      };
-      Navigator.pushReplacementNamed(
-        context,
-        route,
-        arguments: supabaseSession,
-      );
+    if (!mounted) return;
+
+    if (session != null) {
+      auth.initPostLoginServices(context);
+      AppRouter.navigatePostLogin(context, session.role, session);
       return;
     }
 
-    // 2. Tidak ada session Supabase → ke login
-    await AuthLocalDatasource().clearSession();
-    if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/login');
   }
 
