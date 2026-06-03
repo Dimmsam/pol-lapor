@@ -158,6 +158,7 @@ class LaporanLokal extends HiveObject {
     String? keteranganKerusakan,
     String? lokasiPerbaikan,
     String? nomorInventaris,
+    bool clearNomorInventaris = false,
     String? fotoLokalPath,
     String? fotoKerusakanUrl,
     String? status,
@@ -171,7 +172,7 @@ class LaporanLokal extends HiveObject {
       keteranganKerusakan:
           keteranganKerusakan ?? this.keteranganKerusakan,
       lokasiPerbaikan: lokasiPerbaikan ?? this.lokasiPerbaikan,
-      nomorInventaris: nomorInventaris ?? this.nomorInventaris,
+      nomorInventaris: clearNomorInventaris ? null : (nomorInventaris ?? this.nomorInventaris),
       fotoLokalPath: fotoLokalPath ?? this.fotoLokalPath,
       fotoKerusakanUrl: fotoKerusakanUrl ?? this.fotoKerusakanUrl,
       status: status ?? this.status,

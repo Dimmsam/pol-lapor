@@ -100,24 +100,21 @@ class Penanganan {
 }
 
 /// Konstanta untuk status_penanganan_enum di DB
+/// DB hanya punya: mulai_dikerjakan | selesai
 class StatusPenanganan {
   static const String mulaiDikerjakan = 'mulai_dikerjakan';
-  static const String sedangDikerjakan = 'sedang_dikerjakan';
+  // 'sedang_dikerjakan' TIDAK ada di enum DB - gunakan mulaiDikerjakan
   static const String selesai = 'selesai';
-  static const String menungguEskalasi = 'menunggu_eskalasi_jurusan';
+  // 'menunggu_eskalasi_jurusan' TIDAK ada di enum DB - gunakan status formulir diteruskan_ke_pusat
 
   static String toLabel(String status) {
     switch (status) {
       case mulaiDikerjakan:
-        return 'Menunggu';
-      case sedangDikerjakan:
-        return 'Dikerjakan';
+        return 'Sedang Dikerjakan';
       case selesai:
         return 'Selesai';
-      case menungguEskalasi:
-        return 'Eskalasi';
       default:
-        return 'Menunggu';
+        return 'Dikerjakan';
     }
   }
 
@@ -125,6 +122,5 @@ class StatusPenanganan {
   static bool isSelesai(String status) => status == selesai;
 
   /// Apakah status masih aktif (belum selesai)?
-  static bool isAktif(String status) =>
-      status == mulaiDikerjakan || status == sedangDikerjakan;
+  static bool isAktif(String status) => status == mulaiDikerjakan;
 }

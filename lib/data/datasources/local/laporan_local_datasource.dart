@@ -86,30 +86,8 @@ class LaporanLocalDatasource {
         final formulirId = json['formulir_id'] as String;
         final existing = _box.get(formulirId);
 
-        // Parse lokasi dari nested object dengan fallback
-        String lokasiNama = 'Lokasi tidak diketahui';
-        if (json['lokasi'] != null) {
-          if (json['lokasi'] is Map) {
-            lokasiNama = json['lokasi']['nama_ruangan'] as String? ?? 
-                         json['lokasi']['lokasi_id'] as String? ?? 
-                         'Lokasi tidak diketahui';
-          } else if (json['lokasi'] is String) {
-            lokasiNama = json['lokasi'] as String;
-          }
-        }
-
-        final laporan = LaporanLokal(
-          formulirId: formulirId,
-          pelaporId: json['pelapor_id'] as String,
-          namaSarana: json['nama_sarana'] as String,
-          keteranganKerusakan: json['keterangan_kerusakan'] as String,
-          lokasiPerbaikan: lokasiNama,
-          fotoKerusakanUrl: json['foto_kerusakan_url'] as String?,
-          status: StatusMapper.fromSupabaseStatus(json['status'] as String? ?? 'menunggu'),
-          createdAt: DateTime.parse(json['created_at'] as String),
-          updatedAt: DateTime.parse(json['updated_at'] as String),
-          isSynced: true,
-        );
+        // Gunakan factory yang sudah ada agar semua field (termasuk nomor_inventaris) ter-mapping dengan benar
+        final laporan = LaporanLokal.fromSupabaseJson(json);
 
         // Hanya update jika belum ada atau versi remote lebih baru
         if (existing == null ||

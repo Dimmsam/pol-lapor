@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../data/datasources/local/laporan_local_datasource.dart';
 import '../../data/datasources/remote/laporan_remote_datasource.dart';
+import '../../data/datasources/remote/storage_remote_datasource.dart';
 import '../../data/models/laporan_lokal.dart';
 import '../../services/sync_service.dart';
 
@@ -136,18 +137,55 @@ class FormLaporanProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      String? newFotoUrl;
+
+      // Jika laporan sudah tersync di Supabase, update langsung ke remote
+      if (existing.isSynced) {
+        // Upload foto baru dulu jika ada
+        if (fotoLokalPath != null && fotoLokalPath.isNotEmpty) {
+          try {
+            final storage = StorageRemoteDatasource();
+            newFotoUrl = await storage.uploadFotoKerusakan(
+              filePath: fotoLokalPath,
+              formulirId: existing.formulirId,
+            );
+          } catch (e) {
+            debugPrint('updateLaporan: gagal upload foto baru: $e');
+          }
+        }
+
+        // Update langsung ke Supabase
+        await _remote.updateLaporanRemote(
+          formulirId: existing.formulirId,
+          namaSarana: namaSarana,
+          keteranganKerusakan: keteranganKerusakan,
+          namaRuangan: lokasiPerbaikan,
+          nomorInventaris: nomorInventaris,
+          fotoUrl: newFotoUrl,
+        );
+      }
+
+      // Update data lokal (Hive) - jika ada foto baru, simpan URL-nya
       final updated = existing.copyWith(
         namaSarana: namaSarana,
         keteranganKerusakan: keteranganKerusakan,
         lokasiPerbaikan: lokasiPerbaikan,
         nomorInventaris: nomorInventaris,
+        clearNomorInventaris: nomorInventaris == null,
         fotoLokalPath: fotoLokalPath,
-        isSynced: false,
+        fotoKerusakanUrl: newFotoUrl ?? existing.fotoKerusakanUrl,
+        // Kalau sudah tersync, tetap tersync (sudah diupdate langsung di atas)
+        // Kalau belum tersync, tandai belum sync agar sync service proses
+        isSynced: existing.isSynced,
         updatedAt: DateTime.now(),
       );
 
       await _local.updateLaporan(updated);
-      syncInBackground();
+
+      // Kalau belum tersync, baru trigger sync background
+      if (!existing.isSynced) {
+        syncInBackground();
+      }
     } catch (e) {
       _errorMessage = 'Gagal memperbarui laporan.';
       debugPrint('updateLaporan error: $e');

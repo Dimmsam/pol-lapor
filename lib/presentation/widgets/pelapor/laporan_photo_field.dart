@@ -9,17 +9,30 @@ class LaporanPhotoField extends StatelessWidget {
   const LaporanPhotoField({
     super.key,
     required this.imagePath,
+    this.imageUrl,
     required this.onChanged,
     this.enabled = true,
   });
 
   final String? imagePath;
+  final String? imageUrl;
   final ValueChanged<String?> onChanged;
   final bool enabled;
 
   @override
   Widget build(BuildContext context) {
-    final hasImage = imagePath != null && imagePath!.isNotEmpty;
+    final hasLocalImage = imagePath != null && imagePath!.isNotEmpty;
+    final hasNetworkImage = imageUrl != null && imageUrl!.isNotEmpty;
+    final hasImage = hasLocalImage || hasNetworkImage;
+
+    Widget imageWidget;
+    if (hasLocalImage) {
+      imageWidget = Image.file(File(imagePath!), fit: BoxFit.cover);
+    } else if (hasNetworkImage) {
+      imageWidget = Image.network(imageUrl!, fit: BoxFit.cover, errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image, size: 50, color: Colors.grey));
+    } else {
+      imageWidget = const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,7 +54,7 @@ class LaporanPhotoField extends StatelessWidget {
                   child: hasImage
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(18),
-                          child: Image.file(File(imagePath!), fit: BoxFit.cover),
+                          child: imageWidget,
                         )
                       : CustomPaint(
                           painter: _DashedRoundedBorderPainter(

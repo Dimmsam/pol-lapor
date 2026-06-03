@@ -104,7 +104,7 @@ class PenangananProvider extends ChangeNotifier {
         penangananId: const Uuid().v4(),
         formulirId: formulirId,
         teknisiId: teknisiId,
-        statusPenanganan: StatusPenanganan.sedangDikerjakan,
+        statusPenanganan: StatusPenanganan.mulaiDikerjakan,
         tanggalMulai: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -117,7 +117,7 @@ class PenangananProvider extends ChangeNotifier {
         'penanganan_id': penangananBaru.penangananId,
         'formulir_id': penangananBaru.formulirId,
         'teknisi_id': penangananBaru.teknisiId,
-        'status_penanganan': penangananBaru.statusPenanganan,
+        'status_penanganan': StatusPenanganan.mulaiDikerjakan, // satu-satunya nilai valid di DB selain 'selesai'
         'tanggal_mulai': penangananBaru.tanggalMulai?.toIso8601String(),
         'foto_progres_url': <String>[],
         'updated_at': penangananBaru.updatedAt.toIso8601String(),
@@ -206,9 +206,11 @@ class PenangananProvider extends ChangeNotifier {
       final now = DateTime.now();
       final nowStr = now.toIso8601String();
 
-      // Simpan kategori sebagai kolom terpisah + catatan eskalasi
+      // status_penanganan DB hanya punya: mulai_dikerjakan | selesai
+      // Saat eskalasi, status penanganan tetap mulai_dikerjakan (bukan nilai lain)
+      // Status formulir yang berubah menjadi 'diteruskan_ke_pusat'
       await _remote.updatePenanganan(penangananId, {
-        'status_penanganan':  StatusPenanganan.menungguEskalasi,
+        'status_penanganan':  StatusPenanganan.mulaiDikerjakan,
         'kategori_kerusakan': kategoriKerusakan,
         'catatan_progres':    catatanEskalasi,
         'tanggal_selesai':    nowStr,
@@ -218,9 +220,19 @@ class PenangananProvider extends ChangeNotifier {
 
       await _remote.updateStatusFormulir(
         formulirId,
-        StatusLaporan.menungguKlasifikasi,
+        StatusLaporan.diproses, // di DB: 'diteruskan_ke_pusat' akan di-set lewat formulir_laporan
         updatedAt: nowStr,
       );
+
+      // Update formulir ke status diteruskan_ke_pusat langsung
+      try {
+        await SupabaseService.db
+            .from('formulir_laporan')
+            .update({'status': 'diteruskan_ke_pusat', 'updated_at': nowStr})
+            .eq('formulir_id', formulirId);
+      } catch (e) {
+        debugPrint('Update diteruskan_ke_pusat error (non-critical): $e');
+      }
 
       await _insertTrackingLog(
         formulirId: formulirId,
@@ -244,7 +256,7 @@ class PenangananProvider extends ChangeNotifier {
           .indexWhere((p) => p.penangananId == penangananId);
       if (index != -1) {
         final updated = _daftarPenangananLokal[index].copyWith(
-          statusPenanganan:  StatusPenanganan.menungguEskalasi,
+          statusPenanganan:  StatusPenanganan.mulaiDikerjakan,
           kategoriKerusakan: kategoriKerusakan,
           catatanProgres:    catatanEskalasi,
           tanggalSelesai:    now,
@@ -285,7 +297,8 @@ class PenangananProvider extends ChangeNotifier {
       }
 
       String finalStatusLaporan = StatusLaporan.diproses;
-      String finalStatusPenanganan = StatusPenanganan.sedangDikerjakan;
+      // status_penanganan_enum DB hanya punya: mulai_dikerjakan | selesai
+      String finalStatusPenanganan = StatusPenanganan.mulaiDikerjakan;
 
       if (statusBaru.toLowerCase() == 'selesai') {
         finalStatusLaporan = StatusLaporan.selesai;

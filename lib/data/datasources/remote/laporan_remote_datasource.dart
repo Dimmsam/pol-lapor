@@ -91,7 +91,46 @@ class LaporanRemoteDatasource {
         .select();
 
     if (response.isEmpty) {
-      debugPrint('Laporan $formulirId tidak ditemukan di server atau sudah dihapus. Melanjutkan hapus lokal.');
+      debugPrint('Laporan $formulirId tidak ditemukan atau RLS block delete. Melanjutkan hapus lokal.');
+    }
+  }
+
+  /// Update laporan yang sudah tersync langsung di Supabase
+  Future<void> updateLaporanRemote({
+    required String formulirId,
+    required String namaSarana,
+    required String keteranganKerusakan,
+    String? namaRuangan,
+    String? nomorInventaris,
+    String? fotoUrl,
+  }) async {
+    final updateMap = <String, dynamic>{
+      'nama_sarana': namaSarana,
+      'keterangan_kerusakan': keteranganKerusakan,
+      'nomor_inventaris': nomorInventaris,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    if (namaRuangan != null) {
+      try {
+        final lokasiId = await _resolveLokasiId(namaRuangan);
+        if (lokasiId != null) updateMap['lokasi_id'] = lokasiId;
+      } catch (e) {
+        debugPrint('updateLaporanRemote: gagal resolve lokasi ($namaRuangan): $e');
+      }
+    }
+
+    if (fotoUrl != null) updateMap['foto_kerusakan_url'] = fotoUrl;
+
+    final response = await _db
+        .from('formulir_laporan')
+        .update(updateMap)
+        .eq('formulir_id', formulirId)
+        .select();
+        
+    if (response.isEmpty) {
+      debugPrint('WARNING: updateLaporanRemote gagal! RLS policy mungkin memblokir UPDATE.');
+      throw Exception('Gagal mengupdate laporan di server. Pastikan RLS policy UPDATE sudah benar.');
     }
   }
 
@@ -107,6 +146,7 @@ class LaporanRemoteDatasource {
             pelapor_id,
             nama_sarana,
             keterangan_kerusakan,
+            nomor_inventaris,
             foto_kerusakan_url,
             status,
             created_at,
@@ -133,6 +173,7 @@ class LaporanRemoteDatasource {
             pelapor_id,
             nama_sarana,
             keterangan_kerusakan,
+            nomor_inventaris,
             foto_kerusakan_url,
             status,
             created_at,

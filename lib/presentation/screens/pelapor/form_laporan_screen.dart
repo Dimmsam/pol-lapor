@@ -106,7 +106,12 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
       return;
     }
 
-    if (_fotoPath == null || _fotoPath!.isEmpty) {
+    final hasLocalPhoto = _fotoPath != null && _fotoPath!.isNotEmpty;
+    final hasCloudPhoto = _isEditMode && 
+                          widget.laporanEdit?.fotoKerusakanUrl != null && 
+                          widget.laporanEdit!.fotoKerusakanUrl!.isNotEmpty;
+
+    if (!hasLocalPhoto && !hasCloudPhoto) {
       _showSnackBar('Foto bukti wajib diambil langsung dari kamera.');
       return;
     }
@@ -371,6 +376,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                         const FormSectionLabel(label: 'Foto Bukti Kerusakan', isRequired: true),
                         LaporanPhotoField(
                           imagePath: _fotoPath,
+                          imageUrl: widget.laporanEdit?.fotoKerusakanUrl,
                           enabled: !context.watch<FormLaporanProvider>().isSubmitting,
                           onChanged: (value) =>
                               setState(() => _fotoPath = value),

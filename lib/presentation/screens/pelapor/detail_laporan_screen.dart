@@ -1,18 +1,11 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/laporan_lokal.dart';
-import '../../../data/models/penanganan.dart';
-import '../../../data/models/tracking.dart';
 import '../../../logic/providers/penanganan_provider.dart';
 import '../../../logic/providers/tracking_provider.dart';
-import '../../../core/utils/status_mapper.dart';
-import '../../../core/constants/app_constants.dart';
-import '../../widgets/common/status_badge.dart';
-import '../../../core/utils/date_extension.dart';
+import '../../../logic/providers/laporan_provider.dart';
 
 import '../../widgets/pelapor/detail_laporan/detail_info_card.dart';
 import '../../widgets/pelapor/detail_laporan/detail_photo_card.dart';
@@ -64,7 +57,10 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final laporan = widget.laporan;
+    // Ambil laporan terbaru dari provider jika ada (agar auto-refresh setelah edit)
+    final provider = context.watch<LaporanProvider>();
+    final laporan = provider.getLaporanById(widget.laporan.formulirId) ?? widget.laporan;
+    
     final penanganan = context.watch<PenangananProvider>().getPenangananByFormulir(laporan.formulirId);
 
     return Scaffold(

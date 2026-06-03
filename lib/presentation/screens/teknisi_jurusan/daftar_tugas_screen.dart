@@ -48,7 +48,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
     ),
     _TabFilter(
       label: 'Dikerjakan',
-      filterStatus: StatusPenanganan.sedangDikerjakan,
+      filterStatus: StatusPenanganan.mulaiDikerjakan,
     ),
   ];
 

@@ -1,4 +1,5 @@
 import '../../../core/supabase/supabase_service.dart';
+import '../../../core/utils/status_mapper.dart';
 import '../../models/laporan_lokal.dart';
 import '../../models/penanganan.dart';
 
@@ -144,8 +145,9 @@ class PenangananRemoteDatasource {
     String status, {
     String? updatedAt,
   }) async {
+    final statusCloud = StatusMapper.toSupabaseStatus(status);
     await _db.from('formulir_laporan').update({
-      'status': status,
+      'status': statusCloud,
       'updated_at': updatedAt ?? DateTime.now().toIso8601String(),
     }).eq('formulir_id', formulirId);
   }

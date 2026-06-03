@@ -57,15 +57,11 @@ class StatusDisplay {
       return (label: 'Menunggu', color: accentOrange);
     }
     switch (status) {
-      case StatusPenanganan.sedangDikerjakan:
-        return (label: StatusPenanganan.toLabel(status), color: blueDikerjakan);
       case StatusPenanganan.selesai:
         return (label: StatusPenanganan.toLabel(status), color: greenSelesai);
-      case StatusPenanganan.menungguEskalasi:
-        return (label: StatusPenanganan.toLabel(status), color: Colors.red);
       case StatusPenanganan.mulaiDikerjakan:
       default:
-        return (label: StatusPenanganan.toLabel(status), color: accentOrange);
+        return (label: StatusPenanganan.toLabel(status), color: blueDikerjakan);
     }
   }
 

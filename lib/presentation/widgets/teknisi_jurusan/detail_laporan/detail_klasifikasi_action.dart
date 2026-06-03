@@ -31,6 +31,30 @@ class _DetailKlasifikasiActionState extends State<DetailKlasifikasiAction> {
 
   @override
   Widget build(BuildContext context) {
+    // Jika laporan sudah selesai, tampilkan pesan informasi saja
+    if (widget.laporan.status == StatusLaporan.selesai) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF66BB6A).withOpacity(0.5)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 24),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Laporan ini telah selesai ditangani dan tidak dapat diperbarui lagi.',
+                style: TextStyle(color: Color(0xFF2E7D32), fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
