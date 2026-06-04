@@ -60,7 +60,11 @@ class StatusMapper {
       case 'selesai':
         return 'selesai';
       case 'diteruskan_ke_pusat':
-        return 'diproses'; // tampilkan sebagai diproses di UI pelapor
+        return 'diteruskan_ke_pusat';
+      case 'ditolak':
+        return 'ditolak';
+      case 'menunggu_persetujuan_kajur':
+        return 'menunggu_persetujuan_kajur';
       default:
         debugPrint(
           'StatusMapper.fromSupabaseStatus: status "$statusCloud" tidak dikenal, '
@@ -77,12 +81,22 @@ class StatusMapper {
         return 'Laporan Dibuat';
       case 'laporan_diterima_admin':
         return 'Laporan Diterima Admin';
+      case 'laporan_ditolak':
+        return 'Laporan Ditolak';
       case 'teknisi_ditugaskan':
         return 'Teknisi Ditugaskan';
       case 'teknisi_mulai_periksa':
         return 'Teknisi Memulai Pemeriksaan';
       case 'penanganan_dimulai':
         return 'Penanganan Dimulai';
+      case 'eskalasi_dari_teknisi':
+        return 'Eskalasi dari Teknisi';
+      case 'eskalasi_ditolak':
+        return 'Eskalasi Ditolak';
+      case 'eskalasi_disetujui':
+        return 'Eskalasi Disetujui';
+      case 'kajur_approve_eskalasi':
+        return 'Disetujui Kajur';
       case 'penanganan_selesai':
         return 'Penanganan Selesai';
       case 'diteruskan_ke_pusat':

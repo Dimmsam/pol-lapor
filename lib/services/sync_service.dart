@@ -181,7 +181,7 @@ class SyncService {
         'aktor_id': aktorId,
         'jenis_event': JenisEvent.laporanDibuat,
         'pesan_narasi': 'Laporan berhasil dikirim.',
-        'created_at': DateTime.now().toIso8601String(),
+        'created_at': DateTime.now().toUtc().toIso8601String(),
       });
     } catch (e) {
       debugPrint(

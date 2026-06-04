@@ -148,7 +148,7 @@ class PenangananRemoteDatasource {
     final statusCloud = StatusMapper.toSupabaseStatus(status);
     await _db.from('formulir_laporan').update({
       'status': statusCloud,
-      'updated_at': updatedAt ?? DateTime.now().toIso8601String(),
+      'updated_at': updatedAt ?? DateTime.now().toUtc().toIso8601String(),
     }).eq('formulir_id', formulirId);
   }
 }
