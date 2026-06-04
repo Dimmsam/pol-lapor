@@ -24,6 +24,9 @@ class LaporanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Normalisasi status string agar tidak sensitif terhadap huruf kapital/kecil
+    final currentStatus = laporan.status.toLowerCase();
+
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -155,13 +158,21 @@ class LaporanCard extends StatelessWidget {
 
                   const Spacer(),
 
-                  // ── Tombol Edit (hanya jika status menunggu) ─────────────
-                  if (onEdit != null) ...[
+                  // ── Tombol Edit ──
+                  // Dikunci kondisinya agar tetap muncul jika statusnya menunggu klasifikasi atau ditolak
+                  if (onEdit != null && 
+                      (currentStatus == 'menunggu' || 
+                       currentStatus == 'menungguklasifikasi' || 
+                       currentStatus == 'ditolak')) ...[
                     LaporanActionButton(
                       icon: Icons.edit_outlined,
                       label: 'Edit',
-                      color: const Color(0xFF0D47A1),
-                      bgColor: const Color(0xFFEEF2FF),
+                      color: currentStatus == 'ditolak'
+                          ? const Color(0xFFDC2626) // Merah tegas jika ditolak
+                          : const Color(0xFF0D47A1), // Biru jika menunggu
+                      bgColor: currentStatus == 'ditolak'
+                          ? const Color(0xFFFEE2E2) // Merah pudar
+                          : const Color(0xFFEEF2FF), // Biru pudar
                       onTap: onEdit!,
                     ),
                     const SizedBox(width: 8),
