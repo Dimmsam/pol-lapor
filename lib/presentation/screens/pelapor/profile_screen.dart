@@ -23,17 +23,21 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
       body: SafeArea(
+        // Menghilangkan botom padding agar tidak bentrok ganda dengan BottomNavBar SafeArea
+        bottom: false, 
         child: Column(
           children: [
             _buildTopBar(),
             Expanded(
               child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(), // Menambah efek scrolling halus
                 child: Column(
                   children: [
                     ProfileInfoCard(home: home),
                     const SizedBox(height: 20),
                     _buildMenuSection(context, home),
-                    const SizedBox(height: 24),
+                    // Memberikan jarak aman dinamis di paling bawah agar tidak mepet navbar
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 30), 
                   ],
                 ),
               ),
