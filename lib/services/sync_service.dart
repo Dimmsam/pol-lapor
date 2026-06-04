@@ -92,28 +92,35 @@ class SyncService {
 
       debugPrint('SyncService: memulai sync ${unsyncedLaporan.length} laporan...');
 
-    for (var laporan in unsyncedLaporan) {
-      try {
-        // Step A: Upload foto fisik ke Supabase Storage (jika ada)
-        String? cloudImageUrl;
-        if (laporan.fotoLokalPath != null &&
-            laporan.fotoLokalPath!.isNotEmpty) {
-          cloudImageUrl = await _uploadFotoToSupabase(
-            laporan.fotoLokalPath!,
-            laporan.formulirId,
-          );
-        }
+      for (final laporan in unsyncedLaporan) {
+        await _syncSingleLaporan(laporan, authUser.id);
+      }
 
-        // Step B: Simpan data ke tabel formulir_laporan
-        await _upsertDataToSupabase(laporan, cloudImageUrl);
+      debugPrint('SyncService: sync selesai.');
+    } finally {
+      _isSyncing = false;
+    }
+  }
 
-        // Step B2: Buat entry tracking awal untuk laporan baru
-        await insertInitialTracking(
+  // ── SYNC SATU LAPORAN ─────────────────────────────────────────────────────
+  Future<void> _syncSingleLaporan(LaporanLokal laporan, String aktorId) async {
+    try {
+      // Step A: Upload foto (jika ada path lokal yang belum diupload)
+      String? cloudImageUrl;
+      if (laporan.fotoLokalPath != null && laporan.fotoLokalPath!.isNotEmpty) {
+        cloudImageUrl = await _storage.uploadFotoKerusakan(
+          filePath: laporan.fotoLokalPath!,
           formulirId: laporan.formulirId,
-          aktorId: authUser.id,
-          pesanNarasi: 'Laporan sudah dibuat',
-          status: _mapStatusForSupabase(laporan.status),
         );
+        
+        // Jika upload foto gagal, batalkan sync
+        if (cloudImageUrl == null) {
+          throw Exception('Gagal upload foto, sync dibatalkan untuk laporan ${laporan.formulirId}');
+        }
+      }
+
+      // Step B: Upsert data laporan ke Supabase
+      await _upsertLaporan(laporan, cloudImageUrl);
 
       // Step C: Tandai sebagai synced di Hive
       if (cloudImageUrl != null && cloudImageUrl.isNotEmpty) {
@@ -123,7 +130,7 @@ class SyncService {
       }
 
       // Step D: Insert tracking awal (non-critical — gagal tidak rollback laporan)
-      await insertInitialTracking(
+      await _insertInitialTracking(
         formulirId: laporan.formulirId,
         aktorId: aktorId,
       );
@@ -136,7 +143,7 @@ class SyncService {
   }
 
   // ── UPSERT FORMULIR LAPORAN ───────────────────────────────────────────────
-  Future<void> upsertLaporan(LaporanLokal laporan, String? imageUrl) async {
+  Future<void> _upsertLaporan(LaporanLokal laporan, String? imageUrl) async {
     final pelaporId = laporan.pelaporId.isNotEmpty
         ? laporan.pelaporId
         : SupabaseService.auth.currentUser?.id ?? '';
@@ -163,7 +170,7 @@ class SyncService {
 
   // ── INSERT TRACKING AWAL ──────────────────────────────────────────────────
   /// Insert tracking pertama saat laporan berhasil sync ke Supabase.
-  Future<void> insertInitialTracking({
+  Future<void> _insertInitialTracking({
     required String formulirId,
     required String aktorId,
   }) async {
@@ -182,34 +189,5 @@ class SyncService {
         '(non-critical): $e',
       );
     }
-  }
-
-  Future<bool> laporanExistsOnCloud(String formulirId) async {
-    try {
-      final resp = await supabase
-          .from('formulir_laporan')
-          .select('formulir_id')
-          .eq('formulir_id', formulirId)
-          .maybeSingle();
-
-      return resp != null;
-    } catch (e) {
-      debugPrint('Gagal memeriksa keberadaan laporan di cloud: $e');
-      return false;
-    }
-  }
-
-  Future<void> deleteLaporanFromSupabase(String formulirId) async {
-    final authUser = supabase.auth.currentUser;
-    if (authUser == null) {
-      throw Exception('Supabase auth belum tersedia. Hapus cloud gagal.');
-    }
-
-    await supabase
-        .from('formulir_laporan')
-        .delete()
-        .eq('formulir_id', formulirId);
-
-    debugPrint('Laporan $formulirId dihapus dari Supabase.');
   }
 }
