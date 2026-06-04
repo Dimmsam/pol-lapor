@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../logic/providers/penanganan_provider.dart';
 import '../../../logic/providers/tracking_provider.dart';
+import '../../../logic/providers/notifikasi_provider.dart';
 import '../../../data/models/laporan_lokal.dart';
 import '../../../data/models/user_session.dart';
 import '../../widgets/teknisi_jurusan/detail_laporan/detail_foto_kerusakan.dart';
@@ -37,28 +38,40 @@ class _DetailLaporanTeknisiScreenState
   static const Color _primaryColor = Color(0xFF1A237E);
   static const Color _bgColor = Color(0xFFF5F6FA);
 
+  late TrackingProvider _trackingProvider;
+
   @override
   void initState() {
     super.initState();
+    _trackingProvider = context.read<TrackingProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final tp = context.read<TrackingProvider>();
-      tp.fetchRiwayat(widget.laporan.formulirId);
-      tp.startRealtimeListener(widget.laporan.formulirId);
+      _trackingProvider.fetchRiwayat(widget.laporan.formulirId);
+      _trackingProvider.startRealtimeListener(widget.laporan.formulirId);
+      
+      // Refresh tugas dari server agar status selalu terupdate (misal jika ditolak/dieskalasi)
+      context.read<PenangananProvider>().loadDaftarTugas(teknisiId: widget.userSession.userId);
     });
   }
 
   @override
   void dispose() {
-    // Hanya stop realtime, jangan dispose provider karena dikelola oleh MultiProvider
-    context.read<TrackingProvider>().stopRealtimeListener();
+    // Gunakan referensi provider yang disimpan di initState
+    _trackingProvider.stopRealtimeListener();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PenangananProvider>();
+    
+    // Cari laporan terbaru dari provider jika ada (agar auto-refresh setelah ada perubahan status dari admin)
+    final laporanTerbaru = provider.daftarTugas.firstWhere(
+      (l) => l.formulirId == widget.laporan.formulirId,
+      orElse: () => widget.laporan,
+    );
+    
     final penanganan = provider.getPenangananByFormulir(
-      widget.laporan.formulirId,
+      laporanTerbaru.formulirId,
     );
     final sudahMulai = penanganan != null;
 
@@ -73,9 +86,52 @@ class _DetailLaporanTeknisiScreenState
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_outlined),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/notif',
+                    arguments: widget.userSession,
+                  );
+                },
+                icon: const Icon(Icons.notifications_outlined),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Consumer<NotifikasiProvider>(
+                  builder: (context, notifProvider, _) {
+                    final notifCount = notifProvider.unreadCount;
+                    if (notifCount == 0) return const SizedBox.shrink();
+                    return Container(
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: _primaryColor, width: 1.5),
+                      ),
+                      child: Center(
+                        child: Text(
+                          notifCount > 9 ? '9+' : notifCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -84,14 +140,14 @@ class _DetailLaporanTeknisiScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DetailFotoKerusakan(fotoKerusakanUrl: widget.laporan.fotoKerusakanUrl),
+            DetailFotoKerusakan(fotoKerusakanUrl: laporanTerbaru.fotoKerusakanUrl),
             const SizedBox(height: 16),
-            DetailInfoLaporan(laporan: widget.laporan, penanganan: penanganan),
+            DetailInfoLaporan(laporan: laporanTerbaru, penanganan: penanganan),
             const SizedBox(height: 16),
-            DetailTrackingStatus(laporan: widget.laporan),
+            DetailTrackingStatus(laporan: laporanTerbaru),
             const SizedBox(height: 20),
             DetailKlasifikasiAction(
-              laporan: widget.laporan,
+              laporan: laporanTerbaru,
               penanganan: penanganan,
               userSession: widget.userSession,
               provider: provider,

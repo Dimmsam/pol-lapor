@@ -90,7 +90,7 @@ class DashboardTeknisiHeader extends StatelessWidget {
                             onPressed: () {
                               Navigator.pushNamed(
                                 context,
-                                '/notifikasi',
+                                '/notif',
                                 arguments: userSession,
                               );
                             },

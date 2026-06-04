@@ -32,15 +32,36 @@ class PenangananProvider extends ChangeNotifier {
   Penanganan? getPenangananByFormulir(String formulirId) =>
       _mapPenanganan[formulirId];
 
-  List<LaporanLokal> filterTugasByStatus(String? filterStatus) {
-    if (filterStatus == null) return _daftarTugas;
+  List<LaporanLokal> filterTugasByStatus(String filterType) {
+    if (filterType == 'semua') return _daftarTugas;
 
     return _daftarTugas.where((laporan) {
       final penanganan = _mapPenanganan[laporan.formulirId];
-      if (penanganan == null) {
-        return filterStatus == StatusPenanganan.mulaiDikerjakan;
+      
+      switch (filterType) {
+        case 'menunggu':
+          // Belum ada penanganan
+          return penanganan == null;
+          
+        case 'dikerjakan':
+          // Sudah ada penanganan & laporan masih diproses
+          return penanganan != null && 
+                 laporan.status == StatusLaporan.diproses && 
+                 penanganan.statusPenanganan != StatusPenanganan.selesai;
+                 
+        case 'eskalasi':
+          // Diteruskan ke pusat atau menunggu persetujuan kajur
+          return laporan.status == StatusLaporan.diteruskanKePusat ||
+                 laporan.status == StatusLaporan.menungguPersetujuanKajur;
+                 
+        case 'selesai':
+          // Selesai di laporan atau di penanganan
+          return laporan.status == StatusLaporan.selesai || 
+                 (penanganan != null && penanganan.statusPenanganan == StatusPenanganan.selesai);
+                 
+        default:
+          return true;
       }
-      return penanganan.statusPenanganan == filterStatus;
     }).toList();
   }
 
@@ -218,26 +239,17 @@ class PenangananProvider extends ChangeNotifier {
         if (fotoUrls.isNotEmpty) 'foto_progres_url': fotoUrls,
       });
 
+      // Langsung update ke status final yang benar (satu kali, tanpa update redundan)
       await _remote.updateStatusFormulir(
         formulirId,
-        StatusLaporan.diproses, // di DB: 'diteruskan_ke_pusat' akan di-set lewat formulir_laporan
+        StatusLaporan.diteruskanKePusat,
         updatedAt: nowStr,
       );
 
-      // Update formulir ke status diteruskan_ke_pusat langsung
-      try {
-        await SupabaseService.db
-            .from('formulir_laporan')
-            .update({'status': 'diteruskan_ke_pusat', 'updated_at': nowStr})
-            .eq('formulir_id', formulirId);
-      } catch (e) {
-        debugPrint('Update diteruskan_ke_pusat error (non-critical): $e');
-      }
-
       await _insertTrackingLog(
         formulirId: formulirId,
-        statusBaru: StatusLaporan.menungguKlasifikasi,
-        jenisEvent: JenisEvent.diteruskanKePusat,
+        statusBaru: StatusLaporan.diteruskanKePusat,
+        jenisEvent: JenisEvent.eskalasiDariTeknisi,
         keterangan:
             'Teknisi Jurusan mengajukan eskalasi ke Admin. '
             'Kategori: $kategoriKerusakan. Catatan: $catatanEskalasi',
@@ -282,7 +294,7 @@ class PenangananProvider extends ChangeNotifier {
     _setLoading(true);
 
     try {
-      final nowStr = DateTime.now().toIso8601String();
+      final nowStr = DateTime.now().toUtc().toIso8601String();
       final penanganan = _mapPenanganan[formulirId];
       if (penanganan == null) {
         throw Exception('Penanganan tidak ditemukan untuk formulir ini.');

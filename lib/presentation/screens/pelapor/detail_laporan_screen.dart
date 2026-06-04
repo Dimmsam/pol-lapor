@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -23,33 +22,30 @@ class DetailLaporanScreen extends StatefulWidget {
 
 class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
   bool _showTracking = true;
-  bool _isDisposed = false;
+
+  late TrackingProvider _trackingProvider;
 
   @override
   void initState() {
     super.initState();
+    _trackingProvider = context.read<TrackingProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_isDisposed && mounted) {
-        final tp = context.read<TrackingProvider>();
-        tp.fetchRiwayat(widget.laporan.formulirId);
-        tp.startRealtimeListener(widget.laporan.formulirId);
+      if (mounted) {
+        _trackingProvider.fetchRiwayat(widget.laporan.formulirId);
+        _trackingProvider.startRealtimeListener(widget.laporan.formulirId);
 
         // Fetch penanganan untuk mendapatkan fotoHasilUrl
         context.read<PenangananProvider>().fetchPenangananForFormulir(widget.laporan.formulirId);
+
+        // Refresh laporan dari server agar status selalu terupdate (misal jika ditolak/dieskalasi)
+        context.read<LaporanProvider>().syncFromRemote();
       }
     });
   }
 
   @override
   void dispose() {
-    _isDisposed = true;
-    if (mounted) {
-      try {
-        context.read<TrackingProvider>().stopRealtimeListener();
-      } catch (e) {
-        debugPrint('Error stopping listener: $e');
-      }
-    }
+    _trackingProvider.stopRealtimeListener();
     super.dispose();
   }
 

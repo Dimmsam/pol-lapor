@@ -23,6 +23,15 @@ class _LaporanScreenState extends State<LaporanScreen> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Fetch laporan publik dari server agar status selalu akurat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LaporanProvider>().fetchLaporanPublik();
+    });
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
@@ -328,7 +337,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        await context.read<LaporanProvider>().syncFromRemote();
+        if (isPublic) {
+          await context.read<LaporanProvider>().fetchLaporanPublik();
+        } else {
+          await context.read<LaporanProvider>().syncFromRemote();
+        }
       },
       color: const Color(0xFF0D47A1),
       backgroundColor: Colors.white,

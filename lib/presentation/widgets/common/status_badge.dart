@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/models/penanganan.dart';
+import '../../../data/models/laporan_lokal.dart';
 import 'status_display.dart';
 
 /// Badge status laporan untuk pelapor (pill, background penuh).
@@ -36,18 +37,30 @@ class LaporanTeknisiStatusBadge extends StatelessWidget {
 /// Badge status penanganan untuk daftar tugas & detail teknisi.
 class PenangananStatusBadge extends StatelessWidget {
   final String? statusPenanganan;
+  final LaporanLokal? laporan;
 
-  const PenangananStatusBadge({super.key, this.statusPenanganan});
+  const PenangananStatusBadge({super.key, this.statusPenanganan, this.laporan});
 
   @override
   Widget build(BuildContext context) {
+    // Prioritaskan status laporan jika sudah selesai atau dieskalasi
+    if (laporan != null) {
+      if (laporan!.status == StatusLaporan.selesai) {
+        return OutlinedStatusBadge(label: 'Selesai', color: StatusDisplay.greenSelesai);
+      } else if (laporan!.status == StatusLaporan.diteruskanKePusat || 
+                 laporan!.status == StatusLaporan.menungguPersetujuanKajur) {
+        return OutlinedStatusBadge(label: 'Eskalasi', color: StatusDisplay.accentOrange);
+      }
+    }
+
     final style = StatusDisplay.penanganan(statusPenanganan);
     return OutlinedStatusBadge(label: style.label, color: style.color);
   }
 
-  factory PenangananStatusBadge.fromPenanganan(Penanganan? penanganan) {
+  factory PenangananStatusBadge.fromPenanganan(Penanganan? penanganan, {LaporanLokal? laporan}) {
     return PenangananStatusBadge(
       statusPenanganan: penanganan?.statusPenanganan,
+      laporan: laporan,
     );
   }
 }

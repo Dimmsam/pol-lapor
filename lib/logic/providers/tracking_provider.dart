@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/models/tracking.dart';
 import '../../data/datasources/remote/tracking_remote_datasource.dart';
+import '../../core/constants/app_constants.dart';
 
 class TrackingProvider extends ChangeNotifier {
   final TrackingRemoteDatasource _trackingRemote = TrackingRemoteDatasource();
@@ -8,12 +9,83 @@ class TrackingProvider extends ChangeNotifier {
   List<Tracking> _riwayatTracking = [];
   List<Tracking> get riwayatTracking => _riwayatTracking;
 
+  /// Apakah ada event eskalasi (untuk teknisi — tampil begitu teknisi submit)
+  bool get hasEskalasiTeknisi {
+    return _riwayatTracking.any((e) => 
+      e.jenisEvent == 'eskalasi_dari_teknisi' || 
+      e.jenisEvent == 'eskalasi_disetujui' || 
+      e.jenisEvent == 'eskalasi_ditolak' ||
+      e.jenisEvent == 'kajur_approve_eskalasi' || 
+      e.jenisEvent == 'diteruskan_ke_pusat'
+    );
+  }
+
+  /// Apakah ada eskalasi yang sudah di-review admin (untuk pelapor)
+  /// Catatan: Jika eskalasi ditolak, pelapor tidak perlu tahu.
+  /// Pelapor hanya tahu laporan "Dalam Penanganan".
+  bool get hasEskalasiPelapor {
+    final lastEskalasiEvent = _riwayatTracking.lastWhere(
+      (e) => 
+          e.jenisEvent == 'eskalasi_dari_teknisi' ||
+          e.jenisEvent == 'eskalasi_disetujui' ||
+          e.jenisEvent == 'eskalasi_ditolak' ||
+          e.jenisEvent == 'kajur_approve_eskalasi' ||
+          e.jenisEvent == 'diteruskan_ke_pusat',
+      orElse: () => Tracking(trackingId: '', formulirId: '', aktorId: '', pesanNarasi: '', createdAt: DateTime.now()),
+    );
+
+    return lastEskalasiEvent.jenisEvent == 'eskalasi_disetujui' || 
+           lastEskalasiEvent.jenisEvent == 'kajur_approve_eskalasi' || 
+           lastEskalasiEvent.jenisEvent == 'diteruskan_ke_pusat';
+  }
+
+  /// Hitung currentStep berdasarkan daftar steps tertentu.
+  /// Ini memungkinkan Pelapor dan Teknisi punya step list berbeda
+  /// tapi tetap mendapat currentStep yang benar.
+  int currentStepFor(List<Map<String, dynamic>> steps) {
+    if (_riwayatTracking.isEmpty) return 0;
+
+    // Special: laporan ditolak → tetap di step 1 (Ditinjau Admin)
+    if (_riwayatTracking.any((e) => e.jenisEvent == 'laporan_ditolak')) {
+      return 1;
+    }
+
+    // Special: eskalasi ditolak → kembali ke step 3 (Dalam Penanganan)
+    // TAPI pastikan penolakan itu adalah status eskalasi TERAKHIR.
+    // Jika ada eskalasi baru diajukan, maka jangan rollback.
+    final lastEskalasiEvent = _riwayatTracking.lastWhere(
+      (e) => 
+          e.jenisEvent == 'eskalasi_dari_teknisi' ||
+          e.jenisEvent == 'eskalasi_disetujui' ||
+          e.jenisEvent == 'eskalasi_ditolak' ||
+          e.jenisEvent == 'kajur_approve_eskalasi' ||
+          e.jenisEvent == 'diteruskan_ke_pusat',
+      orElse: () => Tracking(trackingId: '', formulirId: '', aktorId: '', pesanNarasi: '', createdAt: DateTime.now()),
+    );
+
+    if (lastEskalasiEvent.jenisEvent == 'eskalasi_ditolak') {
+      final hasFinished = _riwayatTracking.any((e) => e.jenisEvent == 'penanganan_selesai');
+      if (!hasFinished) {
+        return 3; // Dalam Penanganan — teknisi harus lanjut kerja
+      }
+    }
+
+    // Normal: iterasi mundur, cari step terjauh yang punya event
+    for (int i = steps.length - 1; i >= 0; i--) {
+      final eventsForStep = steps[i]['events'] as List<String>;
+      final hasEvent = _riwayatTracking.any((e) => eventsForStep.contains(e.jenisEvent));
+      if (hasEvent) {
+        return i;
+      }
+    }
+    
+    return 0;
+  }
+
+  /// Legacy getter (backward compat)
   int get currentStep {
-    if (_riwayatTracking.any((e) => e.jenisEvent == 'penanganan_selesai')) return 4;
-    if (_riwayatTracking.any((e) => e.jenisEvent == 'penanganan_dimulai' || e.jenisEvent == 'teknisi_mulai_periksa')) return 3;
-    if (_riwayatTracking.any((e) => e.jenisEvent == 'teknisi_ditugaskan')) return 2;
-    if (_riwayatTracking.any((e) => e.jenisEvent == 'laporan_diterima_admin')) return 1;
-    return 0; // Default / laporan_dibuat
+    final steps = AppConstants.buildTrackingSteps(showEskalasi: hasEskalasiTeknisi);
+    return currentStepFor(steps);
   }
 
   bool _isLoading = false;
@@ -64,7 +136,8 @@ class TrackingProvider extends ChangeNotifier {
         );
         if (!exists) {
           _riwayatTracking.add(newTracking);
-          _riwayatTracking.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          // Bug 1 FIX: Samakan sort order dengan fetch (ascending)
+          _riwayatTracking.sort((a, b) => a.createdAt.compareTo(b.createdAt));
           notifyListeners();
         }
       },
@@ -73,10 +146,18 @@ class TrackingProvider extends ChangeNotifier {
 
 
   /// Hentikan listener realtime (dipanggil saat screen di-dispose).
+  /// Bug 7 FIX: Tidak lagi menghapus _riwayatTracking.
   void stopRealtimeListener() {
     _trackingRemote.unsubscribe();
     _currentFormulirId = null;
+    // JANGAN hapus _riwayatTracking di sini — data masih bisa dibutuhkan
+  }
+
+  /// Bersihkan semua data tracking (dipanggil saat benar-benar reset).
+  void clearTrackingData() {
     _riwayatTracking = [];
+    _currentFormulirId = null;
+    notifyListeners();
   }
 
   // ─── COMBINED: Catat tracking baru lalu refresh list ──────────────────────

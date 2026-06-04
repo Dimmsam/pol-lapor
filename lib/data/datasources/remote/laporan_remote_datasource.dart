@@ -108,7 +108,7 @@ class LaporanRemoteDatasource {
       'nama_sarana': namaSarana,
       'keterangan_kerusakan': keteranganKerusakan,
       'nomor_inventaris': nomorInventaris,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
     };
 
     if (namaRuangan != null) {

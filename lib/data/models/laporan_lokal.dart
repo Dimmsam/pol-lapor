@@ -2,11 +2,13 @@ import 'package:hive/hive.dart';
 
 part 'laporan_lokal.g.dart';
 
-// STATUS CONSTANT 
 class StatusLaporan {
   static const String menungguKlasifikasi = 'menunggu_klasifikasi';
   static const String diproses = 'diproses';
   static const String selesai = 'selesai';
+  static const String diteruskanKePusat = 'diteruskan_ke_pusat';
+  static const String menungguPersetujuanKajur = 'menunggu_persetujuan_kajur';
+  static const String ditolak = 'ditolak';
 
   /// Label tampilan UI
   static String toLabel(String status) {
@@ -15,6 +17,12 @@ class StatusLaporan {
         return 'Diproses';
       case selesai:
         return 'Selesai';
+      case menungguPersetujuanKajur:
+        return 'Menunggu Kajur';
+      case diteruskanKePusat:
+        return 'Diteruskan ke Pusat';
+      case ditolak:
+        return 'Ditolak';
       case menungguKlasifikasi:
       default:
         return 'Menunggu';
@@ -28,6 +36,12 @@ class StatusLaporan {
         return 'Laporan Selesai';
       case diproses:
         return 'Laporan Diproses';
+      case menungguPersetujuanKajur:
+        return 'Laporan Menunggu Kajur';
+      case diteruskanKePusat:
+        return 'Laporan Diteruskan ke Pusat';
+      case ditolak:
+        return 'Laporan Ditolak';
       case menungguKlasifikasi:
         return 'Laporan Baru Masuk';
       default:
@@ -42,6 +56,9 @@ class StatusLaporan {
         return 'Dikerjakan';
       case selesai:
         return 'Selesai';
+      case menungguPersetujuanKajur:
+      case diteruskanKePusat:
+        return 'Eskalasi';
       case menungguKlasifikasi:
       default:
         return 'Menunggu';
@@ -121,10 +138,10 @@ class LaporanLokal extends HiveObject {
           : json['pelapor_id'] as String? ?? '',
       isSynced: true,
       createdAt: DateTime.parse(
-        json['created_at'] as String? ?? DateTime.now().toIso8601String(),
+        json['created_at'] as String? ?? DateTime.now().toUtc().toIso8601String(),
       ),
       updatedAt: DateTime.parse(
-        json['updated_at'] as String? ?? DateTime.now().toIso8601String(),
+        json['updated_at'] as String? ?? DateTime.now().toUtc().toIso8601String(),
       ),
     );
   }
