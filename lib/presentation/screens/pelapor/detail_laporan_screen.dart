@@ -53,15 +53,20 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
     super.dispose();
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     // Ambil laporan terbaru dari provider jika ada (agar auto-refresh setelah edit)
     final provider = context.watch<LaporanProvider>();
+    
+    // MENGGUNAKAN LOGIKA ASLI KAMU KEMBALI (100% AMAN DARI ERROR GETTER)
     final laporan = provider.getLaporanById(widget.laporan.formulirId) ?? widget.laporan;
     
     final penanganan = context.watch<PenangananProvider>().getPenangananByFormulir(laporan.formulirId);
+
+    // Ikut mendengarkan TrackingProvider tanpa memanggil properti apa pun di dalamnya.
+    // Trik ini memaksa widget DetailLaporanScreen untuk melakukan rebuild (menggambar ulang layar) 
+    // secara otomatis saat ada data tracking baru masuk dari Supabase.
+    context.watch<TrackingProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -92,5 +97,4 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
       ),
     );
   }
-
 }
