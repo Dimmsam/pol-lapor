@@ -19,6 +19,9 @@ class LaporanProvider extends ChangeNotifier {
   int _totalDiproses = 0;
   int _totalSelesai = 0;
   int _totalMenunggu = 0;
+  // ── SISIPAN BARU ──
+  int _totalDitolak = 0; 
+  
   ValueListenable<Box<LaporanLokal>>? _listenable;
   VoidCallback? _listener;
 
@@ -31,6 +34,9 @@ class LaporanProvider extends ChangeNotifier {
   int get totalDiproses => _totalDiproses;
   int get totalSelesai => _totalSelesai;
   int get totalMenunggu => _totalMenunggu;
+  // ── SISIPAN BARU ──
+  int get totalDitolak => _totalDitolak; 
+  
   String get namaUser => _session?.nama ?? '-';
   String get roleUser => _session?.role ?? '-';
   String get emailUser => _session?.email ?? '-';
@@ -57,6 +63,9 @@ class LaporanProvider extends ChangeNotifier {
     _totalDiproses = 0;
     _totalSelesai = 0;
     _totalMenunggu = 0;
+    // ── SISIPAN BARU ──
+    _totalDitolak = 0; 
+    
     if (_listenable != null && _listener != null) {
       _listenable!.removeListener(_listener!);
     }
@@ -132,7 +141,11 @@ class LaporanProvider extends ChangeNotifier {
     _totalSelesai =
         milikku.where((l) => l.status == StatusLaporan.selesai).length;
     _totalMenunggu = milikku
-        .where((l) => l.status == StatusLaporan.menungguKlasifikasi)
+        .where((l) => l.status == StatusLaporan.menungguKlasifikasi) // <─── SUDAH DIPERBAIKI AMAN
+        .length;
+    // ── SISIPAN BARU ──
+    _totalDitolak = milikku
+        .where((l) => l.status.toLowerCase() == 'ditolak')
         .length;
   }
 
@@ -149,7 +162,8 @@ class LaporanProvider extends ChangeNotifier {
 
   bool canEdit(LaporanLokal laporan) {
     return isOwner(laporan) &&
-        laporan.status == StatusLaporan.menungguKlasifikasi;
+        (laporan.status == StatusLaporan.menungguKlasifikasi || // <─── SUDAH DIPERBAIKI AMAN
+         laporan.status.toLowerCase() == 'ditolak');
   }
 
   Future<void> deleteLaporan(LaporanLokal laporan) async {
@@ -201,7 +215,6 @@ class LaporanProvider extends ChangeNotifier {
 
     _listenable!.addListener(_listener!);
   }
-
 
   @override
   void dispose() {
