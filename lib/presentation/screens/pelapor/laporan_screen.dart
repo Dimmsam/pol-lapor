@@ -23,6 +23,15 @@ class _LaporanScreenState extends State<LaporanScreen> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Fetch laporan publik dari server agar status selalu akurat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LaporanProvider>().fetchLaporanPublik();
+    });
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
@@ -280,17 +289,30 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
   Widget _buildList({required bool isPublic}) {
     final laporanProvider = context.watch<LaporanProvider>();
-    var data = laporanProvider.filterLaporan(
-      filterStatus: _filterStatus,
-      searchQuery: _searchQuery,
-    );
 
+    List<LaporanLokal> data;
     if (isPublic) {
-      // Menampilkan semua laporan (publik), termasuk milik sendiri agar mudah di-test
-      // data = data; (tidak perlu difilter)
+      // Tab Publik: gunakan data langsung dari server agar status akurat
+      data = laporanProvider.laporanPublik;
+
+      // Terapkan filter status dan pencarian
+      if (_filterStatus != 'semua') {
+        data = data.where((l) => l.status == _filterStatus).toList();
+      }
+      final query = _searchQuery.trim().toLowerCase();
+      if (query.isNotEmpty) {
+        data = data.where((l) =>
+          l.namaSarana.toLowerCase().contains(query) ||
+          l.keteranganKerusakan.toLowerCase().contains(query) ||
+          l.lokasiPerbaikan.toLowerCase().contains(query)
+        ).toList();
+      }
     } else {
-      // Menampilkan laporan milik sendiri
-      data = data.where((l) => laporanProvider.isOwner(l)).toList();
+      // Tab Laporanku: data dari Hive lokal (milik sendiri)
+      data = laporanProvider.filterLaporan(
+        filterStatus: _filterStatus,
+        searchQuery: _searchQuery,
+      ).where((l) => laporanProvider.isOwner(l)).toList();
     }
 
     if (data.isEmpty) {
@@ -302,7 +324,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        await context.read<LaporanProvider>().syncFromRemote();
+        if (isPublic) {
+          await context.read<LaporanProvider>().fetchLaporanPublik();
+        } else {
+          await context.read<LaporanProvider>().syncFromRemote();
+        }
       },
       color: const Color(0xFF0D47A1),
       backgroundColor: Colors.white,

@@ -8,12 +8,14 @@ class DashboardTeknisiLaporanTerbaru extends StatelessWidget {
   final List<LaporanLokal> laporanTerbaru;
   final UserSession userSession;
   final Color primaryColor;
+  final VoidCallback? onLihatSemua;
 
   const DashboardTeknisiLaporanTerbaru({
     super.key,
     required this.laporanTerbaru,
     required this.userSession,
     required this.primaryColor,
+    this.onLihatSemua,
   });
 
   @override
@@ -44,13 +46,7 @@ class DashboardTeknisiLaporanTerbaru extends StatelessWidget {
           ),
         ),
         TextButton(
-          onPressed: () {
-            Navigator.pushReplacementNamed(
-              context,
-              '/daftar-tugas-teknisi-jurusan',
-              arguments: userSession,
-            );
-          },
+          onPressed: onLihatSemua,
           child: Text(
             'Lihat Semua',
             style: TextStyle(

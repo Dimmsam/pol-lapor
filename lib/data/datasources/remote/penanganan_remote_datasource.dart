@@ -84,12 +84,13 @@ class PenangananRemoteDatasource {
 
     for (final row in (response as List)) {
       final status = row['status_penanganan'] as String?;
-      if (status == null || status == StatusPenanganan.mulaiDikerjakan) {
-        belumDimulai++;
-      } else if (status == StatusPenanganan.selesai) {
+      if (status == StatusPenanganan.selesai) {
         selesai++;
-      } else {
+      } else if (status == StatusPenanganan.mulaiDikerjakan || status != null) {
+        // mulai_dikerjakan = sedang aktif dikerjakan
         aktif++;
+      } else {
+        belumDimulai++;
       }
     }
 

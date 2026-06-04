@@ -261,7 +261,7 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ProfilTeknisiScreen()),
+                MaterialPageRoute(builder: (_) => ProfilTeknisiScreen(userSession: widget.userSession)),
               );
             },
             borderRadius: BorderRadius.circular(12),

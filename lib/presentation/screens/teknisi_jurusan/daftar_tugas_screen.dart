@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../logic/providers/penanganan_provider.dart';
+import '../../../logic/providers/notifikasi_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/string_extension.dart';
 import '../../../data/models/laporan_lokal.dart';
@@ -41,15 +42,11 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
 
   // ─── Tab Filter ──────────────────────────────────────────────────────────
   final List<_TabFilter> _tabs = const [
-    _TabFilter(label: 'Semua', filterStatus: null),
-    _TabFilter(
-      label: 'Menunggu',
-      filterStatus: StatusPenanganan.mulaiDikerjakan,
-    ),
-    _TabFilter(
-      label: 'Dikerjakan',
-      filterStatus: StatusPenanganan.mulaiDikerjakan,
-    ),
+    _TabFilter(label: 'Semua', filterType: 'semua'),
+    _TabFilter(label: 'Menunggu', filterType: 'menunggu'),
+    _TabFilter(label: 'Dikerjakan', filterType: 'dikerjakan'),
+    _TabFilter(label: 'Eskalasi', filterType: 'eskalasi'),
+    _TabFilter(label: 'Selesai', filterType: 'selesai'),
   ];
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────
@@ -115,7 +112,7 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
                     controller: _tabController,
                     children: _tabs.map((tab) {
                       final filtered = provider.filterTugasByStatus(
-                        tab.filterStatus,
+                        tab.filterType,
                       );
                       return _buildListTugas(filtered, provider);
                     }).toList(),
@@ -164,6 +161,41 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
             ),
           ),
           const Spacer(),
+          // Ikon notifikasi dengan badge
+          Consumer<NotifikasiProvider>(
+            builder: (context, notifProvider, _) {
+              final count = notifProvider.unreadCount;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined, color: Color(0xFF1A237E)),
+                    onPressed: () => Navigator.pushNamed(context, '/notif'),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(
+                            count > 9 ? '9+' : count.toString(),
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 4),
           // Avatar teknisi
           CircleAvatar(
             radius: 18,
@@ -268,6 +300,6 @@ class _DaftarTugasScreenState extends State<DaftarTugasScreen>
 // ─── Model Tab Filter ─────────────────────────────────────────────────────────
 class _TabFilter {
   final String label;
-  final String? filterStatus;
-  const _TabFilter({required this.label, this.filterStatus});
+  final String filterType;
+  const _TabFilter({required this.label, required this.filterType});
 }

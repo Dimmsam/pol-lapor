@@ -117,10 +117,8 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.popUntil(
-        context,
-        (route) => route.settings.name == '/daftar-tugas-teknisi-jurusan',
-      );
+      // Kembali ke halaman detail laporan
+      Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -113,53 +113,7 @@ class ProfilTeknisiMenu extends StatelessWidget {
               );
             },
           ),
-          const Divider(height: 1),
-          ListTile(
-            leading: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0F3F6),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.sync, color: Colors.black54),
-            ),
-            title: const Text('Status Sinkronisasi'),
-            subtitle: const Text(
-              'Semua data tersinkron',
-              style: TextStyle(color: Colors.green, fontSize: 12),
-            ),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Semua data sudah tersinkron')),
-              );
-            },
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0F3F6),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.notifications, color: Colors.black54),
-            ),
-            title: const Text('Pengaturan Notifikasi'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const _SimplePlaceholder(
-                    title: 'Pengaturan Notifikasi (Teknisi)',
-                  ),
-                ),
-              );
-            },
-          ),
-          const Divider(height: 1),
+
           ListTile(
             leading: Container(
               width: 40,

@@ -14,6 +14,8 @@ class LaporanProvider extends ChangeNotifier {
 
   UserSession? _session;
   List<LaporanLokal> _laporanList = [];
+  List<LaporanLokal> _laporanPublik = []; // Laporan publik langsung dari server
+  bool _isLoadingPublik = false;
   int _totalLaporan = 0;
   int _totalUnsynced = 0;
   int _totalDiproses = 0;
@@ -36,6 +38,9 @@ class LaporanProvider extends ChangeNotifier {
   String get emailUser => _session?.email ?? '-';
 
   String? get currentUserId => _session?.userId;
+
+  List<LaporanLokal> get laporanPublik => _laporanPublik;
+  bool get isLoadingPublik => _isLoadingPublik;
 
   void init() {
     _session = _auth.getSession();
@@ -81,6 +86,24 @@ class LaporanProvider extends ChangeNotifier {
   /// Method publik untuk trigger sync manual (misal pull-to-refresh)
   Future<void> syncFromRemote() async {
     await _syncFromRemote();
+  }
+
+  /// Fetch semua laporan publik langsung dari server (bukan dari Hive lokal).
+  /// Ini penting agar status di laporan publik selalu akurat sesuai database.
+  Future<void> fetchLaporanPublik() async {
+    _isLoadingPublik = true;
+    notifyListeners();
+    try {
+      final remoteData = await _laporanRemote.fetchAllLaporan();
+      _laporanPublik = remoteData
+          .map((json) => LaporanLokal.fromSupabaseJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('fetchLaporanPublik error: $e');
+    } finally {
+      _isLoadingPublik = false;
+      notifyListeners();
+    }
   }
 
   List<LaporanLokal> recentLaporan({int limit = 3}) {
@@ -148,8 +171,11 @@ class LaporanProvider extends ChangeNotifier {
   bool canDelete(LaporanLokal laporan) => isOwner(laporan);
 
   bool canEdit(LaporanLokal laporan) {
-    return isOwner(laporan) &&
-        laporan.status == StatusLaporan.menungguKlasifikasi;
+    // Hanya owner yang bisa edit
+    if (!isOwner(laporan)) return false;
+    // Tidak bisa edit kalau sudah diproses teknisi atau selesai
+    return laporan.status != StatusLaporan.selesai &&
+        laporan.status != StatusLaporan.diproses;
   }
 
   Future<void> deleteLaporan(LaporanLokal laporan) async {

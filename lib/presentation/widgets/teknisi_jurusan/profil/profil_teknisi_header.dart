@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../../logic/providers/auth_provider.dart';
+import '../../../../../data/models/user_session.dart';
 import '../../../../../core/utils/string_extension.dart';
 
 class ProfilTeknisiHeader extends StatelessWidget {
   final Color navyColor;
+  final UserSession userSession;
 
   const ProfilTeknisiHeader({
     super.key,
     required this.navyColor,
+    required this.userSession,
   });
 
   @override
@@ -33,37 +35,23 @@ class ProfilTeknisiHeader extends StatelessWidget {
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFE6E9EE), width: 1)),
       ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 18,
-            backgroundColor: Colors.blueGrey,
-            child: Icon(Icons.person, color: Colors.white, size: 20),
+      child: Center(
+        child: Text(
+          'Profil Saya',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: navyColor,
           ),
-          const Spacer(),
-          Text(
-            'Profil Saya',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: navyColor,
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.black54),
-            onPressed: () {},
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildProfileCard(BuildContext context) {
-    final session = context.watch<AuthProvider>().session;
-    final nama = session?.nama ?? 'Ahmad Teknisi';
-    final email = session?.email ?? 'teknisi@pol-lapor.local';
-    final role = session?.role ?? 'Teknisi Jurusan Teknik Informatika';
+    final nama = userSession.nama;
+    final email = userSession.email;
+    final role = userSession.role;
 
     return Container(
       padding: const EdgeInsets.all(18),

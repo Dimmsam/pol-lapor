@@ -43,7 +43,7 @@ class DetailInfoLaporan extends StatelessWidget {
                 ],
               ),
             ),
-            PenangananStatusBadge.fromPenanganan(penanganan),
+            PenangananStatusBadge.fromPenanganan(penanganan, laporan: laporan),
           ],
         ),
         const SizedBox(height: 16),

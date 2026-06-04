@@ -54,7 +54,7 @@ class _DashboardTeknisiJurusanScreenState
           children: [
             _buildDashboardContent(),
             DaftarTugasScreen(userSession: widget.userSession),
-            const ProfilTeknisiScreen(),
+            ProfilTeknisiScreen(userSession: widget.userSession),
           ],
         ),
       ),
@@ -105,6 +105,10 @@ class _DashboardTeknisiJurusanScreenState
                       laporanTerbaru: provider.laporanTerbaru,
                       userSession: widget.userSession,
                       primaryColor: _primaryColor,
+                      onLihatSemua: () {
+                        // Pindah ke tab Daftar Tugas (index 1) tanpa push route baru
+                        setState(() => _currentNavIndex = 1);
+                      },
                     ),
                     const SizedBox(height: 80),
                   ]),

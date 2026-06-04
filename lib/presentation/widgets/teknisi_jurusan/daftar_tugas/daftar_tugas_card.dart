@@ -123,7 +123,7 @@ class DaftarTugasCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Badge status penanganan
-                PenangananStatusBadge.fromPenanganan(penanganan),
+                PenangananStatusBadge.fromPenanganan(penanganan, laporan: laporan),
 
                 // Tombol Detail →
                 ElevatedButton(
