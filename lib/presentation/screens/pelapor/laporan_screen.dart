@@ -135,7 +135,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
   void _navigateToEdit(BuildContext context, LaporanLokal laporan) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        // Sesuaikan dengan nama & parameter form laporan kamu
         builder: (_) => FormLaporanScreen(laporanEdit: laporan),
       ),
     );
@@ -289,24 +288,36 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
   Widget _buildList({required bool isPublic}) {
     final laporanProvider = context.watch<LaporanProvider>();
-
     List<LaporanLokal> data;
     if (isPublic) {
       // Tab Publik: gunakan data langsung dari server agar status akurat
       data = laporanProvider.laporanPublik;
 
-      // Terapkan filter status dan pencarian
-      if (_filterStatus != 'semua') {
-        data = data.where((l) => l.status == _filterStatus).toList();
-      }
-      final query = _searchQuery.trim().toLowerCase();
-      if (query.isNotEmpty) {
-        data = data.where((l) =>
-          l.namaSarana.toLowerCase().contains(query) ||
-          l.keteranganKerusakan.toLowerCase().contains(query) ||
-          l.lokasiPerbaikan.toLowerCase().contains(query)
-        ).toList();
-      }
+      // SINKRONISASI FILTER UNTUK TAB "LAPORAN PUBLIK"
+      // Gunakan pemfilteran mandiri yang aman terhadap Case-Sensitive & Search Query
+      data = data.where((l) {
+        final statusLaporan = l.status.toLowerCase();
+        final targetFilter = _filterStatus.toLowerCase();
+        
+        // Pencocokan status filter cerdas
+        bool matchStatus = false;
+        if (targetFilter == 'semua') {
+          matchStatus = true;
+        } else if (targetFilter == 'menunggu' || targetFilter == 'menungguklasifikasi') {
+          matchStatus = statusLaporan == 'menunggu' || statusLaporan == 'menungguklasifikasi';
+        } else {
+          matchStatus = statusLaporan == targetFilter;
+        }
+
+        // Pencocokan kolom pencarian text field
+        final query = _searchQuery.trim().toLowerCase();
+        final matchSearch = query.isEmpty ||
+                            l.namaSarana.toLowerCase().contains(query) ||
+                            l.lokasiPerbaikan.toLowerCase().contains(query) ||
+                            l.keteranganKerusakan.toLowerCase().contains(query);
+
+        return matchStatus && matchSearch;
+      }).toList();
     } else {
       // Tab Laporanku: data dari Hive lokal (milik sendiri)
       data = laporanProvider.filterLaporan(
@@ -335,19 +346,23 @@ class _LaporanScreenState extends State<LaporanScreen> {
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
         itemCount: data.length,
-        itemBuilder: (context, index) {
-          final laporan = data[index];
-          return LaporanCard(
-            laporan: laporan,
-            canDelete: laporanProvider.canDelete(laporan),
-            onDelete: laporanProvider.canDelete(laporan)
-                ? () => _confirmDelete(context, laporan)
-                : null,
-            onEdit: laporanProvider.canEdit(laporan)
-                ? () => _navigateToEdit(context, laporan)
-                : null,
-          );
-        },
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          itemCount: data.length,
+          itemBuilder: (context, index) {
+            final laporan = data[index];
+            return LaporanCard(
+              laporan: laporan,
+              canDelete: laporanProvider.canDelete(laporan),
+              onDelete: laporanProvider.canDelete(laporan)
+                  ? () => _confirmDelete(context, laporan)
+                  : null,
+              onEdit: laporanProvider.canEdit(laporan)
+                  ? () => _navigateToEdit(context, laporan)
+                  : null,
+            );
+          },
+        ),
       ),
     );
   }

@@ -7,38 +7,46 @@ class DashboardStatSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Menggunakan GridView agar susunan kartu 2x2 tetap rapi dan responsive
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: GridView.count(
+        crossAxisCount: 2, // Membagi menjadi 2 kolom
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(), // Agar scroll menyatu dengan halaman induk
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1.4, // Mengatur rasio lebar-tinggi kartu agar proporsional
         children: [
-          Expanded(
-            child: _StatCard(
-              icon: Icons.description_outlined,
-              iconColor: const Color(0xFF4F46E5),
-              iconBg: const Color(0xFFEEF2FF),
-              value: provider.totalLaporan.toString(),
-              label: 'Total',
-            ),
+          _StatCard(
+            icon: Icons.description_outlined,
+            iconColor: const Color(0xFF4F46E5),
+            iconBg: const Color(0xFFEEF2FF),
+            value: provider.totalLaporan.toString(),
+            label: 'Total',
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _StatCard(
-              icon: Icons.schedule_outlined,
-              iconColor: const Color(0xFFD97706),
-              iconBg: const Color(0xFFFEF3C7),
-              value: provider.totalDiproses.toString(),
-              label: 'Diproses',
-            ),
+          _StatCard(
+            icon: Icons.schedule_outlined,
+            iconColor: const Color(0xFFD97706),
+            iconBg: const Color(0xFFFEF3C7),
+            value: provider.totalDiproses.toString(),
+            label: 'Diproses',
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _StatCard(
-              icon: Icons.check_circle_outline_rounded,
-              iconColor: const Color(0xFF059669),
-              iconBg: const Color(0xFFD1FAE5),
-              value: provider.totalSelesai.toString(),
-              label: 'Selesai',
-            ),
+          _StatCard(
+            icon: Icons.check_circle_outline_rounded,
+            iconColor: const Color(0xFF059669),
+            iconBg: const Color(0xFFD1FAE5),
+            value: provider.totalSelesai.toString(),
+            label: 'Selesai',
+          ),
+          // ── KARTU BARU: MELACAK STATUS DITOLAK ──
+          _StatCard(
+            icon: Icons.cancel_outlined,
+            iconColor: const Color(0xFFDC2626), // Warna Merah tegas
+            iconBg: const Color(0xFFFEE2E2),    // Background Merah pudar
+            // Pastikan di LaporanProvider kamu sudah ada getter/variabel 'totalDitolak'
+            value: (provider.totalDitolak).toString(), 
+            label: 'Ditolak',
           ),
         ],
       ),
@@ -64,13 +72,14 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 14, 10, 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE9ECEF), width: 0.5),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, // Memastikan konten vertikal di tengah
         children: [
           Container(
             width: 36,
@@ -81,11 +90,11 @@ class _StatCard extends StatelessWidget {
             ),
             child: Icon(icon, color: iconColor, size: 18),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             value,
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w700,
               color: iconColor,
               letterSpacing: -0.5,
