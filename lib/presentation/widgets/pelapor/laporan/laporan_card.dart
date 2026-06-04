@@ -22,19 +22,21 @@ class LaporanCard extends StatelessWidget {
 
   IconData get _icon => LaporanIconMapper.getIconForSarana(laporan.namaSarana);
 
+  // Helper fungsi untuk navigasi ke halaman detail agar tidak duplikasi kode
+  void _navigateToDetail(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DetailLaporanScreen(laporan: laporan),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Normalisasi status string agar tidak sensitif terhadap huruf kapital/kecil
     final currentStatus = laporan.status.toLowerCase();
 
     return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DetailLaporanScreen(laporan: laporan),
-          ),
-        );
-      },
+      onTap: () => _navigateToDetail(context), // Tetap bisa di-tap di area kartu
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
@@ -158,8 +160,17 @@ class LaporanCard extends StatelessWidget {
 
                   const Spacer(),
 
+                  // ── TOMBOL BARU: DETAIL (Bug 5) ──
+                  LaporanActionButton(
+                    icon: Icons.visibility_outlined,
+                    label: 'Detail',
+                    color: const Color(0xFF4F46E5), // Indigo/Biru elegan untuk navigasi view
+                    bgColor: const Color(0xFFEEF2FF),
+                    onTap: () => _navigateToDetail(context),
+                  ),
+                  const SizedBox(width: 8),
+
                   // ── Tombol Edit ──
-                  // Dikunci kondisinya agar tetap muncul jika statusnya menunggu klasifikasi atau ditolak
                   if (onEdit != null && 
                       (currentStatus == 'menunggu' || 
                        currentStatus == 'menungguklasifikasi' || 
@@ -168,17 +179,17 @@ class LaporanCard extends StatelessWidget {
                       icon: Icons.edit_outlined,
                       label: 'Edit',
                       color: currentStatus == 'ditolak'
-                          ? const Color(0xFFDC2626) // Merah tegas jika ditolak
-                          : const Color(0xFF0D47A1), // Biru jika menunggu
+                          ? const Color(0xFFDC2626)
+                          : const Color(0xFF0D47A1),
                       bgColor: currentStatus == 'ditolak'
-                          ? const Color(0xFFFEE2E2) // Merah pudar
-                          : const Color(0xFFEEF2FF), // Biru pudar
+                          ? const Color(0xFFFEE2E2)
+                          : const Color(0xFFEEF2FF),
                       onTap: onEdit!,
                     ),
                     const SizedBox(width: 8),
                   ],
 
-                  // ── Tombol Hapus (hanya milik sendiri) ────────────────────
+                  // ── Tombol Hapus ──
                   if (canDelete && onDelete != null)
                     LaporanActionButton(
                       icon: Icons.delete_outline_rounded,
