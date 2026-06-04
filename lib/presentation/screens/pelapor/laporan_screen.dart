@@ -135,7 +135,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
   void _navigateToEdit(BuildContext context, LaporanLokal laporan) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        // Sesuaikan dengan nama & parameter form laporan kamu
         builder: (_) => FormLaporanScreen(laporanEdit: laporan),
       ),
     );
@@ -289,30 +288,44 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
   Widget _buildList({required bool isPublic}) {
     final laporanProvider = context.watch<LaporanProvider>();
+    
+    // Ambil data dasar (seluruh data mentah dari database lokal/remote)
+    List<LaporanLokal> data = laporanProvider.getAllLaporan();
 
-    List<LaporanLokal> data;
-    if (isPublic) {
-      // Tab Publik: gunakan data langsung dari server agar status akurat
-      data = laporanProvider.laporanPublik;
-
-      // Terapkan filter status dan pencarian
-      if (_filterStatus != 'semua') {
-        data = data.where((l) => l.status == _filterStatus).toList();
-      }
-      final query = _searchQuery.trim().toLowerCase();
-      if (query.isNotEmpty) {
-        data = data.where((l) =>
-          l.namaSarana.toLowerCase().contains(query) ||
-          l.keteranganKerusakan.toLowerCase().contains(query) ||
-          l.lokasiPerbaikan.toLowerCase().contains(query)
-        ).toList();
-      }
-    } else {
-      // Tab Laporanku: data dari Hive lokal (milik sendiri)
+    if (!isPublic) {
+      // 1. FILTER UNTUK TAB "LAPORANKU" (Milik Sendiri)
+      data = data.where((l) => laporanProvider.isOwner(l)).toList();
+      
+      // Jalankan fungsi penyaringan bawaan provider asli kamu
       data = laporanProvider.filterLaporan(
         filterStatus: _filterStatus,
         searchQuery: _searchQuery,
       ).where((l) => laporanProvider.isOwner(l)).toList();
+      
+    } else {
+      // 2. SINKRONISASI FILTER UNTUK TAB "LAPORAN PUBLIK" (Milik Semua Orang)
+      // Gunakan pemfilteran mandiri yang aman terhadap Case-Sensitive & Search Query
+      data = data.where((l) {
+        final statusLaporan = l.status.toLowerCase();
+        final targetFilter = _filterStatus.toLowerCase();
+        
+        // Pencocokan status filter cerdas
+        bool matchStatus = false;
+        if (targetFilter == 'semua') {
+          matchStatus = true;
+        } else if (targetFilter == 'menunggu' || targetFilter == 'menungguklasifikasi') {
+          matchStatus = statusLaporan == 'menunggu' || statusLaporan == 'menungguklasifikasi';
+        } else {
+          matchStatus = statusLaporan == targetFilter;
+        }
+
+        // Pencocokan kolom pencarian text field
+        final matchSearch = l.namaSarana.toLowerCase().contains(_searchQuery) ||
+                            l.lokasiPerbaikan.toLowerCase().contains(_searchQuery) ||
+                            l.keteranganKerusakan.toLowerCase().contains(_searchQuery);
+
+        return matchStatus && matchSearch;
+      }).toList();
     }
 
     if (data.isEmpty) {
@@ -335,19 +348,23 @@ class _LaporanScreenState extends State<LaporanScreen> {
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
         itemCount: data.length,
-        itemBuilder: (context, index) {
-          final laporan = data[index];
-          return LaporanCard(
-            laporan: laporan,
-            canDelete: laporanProvider.canDelete(laporan),
-            onDelete: laporanProvider.canDelete(laporan)
-                ? () => _confirmDelete(context, laporan)
-                : null,
-            onEdit: laporanProvider.canEdit(laporan)
-                ? () => _navigateToEdit(context, laporan)
-                : null,
-          );
-        },
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          itemCount: data.length,
+          itemBuilder: (context, index) {
+            final laporan = data[index];
+            return LaporanCard(
+              laporan: laporan,
+              canDelete: laporanProvider.canDelete(laporan),
+              onDelete: laporanProvider.canDelete(laporan)
+                  ? () => _confirmDelete(context, laporan)
+                  : null,
+              onEdit: laporanProvider.canEdit(laporan)
+                  ? () => _navigateToEdit(context, laporan)
+                  : null,
+            );
+          },
+        ),
       ),
     );
   }

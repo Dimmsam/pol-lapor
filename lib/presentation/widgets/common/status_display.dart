@@ -16,30 +16,66 @@ class StatusDisplay {
   static ({String label, Color background, Color foreground}) laporan(
     String status,
   ) {
+    // Normalisasi string untuk mengantisipasi perbedaan format dari database/server
+    final statusLower = status.toLowerCase();
+
+    // 1. CEK STATUS DITOLAK TERLEBIH DAHULU
+    if (statusLower == 'ditolak') {
+      return (
+        label: 'Ditolak',
+        background: const Color(0xFFFEE2E2), // Merah pudar
+        foreground: const Color(0xFF991B1B), // Merah tegas
+      );
+    }
+
+    // 2. CEK STATUS ESKALASI / EKSKALASI AGAR SINKRON (Bug 7)
+    if (statusLower == 'eskalasi' || statusLower == 'ekskalasi' || statusLower == 'ditolak eskalasi') {
+      return (
+        label: 'Eskalasi',
+        background: const Color(0xFFE0F2FE), // Biru muda langit (Cyan pudar)
+        foreground: const Color(0xFF0369A1), // Biru langit tegas (Cyan tua)
+      );
+    }
+
+    // 3. JALANKAN SWITCH CASE ASLI UNTUK STATUS STANDAR LAINNYA
     switch (status) {
       case StatusLaporan.selesai:
         return (
           label: StatusLaporan.toLabel(status),
-          background: const Color(0xFFD1FAE5),
-          foreground: const Color(0xFF065F46),
+          background: const Color(0xFFD1FAE5), // Hijau pudar
+          foreground: const Color(0xFF065F46), // Hijau tua
         );
       case StatusLaporan.diproses:
         return (
           label: StatusLaporan.toLabel(status),
-          background: const Color(0xFFFEF3C7),
-          foreground: const Color(0xFFB45309),
+          background: const Color(0xFFFEF3C7), // Kuning pudar
+          foreground: const Color(0xFFB45309), // Cokelat/Oranye tua
+        );
+      case StatusLaporan.menungguKlasifikasi:
+        return (
+          label: StatusLaporan.toLabel(status),
+          background: const Color(0xFFEFF6FF), // Biru pudar
+          foreground: const Color(0xFF1E40AF), // Biru tua
         );
       default:
         return (
           label: StatusLaporan.toLabel(status),
-          background: const Color(0xFFF3F4F6),
-          foreground: const Color(0xFF6B7280),
+          background: const Color(0xFFF3F4F6), // Abu-abu pudar
+          foreground: const Color(0xFF6B7280), // Abu-abu tua
         );
     }
   }
 
   /// Badge outlined untuk kartu laporan di layar teknisi.
   static ({String label, Color color}) laporanTeknisi(String status) {
+    final statusLower = status.toLowerCase();
+    if (statusLower == 'eskalasi' || statusLower == 'ekskalasi') {
+      return (label: 'Eskalasi', color: Colors.purple);
+    }
+    if (statusLower == 'ditolak') {
+      return (label: 'Ditolak', color: Colors.red);
+    }
+
     switch (status) {
       case StatusLaporan.diproses:
         return (label: StatusLaporan.toLabelTeknisi(status), color: blueDikerjakan);
@@ -68,6 +104,11 @@ class StatusDisplay {
   // ── Prioritas tugas (berdasarkan status laporan) ─────────────────────────
 
   static ({String label, Color color}) prioritas(String laporanStatus) {
+    final statusLower = laporanStatus.toLowerCase();
+    if (statusLower == 'eskalasi' || statusLower == 'ekskalasi') {
+      return (label: 'Critical', color: Colors.purple); // <── SUDAH BERSIH DAN AMAN
+    }
+
     switch (laporanStatus) {
       case StatusLaporan.menungguKlasifikasi:
         return (label: 'High', color: Colors.red);
