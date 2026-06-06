@@ -84,11 +84,13 @@ class DetailTrackingCard extends StatelessWidget {
                     
                     // Cek apakah step ini dilewati (skipped) misal dari Admin langsung ke Eskalasi tanpa Teknisi
                     // index > 1 karena Laporan Dibuat (0) dan Ditinjau Admin (1) harusnya tetap centang walaupun eventnya mungkin kurang
-                    final isSkipped = isCompleted && !hasMatchingEvent && index > 1;
+                    final isSkipped = isCompleted && !hasMatchingEvent && index > 1 && laporan.status != StatusLaporan.selesai;
 
                     // Khusus untuk "Dalam Penanganan", jika ada eskalasi berarti penanganan gagal oleh teknisi
                     bool isFailedPenanganan = false;
-                    if (data['title'] == 'Dalam Penanganan' && riwayat.any((e) => e.jenisEvent == 'eskalasi_dari_teknisi')) {
+                    if (data['title'] == 'Dalam Penanganan' && 
+                        riwayat.any((e) => e.jenisEvent == 'eskalasi_dari_teknisi') &&
+                        laporan.status != StatusLaporan.selesai) {
                       isFailedPenanganan = true;
                       try {
                         final eskalasiEvent = riwayat.lastWhere((e) => e.jenisEvent == 'eskalasi_dari_teknisi');
