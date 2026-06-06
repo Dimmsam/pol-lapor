@@ -29,11 +29,19 @@ class StatusDisplay {
     }
 
     // 2. CEK STATUS ESKALASI / EKSKALASI AGAR SINKRON (Bug 7)
-    if (statusLower == 'eskalasi' || statusLower == 'ekskalasi' || statusLower == 'ditolak eskalasi') {
+    if (statusLower == 'eskalasi' || statusLower == 'ekskalasi') {
       return (
         label: 'Eskalasi',
         background: const Color(0xFFE0F2FE), // Biru muda langit (Cyan pudar)
         foreground: const Color(0xFF0369A1), // Biru langit tegas (Cyan tua)
+      );
+    }
+
+    if (statusLower == 'ditolak_eskalasi' || statusLower == 'ditolak eskalasi') {
+      return (
+        label: 'Eskalasi Ditolak',
+        background: const Color(0xFFFEE2E2),
+        foreground: const Color(0xFF991B1B),
       );
     }
 
@@ -72,6 +80,9 @@ class StatusDisplay {
     if (statusLower == 'eskalasi' || statusLower == 'ekskalasi') {
       return (label: 'Eskalasi', color: Colors.purple);
     }
+    if (statusLower == 'ditolak_eskalasi' || statusLower == 'ditolak eskalasi') {
+      return (label: 'Eskalasi Ditolak', color: Colors.red);
+    }
     if (statusLower == 'ditolak') {
       return (label: 'Ditolak', color: Colors.red);
     }
@@ -93,6 +104,8 @@ class StatusDisplay {
       return (label: 'Menunggu', color: accentOrange);
     }
     switch (status) {
+      case StatusPenanganan.ditolakEskalasi:
+        return (label: StatusPenanganan.toLabel(status), color: Colors.red);
       case StatusPenanganan.selesai:
         return (label: StatusPenanganan.toLabel(status), color: greenSelesai);
       case StatusPenanganan.mulaiDikerjakan:
@@ -103,18 +116,16 @@ class StatusDisplay {
 
   // ── Prioritas tugas (berdasarkan status laporan) ─────────────────────────
 
-  static ({String label, Color color}) prioritas(String laporanStatus) {
-    final statusLower = laporanStatus.toLowerCase();
-    if (statusLower == 'eskalasi' || statusLower == 'ekskalasi') {
-      return (label: 'Critical', color: Colors.purple); // <── SUDAH BERSIH DAN AMAN
-    }
-
-    switch (laporanStatus) {
-      case StatusLaporan.menungguKlasifikasi:
+  static ({String label, Color color}) prioritas(String laporanPrioritas) {
+    final prioritasLower = laporanPrioritas.toLowerCase();
+    
+    switch (prioritasLower) {
+      case 'sangat_urgent':
+      case 'sangat urgent':
         return (label: 'High', color: Colors.red);
-      case StatusLaporan.diproses:
+      case 'urgent':
         return (label: 'Medium', color: accentOrange);
-      case StatusLaporan.selesai:
+      case 'biasa':
         return (label: 'Low', color: greenSelesai);
       default:
         return (label: 'Medium', color: accentOrange);
