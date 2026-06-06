@@ -208,10 +208,10 @@ class LaporanProvider extends ChangeNotifier {
   bool canDelete(LaporanLokal laporan) => isOwner(laporan);
 
   bool canEdit(LaporanLokal laporan) {
-    if (!isOwner(laporan)) return false;
-
-    return laporan.status == StatusLaporan.menungguKlasifikasi ||
-        laporan.status.toLowerCase() == 'ditolak';
+    return isOwner(laporan) &&
+        (laporan.status == StatusLaporan.menungguKlasifikasi || 
+         laporan.status == 'menunggu' ||
+         laporan.status.toLowerCase() == 'ditolak');
   }
 
   Future<void> deleteLaporan(LaporanLokal laporan) async {

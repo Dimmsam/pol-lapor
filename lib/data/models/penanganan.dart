@@ -103,9 +103,8 @@ class Penanganan {
 /// DB hanya punya: mulai_dikerjakan | selesai
 class StatusPenanganan {
   static const String mulaiDikerjakan = 'mulai_dikerjakan';
-  // 'sedang_dikerjakan' TIDAK ada di enum DB - gunakan mulaiDikerjakan
   static const String selesai = 'selesai';
-  // 'menunggu_eskalasi_jurusan' TIDAK ada di enum DB - gunakan status formulir diteruskan_ke_pusat
+  static const String ditolakEskalasi = 'ditolak_eskalasi';
 
   static String toLabel(String status) {
     switch (status) {
@@ -113,6 +112,8 @@ class StatusPenanganan {
         return 'Sedang Dikerjakan';
       case selesai:
         return 'Selesai';
+      case ditolakEskalasi:
+        return 'Eskalasi Ditolak';
       default:
         return 'Dikerjakan';
     }

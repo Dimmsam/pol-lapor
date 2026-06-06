@@ -14,6 +14,7 @@ class PenangananRemoteDatasource {
             nomor_inventaris,
             foto_kerusakan_url,
             status,
+            prioritas,
             pelapor_id,
             created_at,
             updated_at,

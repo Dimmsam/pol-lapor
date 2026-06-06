@@ -37,17 +37,23 @@ class PenangananProvider extends ChangeNotifier {
 
     return _daftarTugas.where((laporan) {
       final penanganan = _mapPenanganan[laporan.formulirId];
+      final isNotSelesaiOrEskalasi = laporan.status != StatusLaporan.selesai && 
+                                     laporan.status != StatusLaporan.diteruskanKePusat &&
+                                     laporan.status != StatusLaporan.menungguPersetujuanKajur;
       
       switch (filterType) {
         case 'menunggu':
-          // Belum ada penanganan
-          return penanganan == null;
+          // Masuk menunggu jika belum selesai/eskalasi DAN belum ada update progres dari teknisi
+          bool belumAdaProgres = penanganan == null || 
+              (penanganan.catatanProgres == null && penanganan.fotoProgresUrl.isEmpty && penanganan.statusPenanganan != StatusPenanganan.selesai);
+          return isNotSelesaiOrEskalasi && belumAdaProgres;
           
         case 'dikerjakan':
-          // Sudah ada penanganan & laporan masih diproses
-          return penanganan != null && 
-                 laporan.status == StatusLaporan.diproses && 
-                 penanganan.statusPenanganan != StatusPenanganan.selesai;
+          // Masuk dikerjakan jika belum selesai/eskalasi DAN teknisi sudah memberikan update progres
+          bool sudahAdaProgres = penanganan != null && 
+              (penanganan.catatanProgres != null || penanganan.fotoProgresUrl.isNotEmpty) && 
+              penanganan.statusPenanganan != StatusPenanganan.selesai;
+          return isNotSelesaiOrEskalasi && sudahAdaProgres;
                  
         case 'eskalasi':
           // Diteruskan ke pusat atau menunggu persetujuan kajur

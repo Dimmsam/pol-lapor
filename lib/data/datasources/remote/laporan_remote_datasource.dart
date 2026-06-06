@@ -149,6 +149,7 @@ class LaporanRemoteDatasource {
             nomor_inventaris,
             foto_kerusakan_url,
             status,
+            prioritas,
             created_at,
             updated_at,
             lokasi:lokasi_id (nama_ruangan)
@@ -176,6 +177,7 @@ class LaporanRemoteDatasource {
             nomor_inventaris,
             foto_kerusakan_url,
             status,
+            prioritas,
             created_at,
             updated_at,
             lokasi:lokasi_id (nama_ruangan)
