@@ -10,6 +10,9 @@ class StatusMapper {
     'sedang_dikerjakan',
     'selesai',
     'diteruskan_ke_pusat',
+    'menunggu_persetujuan_kajur',
+    'menunggu_eskalasi_jurusan',
+    'ditolak',
   };
 
   /// Jika [statusLokal] sudah berupa nilai Supabase yang valid,
@@ -39,6 +42,10 @@ class StatusMapper {
       case 'berita_acara_dibuat':
         return 'selesai';
 
+      // Jika sebelumnya ada yang mengirim ditolak, map langsung ke ditolak
+      case 'ditolak':
+        return 'ditolak';
+
       default:
         debugPrint(
           'StatusMapper: status "$statusLokal" tidak dikenal, '
@@ -57,9 +64,13 @@ class StatusMapper {
       case 'ditugaskan':
       case 'sedang_dikerjakan':
       case 'diteruskan_ke_pusat': // eskalasi juga tampil sebagai "diproses"
+      case 'menunggu_persetujuan_kajur':
+      case 'menunggu_eskalasi_jurusan':
         return 'diproses';
       case 'selesai':
         return 'selesai';
+      case 'ditolak':
+        return 'ditolak';
       default:
         debugPrint(
           'StatusMapper.fromSupabaseStatus: status "$statusCloud" tidak dikenal, '

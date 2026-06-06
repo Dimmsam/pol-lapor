@@ -346,23 +346,19 @@ class _LaporanScreenState extends State<LaporanScreen> {
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
         itemCount: data.length,
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-          itemCount: data.length,
-          itemBuilder: (context, index) {
-            final laporan = data[index];
-            return LaporanCard(
-              laporan: laporan,
-              canDelete: laporanProvider.canDelete(laporan),
-              onDelete: laporanProvider.canDelete(laporan)
-                  ? () => _confirmDelete(context, laporan)
-                  : null,
-              onEdit: laporanProvider.canEdit(laporan)
-                  ? () => _navigateToEdit(context, laporan)
-                  : null,
-            );
-          },
-        ),
+        itemBuilder: (context, index) {
+          final laporan = data[index];
+          return LaporanCard(
+            laporan: laporan,
+            canDelete: laporanProvider.canDelete(laporan),
+            onDelete: laporanProvider.canDelete(laporan)
+                ? () => _confirmDelete(context, laporan)
+                : null,
+            onEdit: laporanProvider.canEdit(laporan)
+                ? () => _navigateToEdit(context, laporan)
+                : null,
+          );
+        },
       ),
     );
   }

@@ -18,9 +18,9 @@ class StatusLaporan {
       case selesai:
         return 'Selesai';
       case menungguPersetujuanKajur:
-        return 'Menunggu Kajur';
+        return 'Eskalasi';
       case diteruskanKePusat:
-        return 'Diteruskan ke Pusat';
+        return 'Eskalasi';
       case ditolak:
         return 'Ditolak';
       case menungguKlasifikasi:
@@ -37,7 +37,7 @@ class StatusLaporan {
       case diproses:
         return 'Laporan Diproses';
       case menungguPersetujuanKajur:
-        return 'Laporan Menunggu Kajur';
+        return 'Laporan Diteruskan ke Pusat';
       case diteruskanKePusat:
         return 'Laporan Diteruskan ke Pusat';
       case ditolak:
