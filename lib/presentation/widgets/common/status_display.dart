@@ -29,7 +29,11 @@ class StatusDisplay {
     }
 
     // 2. CEK STATUS ESKALASI / EKSKALASI AGAR SINKRON (Bug 7)
-    if (statusLower == 'eskalasi' || statusLower == 'ekskalasi' || statusLower == 'ditolak eskalasi') {
+    if (statusLower == 'eskalasi' || 
+        statusLower == 'ekskalasi' || 
+        statusLower == 'ditolak eskalasi' ||
+        statusLower == 'diteruskan_ke_pusat' ||
+        statusLower == 'menunggu_persetujuan_kajur') {
       return (
         label: 'Eskalasi',
         background: const Color(0xFFE0F2FE), // Biru muda langit (Cyan pudar)

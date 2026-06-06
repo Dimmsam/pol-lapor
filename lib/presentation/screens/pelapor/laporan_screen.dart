@@ -240,7 +240,9 @@ class _LaporanScreenState extends State<LaporanScreen> {
       {'key': 'semua', 'label': 'Semua'},
       {'key': StatusLaporan.menungguKlasifikasi, 'label': 'Menunggu'},
       {'key': StatusLaporan.diproses, 'label': 'Diproses'},
+      {'key': 'eskalasi', 'label': 'Eskalasi'},
       {'key': StatusLaporan.selesai, 'label': 'Selesai'},
+      {'key': StatusLaporan.ditolak, 'label': 'Ditolak'},
     ];
 
     return Padding(
@@ -303,8 +305,17 @@ class _LaporanScreenState extends State<LaporanScreen> {
         bool matchStatus = false;
         if (targetFilter == 'semua') {
           matchStatus = true;
-        } else if (targetFilter == 'menunggu' || targetFilter == 'menungguklasifikasi') {
-          matchStatus = statusLaporan == 'menunggu' || statusLaporan == 'menungguklasifikasi';
+        } else if (targetFilter == 'menunggu' || targetFilter == 'menungguklasifikasi' || targetFilter == 'menunggu_klasifikasi') {
+          matchStatus = statusLaporan == 'menunggu' || statusLaporan == 'menungguklasifikasi' || statusLaporan == 'menunggu_klasifikasi';
+        } else if (targetFilter == 'diproses') {
+          matchStatus = statusLaporan == 'diproses' || 
+                        statusLaporan == 'ditugaskan' || 
+                        statusLaporan == 'sedang_dikerjakan';
+        } else if (targetFilter == 'eskalasi') {
+          matchStatus = statusLaporan == 'eskalasi' || 
+                        statusLaporan == 'diteruskan_ke_pusat' || 
+                        statusLaporan == 'menunggu_persetujuan_kajur' || 
+                        statusLaporan == 'ekskalasi';
         } else {
           matchStatus = statusLaporan == targetFilter;
         }

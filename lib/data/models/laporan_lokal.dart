@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import '../../core/utils/status_mapper.dart';
 
 part 'laporan_lokal.g.dart';
 
@@ -14,6 +15,8 @@ class StatusLaporan {
   static String toLabel(String status) {
     switch (status) {
       case diproses:
+      case 'ditugaskan':
+      case 'sedang_dikerjakan':
         return 'Diproses';
       case selesai:
         return 'Selesai';
@@ -53,6 +56,8 @@ class StatusLaporan {
   static String toLabelTeknisi(String status) {
     switch (status) {
       case diproses:
+      case 'ditugaskan':
+      case 'sedang_dikerjakan':
         return 'Dikerjakan';
       case selesai:
         return 'Selesai';
@@ -132,7 +137,7 @@ class LaporanLokal extends HiveObject {
       lokasiPerbaikan: lokasiNama,
       nomorInventaris: json['nomor_inventaris'] as String?,
       fotoKerusakanUrl: json['foto_kerusakan_url'] as String?,
-      status: json['status'] as String? ?? StatusLaporan.menungguKlasifikasi,
+      status: StatusMapper.fromSupabaseStatus(json['status'] as String? ?? 'menunggu'),
       pelaporId: (json['pengguna'] != null && json['pengguna'] is Map && json['pengguna']['nama_lengkap'] != null)
           ? json['pengguna']['nama_lengkap'] as String
           : json['pelapor_id'] as String? ?? '',

@@ -23,6 +23,7 @@ class LaporanProvider extends ChangeNotifier {
   int _totalMenunggu = 0;
   // ── SISIPAN BARU ──
   int _totalDitolak = 0; 
+  int _totalEskalasi = 0;
   
   ValueListenable<Box<LaporanLokal>>? _listenable;
   VoidCallback? _listener;
@@ -31,13 +32,15 @@ class LaporanProvider extends ChangeNotifier {
   List<LaporanLokal> get laporanList => _laporanList;
   ValueListenable<Box<LaporanLokal>> get laporanListenable =>
       _laporanLocal.listenable();
+      
+  // ── GETTER STATISTIK ──
   int get totalLaporan => _totalLaporan;
   int get totalUnsynced => _totalUnsynced;
   int get totalDiproses => _totalDiproses;
   int get totalSelesai => _totalSelesai;
   int get totalMenunggu => _totalMenunggu;
-  // ── SISIPAN BARU ──
-  int get totalDitolak => _totalDitolak; 
+  int get totalDitolak => _totalDitolak;
+  int get totalEskalasi => _totalEskalasi; 
   
   String get namaUser => _session?.nama ?? '-';
   String get roleUser => _session?.role ?? '-';
@@ -130,7 +133,22 @@ class LaporanProvider extends ChangeNotifier {
     var data = List<LaporanLokal>.from(_laporanList);
 
     if (filterStatus != 'semua') {
-      data = data.where((l) => l.status == filterStatus).toList();
+      if (filterStatus == 'eskalasi') {
+        data = data.where((l) => 
+          l.status == StatusLaporan.diteruskanKePusat || 
+          l.status == StatusLaporan.menungguPersetujuanKajur ||
+          l.status == 'eskalasi' ||
+          l.status == 'ekskalasi'
+        ).toList();
+      } else if (filterStatus == StatusLaporan.diproses) {
+        data = data.where((l) => 
+          l.status == StatusLaporan.diproses ||
+          l.status == 'ditugaskan' ||
+          l.status == 'sedang_dikerjakan'
+        ).toList();
+      } else {
+        data = data.where((l) => l.status == filterStatus).toList();
+      }
     }
 
     final query = searchQuery.trim().toLowerCase();
@@ -160,16 +178,22 @@ class LaporanProvider extends ChangeNotifier {
     _totalLaporan = milikku.length;
     _totalUnsynced = milikku.where((l) => !l.isSynced).length;
     _totalDiproses =
-        milikku.where((l) => l.status == StatusLaporan.diproses).length;
+        milikku.where((l) => l.status == StatusLaporan.diproses || l.status == 'ditugaskan' || l.status == 'sedang_dikerjakan').length;
     _totalSelesai =
         milikku.where((l) => l.status == StatusLaporan.selesai).length;
     _totalMenunggu = milikku
-        .where((l) => l.status == StatusLaporan.menungguKlasifikasi) // <─── SUDAH DIPERBAIKI AMAN
+        .where((l) => l.status == StatusLaporan.menungguKlasifikasi || l.status == 'menunggu')
         .length;
-    // ── SISIPAN BARU ──
     _totalDitolak = milikku
         .where((l) => l.status.toLowerCase() == 'ditolak')
         .length;
+    _totalEskalasi = milikku
+        .where((l) => 
+          l.status == StatusLaporan.diteruskanKePusat || 
+          l.status == StatusLaporan.menungguPersetujuanKajur ||
+          l.status == 'eskalasi' ||
+          l.status == 'ekskalasi'
+        ).length;
   }
 
   void onReturnFromForm() {

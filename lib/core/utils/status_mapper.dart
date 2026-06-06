@@ -63,10 +63,13 @@ class StatusMapper {
         return 'menunggu_klasifikasi';
       case 'ditugaskan':
       case 'sedang_dikerjakan':
-      case 'diteruskan_ke_pusat': // eskalasi juga tampil sebagai "diproses"
-      case 'menunggu_persetujuan_kajur':
-      case 'menunggu_eskalasi_jurusan':
         return 'diproses';
+      case 'diteruskan_ke_pusat':
+        return 'diteruskan_ke_pusat';
+      case 'menunggu_persetujuan_kajur':
+        return 'menunggu_persetujuan_kajur';
+      case 'menunggu_eskalasi_jurusan':
+        return 'menunggu_eskalasi_jurusan';
       case 'selesai':
         return 'selesai';
       case 'ditolak':

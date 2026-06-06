@@ -11,7 +11,7 @@ class DashboardStatSection extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.count(
-        crossAxisCount: 2, // Membagi menjadi 2 kolom
+        crossAxisCount: 2, // Tetap 2 kolom
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(), // Agar scroll menyatu dengan halaman induk
         mainAxisSpacing: 10,
@@ -26,11 +26,25 @@ class DashboardStatSection extends StatelessWidget {
             label: 'Total',
           ),
           _StatCard(
+            icon: Icons.hourglass_empty_rounded,
+            iconColor: const Color(0xFF1E40AF),
+            iconBg: const Color(0xFFEFF6FF),
+            value: provider.totalMenunggu.toString(),
+            label: 'Menunggu',
+          ),
+          _StatCard(
             icon: Icons.schedule_outlined,
             iconColor: const Color(0xFFD97706),
             iconBg: const Color(0xFFFEF3C7),
             value: provider.totalDiproses.toString(),
             label: 'Diproses',
+          ),
+          _StatCard(
+            icon: Icons.support_agent_rounded,
+            iconColor: const Color(0xFF0369A1),
+            iconBg: const Color(0xFFE0F2FE),
+            value: provider.totalEskalasi.toString(),
+            label: 'Eskalasi',
           ),
           _StatCard(
             icon: Icons.check_circle_outline_rounded,
@@ -39,13 +53,11 @@ class DashboardStatSection extends StatelessWidget {
             value: provider.totalSelesai.toString(),
             label: 'Selesai',
           ),
-          // ── KARTU BARU: MELACAK STATUS DITOLAK ──
           _StatCard(
             icon: Icons.cancel_outlined,
             iconColor: const Color(0xFFDC2626), // Warna Merah tegas
             iconBg: const Color(0xFFFEE2E2),    // Background Merah pudar
-            // Pastikan di LaporanProvider kamu sudah ada getter/variabel 'totalDitolak'
-            value: (provider.totalDitolak).toString(), 
+            value: provider.totalDitolak.toString(), 
             label: 'Ditolak',
           ),
         ],
