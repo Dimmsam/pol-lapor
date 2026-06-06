@@ -73,9 +73,25 @@ class TrackingProvider extends ChangeNotifier {
     // Normal: iterasi mundur, cari step terjauh yang punya event
     for (int i = steps.length - 1; i >= 0; i--) {
       final eventsForStep = steps[i]['events'] as List<String>;
-      final hasEvent = _riwayatTracking.any((e) => eventsForStep.contains(e.jenisEvent));
-      if (hasEvent) {
-        return i;
+      // Cari event apa saja yang masuk di step ini
+      final matchingEvents = _riwayatTracking.where((e) => eventsForStep.contains(e.jenisEvent)).toList();
+      
+      if (matchingEvents.isNotEmpty) {
+        final lastEvent = matchingEvents.last.jenisEvent;
+        
+        if (lastEvent == 'penanganan_dimulai' || 
+            lastEvent == 'teknisi_mulai_periksa' || 
+            (lastEvent?.startsWith('eskalasi_') ?? false) || 
+            lastEvent == 'kajur_approve_eskalasi' || 
+            lastEvent == 'diteruskan_ke_pusat') {
+          return i; // Fase ini masih berjalan (Active)
+        } else if (lastEvent == 'penanganan_selesai' || lastEvent == 'laporan_dikunci') {
+          return steps.length; // Semua selesai (Completed all)
+        } else {
+          // laporan_dibuat, laporan_diterima_admin, teknisi_ditugaskan
+          // Event ini menandakan selesainya suatu titik, lanjut ke fase berikutnya
+          return i + 1; 
+        }
       }
     }
     

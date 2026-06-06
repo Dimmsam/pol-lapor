@@ -240,7 +240,9 @@ class _LaporanScreenState extends State<LaporanScreen> {
       {'key': 'semua', 'label': 'Semua'},
       {'key': StatusLaporan.menungguKlasifikasi, 'label': 'Menunggu'},
       {'key': StatusLaporan.diproses, 'label': 'Diproses'},
+      {'key': 'eskalasi', 'label': 'Eskalasi'},
       {'key': StatusLaporan.selesai, 'label': 'Selesai'},
+      {'key': StatusLaporan.ditolak, 'label': 'Ditolak'},
     ];
 
     return Padding(
@@ -288,22 +290,12 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
   Widget _buildList({required bool isPublic}) {
     final laporanProvider = context.watch<LaporanProvider>();
-    
-    // Ambil data dasar (seluruh data mentah dari database lokal/remote)
-    List<LaporanLokal> data = laporanProvider.laporanList;
+    List<LaporanLokal> data;
+    if (isPublic) {
+      // Tab Publik: gunakan data langsung dari server agar status akurat
+      data = laporanProvider.laporanPublik;
 
-    if (!isPublic) {
-      // 1. FILTER UNTUK TAB "LAPORANKU" (Milik Sendiri)
-      data = data.where((l) => laporanProvider.isOwner(l)).toList();
-      
-      // Jalankan fungsi penyaringan bawaan provider asli kamu
-      data = laporanProvider.filterLaporan(
-        filterStatus: _filterStatus,
-        searchQuery: _searchQuery,
-      ).where((l) => laporanProvider.isOwner(l)).toList();
-      
-    } else {
-      // 2. SINKRONISASI FILTER UNTUK TAB "LAPORAN PUBLIK" (Milik Semua Orang)
+      // SINKRONISASI FILTER UNTUK TAB "LAPORAN PUBLIK"
       // Gunakan pemfilteran mandiri yang aman terhadap Case-Sensitive & Search Query
       data = data.where((l) {
         final statusLaporan = l.status.toLowerCase();
@@ -313,19 +305,36 @@ class _LaporanScreenState extends State<LaporanScreen> {
         bool matchStatus = false;
         if (targetFilter == 'semua') {
           matchStatus = true;
-        } else if (targetFilter == 'menunggu' || targetFilter == 'menungguklasifikasi') {
-          matchStatus = statusLaporan == 'menunggu' || statusLaporan == 'menungguklasifikasi';
+        } else if (targetFilter == 'menunggu' || targetFilter == 'menungguklasifikasi' || targetFilter == 'menunggu_klasifikasi') {
+          matchStatus = statusLaporan == 'menunggu' || statusLaporan == 'menungguklasifikasi' || statusLaporan == 'menunggu_klasifikasi';
+        } else if (targetFilter == 'diproses') {
+          matchStatus = statusLaporan == 'diproses' || 
+                        statusLaporan == 'ditugaskan' || 
+                        statusLaporan == 'sedang_dikerjakan';
+        } else if (targetFilter == 'eskalasi') {
+          matchStatus = statusLaporan == 'eskalasi' || 
+                        statusLaporan == 'diteruskan_ke_pusat' || 
+                        statusLaporan == 'menunggu_persetujuan_kajur' || 
+                        statusLaporan == 'ekskalasi';
         } else {
           matchStatus = statusLaporan == targetFilter;
         }
 
         // Pencocokan kolom pencarian text field
-        final matchSearch = l.namaSarana.toLowerCase().contains(_searchQuery) ||
-                            l.lokasiPerbaikan.toLowerCase().contains(_searchQuery) ||
-                            l.keteranganKerusakan.toLowerCase().contains(_searchQuery);
+        final query = _searchQuery.trim().toLowerCase();
+        final matchSearch = query.isEmpty ||
+                            l.namaSarana.toLowerCase().contains(query) ||
+                            l.lokasiPerbaikan.toLowerCase().contains(query) ||
+                            l.keteranganKerusakan.toLowerCase().contains(query);
 
         return matchStatus && matchSearch;
       }).toList();
+    } else {
+      // Tab Laporanku: data dari Hive lokal (milik sendiri)
+      data = laporanProvider.filterLaporan(
+        filterStatus: _filterStatus,
+        searchQuery: _searchQuery,
+      ).where((l) => laporanProvider.isOwner(l)).toList();
     }
 
     if (data.isEmpty) {

@@ -173,7 +173,7 @@ class LaporanCard extends StatelessWidget {
                   // ── Tombol Edit ──
                   if (onEdit != null && 
                       (currentStatus == 'menunggu' || 
-                       currentStatus == 'menungguklasifikasi' || 
+                       currentStatus == 'menunggu_klasifikasi' || 
                        currentStatus == 'ditolak')) ...[
                     LaporanActionButton(
                       icon: Icons.edit_outlined,

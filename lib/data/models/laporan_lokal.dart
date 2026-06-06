@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import '../../core/utils/status_mapper.dart';
 
 part 'laporan_lokal.g.dart';
 
@@ -22,14 +23,13 @@ class StatusLaporan {
       case 'sedang_dikerjakan':
       case diproses:
         return 'Sedang Dikerjakan';
-      case ditolakEskalasi:
-        return 'Eskalasi Ditolak';
-      case diteruskanKePusat:
-        return 'Diteruskan ke Pusat';
-      case menungguPersetujuanKajur:
-        return 'Menunggu Persetujuan Kajur';
       case selesai:
         return 'Selesai';
+      case menungguPersetujuanKajur:
+      case diteruskanKePusat:
+        return 'Eskalasi';
+      case ditolakEskalasi:
+        return 'Eskalasi Ditolak';
       case ditolak:
         return 'Ditolak';
       default:
@@ -45,7 +45,7 @@ class StatusLaporan {
       case diproses:
         return 'Laporan Diproses';
       case menungguPersetujuanKajur:
-        return 'Laporan Menunggu Kajur';
+        return 'Laporan Diteruskan ke Pusat';
       case diteruskanKePusat:
         return 'Laporan Diteruskan ke Pusat';
       case ditolak:
@@ -147,7 +147,7 @@ class LaporanLokal extends HiveObject {
       lokasiPerbaikan: lokasiNama,
       nomorInventaris: json['nomor_inventaris'] as String?,
       fotoKerusakanUrl: json['foto_kerusakan_url'] as String?,
-      status: json['status'] as String? ?? StatusLaporan.menungguKlasifikasi,
+      status: StatusMapper.fromSupabaseStatus(json['status'] as String? ?? 'menunggu'),
       prioritas: json['prioritas'] as String? ?? 'biasa',
       pelaporId: (json['pengguna'] != null && json['pengguna'] is Map && json['pengguna']['nama_lengkap'] != null)
           ? json['pengguna']['nama_lengkap'] as String

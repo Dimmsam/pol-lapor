@@ -81,8 +81,25 @@ class DetailTrackingCard extends StatelessWidget {
                     final hasRejectionEvent = 
                         (events.contains('laporan_ditolak') && riwayat.any((e) => e.jenisEvent == 'laporan_ditolak')) ||
                         (events.contains('eskalasi_ditolak') && riwayat.any((e) => e.jenisEvent == 'eskalasi_ditolak'));
-                    // Rejected style: rolled-back step ATAU step aktif yang ditolak
-                    final isRejected = isRolledBack || (isActive && hasRejectionEvent);
+                    
+                    // Cek apakah step ini dilewati (skipped) misal dari Admin langsung ke Eskalasi tanpa Teknisi
+                    // index > 1 karena Laporan Dibuat (0) dan Ditinjau Admin (1) harusnya tetap centang walaupun eventnya mungkin kurang
+                    final isSkipped = isCompleted && !hasMatchingEvent && index > 1 && laporan.status != StatusLaporan.selesai;
+
+                    // Khusus untuk "Dalam Penanganan", jika ada eskalasi berarti penanganan gagal oleh teknisi
+                    bool isFailedPenanganan = false;
+                    if (data['title'] == 'Dalam Penanganan' && 
+                        riwayat.any((e) => e.jenisEvent == 'eskalasi_dari_teknisi') &&
+                        laporan.status != StatusLaporan.selesai) {
+                      isFailedPenanganan = true;
+                      try {
+                        final eskalasiEvent = riwayat.lastWhere((e) => e.jenisEvent == 'eskalasi_dari_teknisi');
+                        pesanNarasi = eskalasiEvent.pesanNarasi; // Timpa narasi dengan alasan teknisi
+                      } catch (_) {}
+                    }
+
+                    // Rejected style: rolled-back step ATAU step aktif yang ditolak ATAU step yang dilewati ATAU penanganan gagal
+                    final isRejected = isRolledBack || (isActive && hasRejectionEvent) || isSkipped || isFailedPenanganan;
                     final isLast = index == stepsData.length - 1;
 
                     // --- Dynamic title ---
@@ -92,17 +109,15 @@ class DetailTrackingCard extends StatelessWidget {
                     } else if (events.contains('eskalasi_dari_teknisi')) {
                       if (riwayat.any((e) => e.jenisEvent == 'eskalasi_ditolak')) {
                         title = 'Eskalasi Ditolak';
-                      } else if (riwayat.any((e) => e.jenisEvent == 'kajur_approve_eskalasi' || e.jenisEvent == 'diteruskan_ke_pusat')) {
+                      } else if (riwayat.any((e) => e.jenisEvent == 'kajur_approve_eskalasi' || e.jenisEvent == 'diteruskan_ke_pusat' || e.jenisEvent == 'eskalasi_disetujui')) {
                         title = 'Diteruskan ke Pusat';
-                      } else if (riwayat.any((e) => e.jenisEvent == 'eskalasi_disetujui')) {
-                        title = 'Menunggu Persetujuan Kajur';
                       }
                     }
 
                     return _buildStepItem(
                       title: title,
                       date: stepDate,
-                      pesanNarasi: (isRejected || isRolledBack) ? pesanNarasi : null,
+                      pesanNarasi: (isRejected || isRolledBack || events.contains('eskalasi_dari_teknisi')) ? pesanNarasi : null,
                       isCompleted: isCompleted && !isRejected,
                       isActive: isActive && !isRejected,
                       isWaiting: isWaiting,
