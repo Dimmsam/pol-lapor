@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -12,10 +13,29 @@ import '../../data/models/notifikasi.dart';
 import '../../data/models/penanganan.dart';
 
 class PenangananProvider extends ChangeNotifier {
-  final PenangananRemoteDatasource _remote = PenangananRemoteDatasource();
-  final TrackingRemoteDatasource _trackingRemote = TrackingRemoteDatasource();
-  final NotifikasiRemoteDatasource _notifRemote = NotifikasiRemoteDatasource();
-  final StorageRemoteDatasource _storage = StorageRemoteDatasource();
+  late final PenangananRemoteDatasource _remote;
+  late final TrackingRemoteDatasource _trackingRemote;
+  late final NotifikasiRemoteDatasource _notifRemote;
+  late final StorageRemoteDatasource _storage;
+
+  /// Constructor default — dipakai di production.
+  PenangananProvider()
+      : _remote = PenangananRemoteDatasource(),
+        _trackingRemote = TrackingRemoteDatasource(),
+        _notifRemote = NotifikasiRemoteDatasource(),
+        _storage = StorageRemoteDatasource();
+
+  /// Constructor untuk unit testing — inject mock dependencies.
+  @visibleForTesting
+  PenangananProvider.testable({
+    required PenangananRemoteDatasource remote,
+    required TrackingRemoteDatasource trackingRemote,
+    required NotifikasiRemoteDatasource notifRemote,
+    required StorageRemoteDatasource storage,
+  })  : _remote = remote,
+        _trackingRemote = trackingRemote,
+        _notifRemote = notifRemote,
+        _storage = storage;
 
   List<Penanganan> _daftarPenangananLokal = [];
   List<LaporanLokal> _daftarTugas = [];
@@ -479,6 +499,19 @@ class PenangananProvider extends ChangeNotifier {
 
   void _setLoading(bool value) {
     _isLoading = value;
+    notifyListeners();
+  }
+
+  // ─── Test helper ──────────────────────────────────────────────────────────
+  /// Isi state internal secara langsung — hanya untuk unit testing.
+  /// Tidak memanggil network sama sekali.
+  @visibleForTesting
+  Future<void> loadDaftarTugasForTest({
+    required List<LaporanLokal> laporan,
+    required List<Map<String, dynamic>> penangananRows,
+  }) async {
+    _daftarTugas = laporan;
+    _buildPenangananMap(penangananRows);
     notifyListeners();
   }
 }

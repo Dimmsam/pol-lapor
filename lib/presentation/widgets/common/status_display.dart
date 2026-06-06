@@ -53,12 +53,20 @@ class StatusDisplay {
           background: const Color(0xFFD1FAE5), // Hijau pudar
           foreground: const Color(0xFF065F46), // Hijau tua
         );
+      case 'sedang_dikerjakan':
       case StatusLaporan.diproses:
         return (
           label: StatusLaporan.toLabel(status),
           background: const Color(0xFFFEF3C7), // Kuning pudar
           foreground: const Color(0xFFB45309), // Cokelat/Oranye tua
         );
+      case 'ditugaskan':
+        return (
+          label: StatusLaporan.toLabel(status),
+          background: const Color(0xFFDBEAFE), // Biru muda (sesuaikan jika perlu)
+          foreground: const Color(0xFF1D4ED8), // Biru tua
+        );
+      case 'menunggu':
       case StatusLaporan.menungguKlasifikasi:
         return (
           label: StatusLaporan.toLabel(status),
@@ -88,6 +96,9 @@ class StatusDisplay {
     }
 
     switch (status) {
+      case 'ditugaskan':
+        return (label: StatusLaporan.toLabelTeknisi(status), color: blueDikerjakan);
+      case 'sedang_dikerjakan':
       case StatusLaporan.diproses:
         return (label: StatusLaporan.toLabelTeknisi(status), color: blueDikerjakan);
       case StatusLaporan.selesai:

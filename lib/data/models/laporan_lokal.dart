@@ -14,8 +14,12 @@ class StatusLaporan {
   /// Label tampilan UI
   static String toLabel(String status) {
     switch (status) {
+      case 'menunggu':
       case menungguKlasifikasi:
-        return 'Menunggu Klasifikasi';
+        return 'Menunggu';
+      case 'ditugaskan':
+        return 'Ditugaskan';
+      case 'sedang_dikerjakan':
       case diproses:
         return 'Sedang Dikerjakan';
       case ditolakEskalasi:
@@ -56,6 +60,9 @@ class StatusLaporan {
   /// Label untuk konteks teknisi (status laporan di dashboard tugas)
   static String toLabelTeknisi(String status) {
     switch (status) {
+      case 'ditugaskan':
+        return 'Ditugaskan';
+      case 'sedang_dikerjakan':
       case diproses:
         return 'Dikerjakan';
       case selesai:
@@ -63,6 +70,7 @@ class StatusLaporan {
       case menungguPersetujuanKajur:
       case diteruskanKePusat:
         return 'Eskalasi';
+      case 'menunggu':
       case menungguKlasifikasi:
       default:
         return 'Menunggu';
@@ -241,12 +249,12 @@ extension StatusLaporanExtension on String {
 // HELPER STATUS (UNTUK UI & PROVIDER)
 extension LaporanStatusHelper on LaporanLokal {
   bool get isMenunggu =>
-      status == StatusLaporan.menungguKlasifikasi;
+      status == 'menunggu' || status == StatusLaporan.menungguKlasifikasi;
 
   bool get isDiproses =>
-      status == StatusLaporan.diproses;
+      status == 'sedang_dikerjakan' || status == 'ditugaskan' || status == StatusLaporan.diproses;
 
   bool get isSelesai =>
-      status == StatusLaporan.selesai;
+      status == 'selesai' || status == StatusLaporan.selesai;
 }
 

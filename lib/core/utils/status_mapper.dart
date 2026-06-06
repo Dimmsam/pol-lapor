@@ -29,11 +29,11 @@ class StatusMapper {
       case 'diketahui_ka_upt':
       case 'surat_pengajuan_dibuat':
       case 'surat_kerja_diterbitkan':
-      case 'diproses': // status lokal Flutter
         return 'ditugaskan';
 
       case 'sedang_ditangani':
       case 'selesai_ditangani':
+      case 'diproses': // status lokal Flutter
         return 'sedang_dikerjakan';
 
       case 'berita_acara_dibuat':
