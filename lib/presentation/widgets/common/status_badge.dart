@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/models/penanganan.dart';
+import '../../../data/models/laporan_lokal.dart';
 import 'status_display.dart';
 
 /// Badge status laporan untuk pelapor (pill, background penuh).
@@ -33,51 +34,65 @@ class LaporanTeknisiStatusBadge extends StatelessWidget {
   }
 }
 
-/// Badge status penanganan untuk daftar tugas & detail teknisi.
-class PenangananStatusBadge extends StatelessWidget {
-  final String? statusPenanganan;
+/// Badge prioritas.
+class PrioritasBadge extends StatelessWidget {
+  final String prioritas;
 
-  const PenangananStatusBadge({super.key, this.statusPenanganan});
+  const PrioritasBadge({super.key, required this.prioritas});
 
   @override
   Widget build(BuildContext context) {
+    final style = StatusDisplay.prioritas(prioritas);
+    return _FilledBadge(
+      label: style.label,
+      background: style.color.withValues(alpha: 0.15),
+      foreground: style.color,
+    );
+  }
+}
+
+/// Badge status penanganan untuk daftar tugas & detail teknisi.
+class PenangananStatusBadge extends StatelessWidget {
+  final String? statusPenanganan;
+  final LaporanLokal? laporan;
+
+  const PenangananStatusBadge({super.key, this.statusPenanganan, this.laporan});
+
+  @override
+  Widget build(BuildContext context) {
+    // Prioritaskan status laporan jika sudah selesai atau dieskalasi
+    if (laporan != null) {
+      if (laporan!.status == StatusLaporan.selesai) {
+        return OutlinedStatusBadge(label: 'Selesai', color: StatusDisplay.greenSelesai);
+      } else if (laporan!.status == StatusLaporan.diteruskanKePusat || 
+                 laporan!.status == StatusLaporan.menungguPersetujuanKajur) {
+        return OutlinedStatusBadge(label: 'Eskalasi', color: StatusDisplay.accentOrange);
+      }
+    }
+
     final style = StatusDisplay.penanganan(statusPenanganan);
     return OutlinedStatusBadge(label: style.label, color: style.color);
   }
 
-  factory PenangananStatusBadge.fromPenanganan(Penanganan? penanganan) {
+  factory PenangananStatusBadge.fromPenanganan(Penanganan? penanganan, {LaporanLokal? laporan}) {
+    // Jika ada penanganan tapi teknisi belum update progres sama sekali,
+    // kita override statusnya menjadi null agar UI menampilkan 'Menunggu'.
+    String? statusToDisplay = penanganan?.statusPenanganan;
+    if (penanganan != null && 
+        penanganan.catatanProgres == null && 
+        penanganan.fotoProgresUrl.isEmpty && 
+        statusToDisplay != StatusPenanganan.selesai) {
+      statusToDisplay = null;
+    }
+
     return PenangananStatusBadge(
-      statusPenanganan: penanganan?.statusPenanganan,
+      statusPenanganan: statusToDisplay,
+      laporan: laporan,
     );
   }
 }
 
-/// Badge prioritas tugas (High / Medium / Low).
-class PrioritasBadge extends StatelessWidget {
-  final String laporanStatus;
 
-  const PrioritasBadge({super.key, required this.laporanStatus});
-
-  @override
-  Widget build(BuildContext context) {
-    final style = StatusDisplay.prioritas(laporanStatus);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: style.color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        style.label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: style.color,
-        ),
-      ),
-    );
-  }
-}
 
 /// Badge outlined generik (label + warna aksen).
 class OutlinedStatusBadge extends StatelessWidget {

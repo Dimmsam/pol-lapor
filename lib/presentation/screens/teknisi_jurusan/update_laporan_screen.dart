@@ -57,7 +57,7 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
       final success = await provider.updateProgresLaporan(
         formulirId: widget.laporan.formulirId,
         statusBaru: _status,
-        catatanProgres: catatan.isNotEmpty ? catatan : null,
+        catatanProgres: catatan, // Pass raw string even if empty so DB updates, moving it to "Dikerjakan"
         fotoProgresPath: _pickedImagePath,
       );
 
@@ -261,7 +261,7 @@ class _UpdateLaporanScreenState extends State<UpdateLaporanScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ProfilTeknisiScreen()),
+                MaterialPageRoute(builder: (_) => ProfilTeknisiScreen(userSession: widget.userSession)),
               );
             },
             borderRadius: BorderRadius.circular(12),

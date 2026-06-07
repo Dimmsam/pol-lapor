@@ -14,11 +14,17 @@ class LaporanProvider extends ChangeNotifier {
 
   UserSession? _session;
   List<LaporanLokal> _laporanList = [];
+  List<LaporanLokal> _laporanPublik = []; // Laporan publik langsung dari server
+  bool _isLoadingPublik = false;
   int _totalLaporan = 0;
   int _totalUnsynced = 0;
   int _totalDiproses = 0;
   int _totalSelesai = 0;
   int _totalMenunggu = 0;
+  // ── SISIPAN BARU ──
+  int _totalDitolak = 0; 
+  int _totalEskalasi = 0;
+  
   ValueListenable<Box<LaporanLokal>>? _listenable;
   VoidCallback? _listener;
 
@@ -26,16 +32,24 @@ class LaporanProvider extends ChangeNotifier {
   List<LaporanLokal> get laporanList => _laporanList;
   ValueListenable<Box<LaporanLokal>> get laporanListenable =>
       _laporanLocal.listenable();
+      
+  // ── GETTER STATISTIK ──
   int get totalLaporan => _totalLaporan;
   int get totalUnsynced => _totalUnsynced;
   int get totalDiproses => _totalDiproses;
   int get totalSelesai => _totalSelesai;
   int get totalMenunggu => _totalMenunggu;
+  int get totalDitolak => _totalDitolak;
+  int get totalEskalasi => _totalEskalasi; 
+  
   String get namaUser => _session?.nama ?? '-';
   String get roleUser => _session?.role ?? '-';
   String get emailUser => _session?.email ?? '-';
 
   String? get currentUserId => _session?.userId;
+
+  List<LaporanLokal> get laporanPublik => _laporanPublik;
+  bool get isLoadingPublik => _isLoadingPublik;
 
   void init() {
     _session = _auth.getSession();
@@ -57,6 +71,9 @@ class LaporanProvider extends ChangeNotifier {
     _totalDiproses = 0;
     _totalSelesai = 0;
     _totalMenunggu = 0;
+    // ── SISIPAN BARU ──
+    _totalDitolak = 0; 
+    
     if (_listenable != null && _listener != null) {
       _listenable!.removeListener(_listener!);
     }
@@ -83,6 +100,24 @@ class LaporanProvider extends ChangeNotifier {
     await _syncFromRemote();
   }
 
+  /// Fetch semua laporan publik langsung dari server (bukan dari Hive lokal).
+  /// Ini penting agar status di laporan publik selalu akurat sesuai database.
+  Future<void> fetchLaporanPublik() async {
+    _isLoadingPublik = true;
+    notifyListeners();
+    try {
+      final remoteData = await _laporanRemote.fetchAllLaporan();
+      _laporanPublik = remoteData
+          .map((json) => LaporanLokal.fromSupabaseJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('fetchLaporanPublik error: $e');
+    } finally {
+      _isLoadingPublik = false;
+      notifyListeners();
+    }
+  }
+
   List<LaporanLokal> recentLaporan({int limit = 3}) {
     return _laporanList.where((l) => isOwner(l)).take(limit).toList();
   }
@@ -98,7 +133,22 @@ class LaporanProvider extends ChangeNotifier {
     var data = List<LaporanLokal>.from(_laporanList);
 
     if (filterStatus != 'semua') {
-      data = data.where((l) => l.status == filterStatus).toList();
+      if (filterStatus == 'eskalasi') {
+        data = data.where((l) => 
+          l.status == StatusLaporan.diteruskanKePusat || 
+          l.status == StatusLaporan.menungguPersetujuanKajur ||
+          l.status == 'eskalasi' ||
+          l.status == 'ekskalasi'
+        ).toList();
+      } else if (filterStatus == StatusLaporan.diproses) {
+        data = data.where((l) => 
+          l.status == StatusLaporan.diproses ||
+          l.status == 'ditugaskan' ||
+          l.status == 'sedang_dikerjakan'
+        ).toList();
+      } else {
+        data = data.where((l) => l.status == filterStatus).toList();
+      }
     }
 
     final query = searchQuery.trim().toLowerCase();
@@ -128,12 +178,22 @@ class LaporanProvider extends ChangeNotifier {
     _totalLaporan = milikku.length;
     _totalUnsynced = milikku.where((l) => !l.isSynced).length;
     _totalDiproses =
-        milikku.where((l) => l.status == StatusLaporan.diproses).length;
+        milikku.where((l) => l.status == StatusLaporan.diproses || l.status == 'ditugaskan' || l.status == 'sedang_dikerjakan').length;
     _totalSelesai =
         milikku.where((l) => l.status == StatusLaporan.selesai).length;
     _totalMenunggu = milikku
-        .where((l) => l.status == StatusLaporan.menungguKlasifikasi)
+        .where((l) => l.status == StatusLaporan.menungguKlasifikasi || l.status == 'menunggu')
         .length;
+    _totalDitolak = milikku
+        .where((l) => l.status.toLowerCase() == 'ditolak')
+        .length;
+    _totalEskalasi = milikku
+        .where((l) => 
+          l.status == StatusLaporan.diteruskanKePusat || 
+          l.status == StatusLaporan.menungguPersetujuanKajur ||
+          l.status == 'eskalasi' ||
+          l.status == 'ekskalasi'
+        ).length;
   }
 
   void onReturnFromForm() {
@@ -149,7 +209,9 @@ class LaporanProvider extends ChangeNotifier {
 
   bool canEdit(LaporanLokal laporan) {
     return isOwner(laporan) &&
-        laporan.status == StatusLaporan.menungguKlasifikasi;
+        (laporan.status == StatusLaporan.menungguKlasifikasi || 
+         laporan.status == 'menunggu' ||
+         laporan.status.toLowerCase() == 'ditolak');
   }
 
   Future<void> deleteLaporan(LaporanLokal laporan) async {
@@ -201,7 +263,6 @@ class LaporanProvider extends ChangeNotifier {
 
     _listenable!.addListener(_listener!);
   }
-
 
   @override
   void dispose() {

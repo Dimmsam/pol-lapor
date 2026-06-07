@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -12,10 +13,29 @@ import '../../data/models/notifikasi.dart';
 import '../../data/models/penanganan.dart';
 
 class PenangananProvider extends ChangeNotifier {
-  final PenangananRemoteDatasource _remote = PenangananRemoteDatasource();
-  final TrackingRemoteDatasource _trackingRemote = TrackingRemoteDatasource();
-  final NotifikasiRemoteDatasource _notifRemote = NotifikasiRemoteDatasource();
-  final StorageRemoteDatasource _storage = StorageRemoteDatasource();
+  late final PenangananRemoteDatasource _remote;
+  late final TrackingRemoteDatasource _trackingRemote;
+  late final NotifikasiRemoteDatasource _notifRemote;
+  late final StorageRemoteDatasource _storage;
+
+  /// Constructor default — dipakai di production.
+  PenangananProvider()
+      : _remote = PenangananRemoteDatasource(),
+        _trackingRemote = TrackingRemoteDatasource(),
+        _notifRemote = NotifikasiRemoteDatasource(),
+        _storage = StorageRemoteDatasource();
+
+  /// Constructor untuk unit testing — inject mock dependencies.
+  @visibleForTesting
+  PenangananProvider.testable({
+    required PenangananRemoteDatasource remote,
+    required TrackingRemoteDatasource trackingRemote,
+    required NotifikasiRemoteDatasource notifRemote,
+    required StorageRemoteDatasource storage,
+  })  : _remote = remote,
+        _trackingRemote = trackingRemote,
+        _notifRemote = notifRemote,
+        _storage = storage;
 
   List<Penanganan> _daftarPenangananLokal = [];
   List<LaporanLokal> _daftarTugas = [];
@@ -32,15 +52,42 @@ class PenangananProvider extends ChangeNotifier {
   Penanganan? getPenangananByFormulir(String formulirId) =>
       _mapPenanganan[formulirId];
 
-  List<LaporanLokal> filterTugasByStatus(String? filterStatus) {
-    if (filterStatus == null) return _daftarTugas;
+  List<LaporanLokal> filterTugasByStatus(String filterType) {
+    if (filterType == 'semua') return _daftarTugas;
 
     return _daftarTugas.where((laporan) {
       final penanganan = _mapPenanganan[laporan.formulirId];
-      if (penanganan == null) {
-        return filterStatus == StatusPenanganan.mulaiDikerjakan;
+      final isNotSelesaiOrEskalasi = laporan.status != StatusLaporan.selesai && 
+                                     laporan.status != StatusLaporan.diteruskanKePusat &&
+                                     laporan.status != StatusLaporan.menungguPersetujuanKajur;
+      
+      switch (filterType) {
+        case 'menunggu':
+          // Masuk menunggu jika belum selesai/eskalasi DAN belum ada update progres dari teknisi
+          bool belumAdaProgres = penanganan == null || 
+              (penanganan.catatanProgres == null && penanganan.fotoProgresUrl.isEmpty && penanganan.statusPenanganan != StatusPenanganan.selesai);
+          return isNotSelesaiOrEskalasi && belumAdaProgres;
+          
+        case 'dikerjakan':
+          // Masuk dikerjakan jika belum selesai/eskalasi DAN teknisi sudah memberikan update progres
+          bool sudahAdaProgres = penanganan != null && 
+              (penanganan.catatanProgres != null || penanganan.fotoProgresUrl.isNotEmpty) && 
+              penanganan.statusPenanganan != StatusPenanganan.selesai;
+          return isNotSelesaiOrEskalasi && sudahAdaProgres;
+                 
+        case 'eskalasi':
+          // Diteruskan ke pusat atau menunggu persetujuan kajur
+          return laporan.status == StatusLaporan.diteruskanKePusat ||
+                 laporan.status == StatusLaporan.menungguPersetujuanKajur;
+                 
+        case 'selesai':
+          // Selesai di laporan atau di penanganan
+          return laporan.status == StatusLaporan.selesai || 
+                 (penanganan != null && penanganan.statusPenanganan == StatusPenanganan.selesai);
+                 
+        default:
+          return true;
       }
-      return penanganan.statusPenanganan == filterStatus;
     }).toList();
   }
 
@@ -218,26 +265,17 @@ class PenangananProvider extends ChangeNotifier {
         if (fotoUrls.isNotEmpty) 'foto_progres_url': fotoUrls,
       });
 
+      // Langsung update ke status final yang benar (satu kali, tanpa update redundan)
       await _remote.updateStatusFormulir(
         formulirId,
-        StatusLaporan.diproses, // di DB: 'diteruskan_ke_pusat' akan di-set lewat formulir_laporan
+        StatusLaporan.diteruskanKePusat,
         updatedAt: nowStr,
       );
 
-      // Update formulir ke status diteruskan_ke_pusat langsung
-      try {
-        await SupabaseService.db
-            .from('formulir_laporan')
-            .update({'status': 'diteruskan_ke_pusat', 'updated_at': nowStr})
-            .eq('formulir_id', formulirId);
-      } catch (e) {
-        debugPrint('Update diteruskan_ke_pusat error (non-critical): $e');
-      }
-
       await _insertTrackingLog(
         formulirId: formulirId,
-        statusBaru: StatusLaporan.menungguKlasifikasi,
-        jenisEvent: JenisEvent.diteruskanKePusat,
+        statusBaru: StatusLaporan.diteruskanKePusat,
+        jenisEvent: JenisEvent.eskalasiDariTeknisi,
         keterangan:
             'Teknisi Jurusan mengajukan eskalasi ke Admin. '
             'Kategori: $kategoriKerusakan. Catatan: $catatanEskalasi',
@@ -282,7 +320,7 @@ class PenangananProvider extends ChangeNotifier {
     _setLoading(true);
 
     try {
-      final nowStr = DateTime.now().toIso8601String();
+      final nowStr = DateTime.now().toUtc().toIso8601String();
       final penanganan = _mapPenanganan[formulirId];
       if (penanganan == null) {
         throw Exception('Penanganan tidak ditemukan untuk formulir ini.');
@@ -461,6 +499,19 @@ class PenangananProvider extends ChangeNotifier {
 
   void _setLoading(bool value) {
     _isLoading = value;
+    notifyListeners();
+  }
+
+  // ─── Test helper ──────────────────────────────────────────────────────────
+  /// Isi state internal secara langsung — hanya untuk unit testing.
+  /// Tidak memanggil network sama sekali.
+  @visibleForTesting
+  Future<void> loadDaftarTugasForTest({
+    required List<LaporanLokal> laporan,
+    required List<Map<String, dynamic>> penangananRows,
+  }) async {
+    _daftarTugas = laporan;
+    _buildPenangananMap(penangananRows);
     notifyListeners();
   }
 }

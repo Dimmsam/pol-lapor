@@ -68,13 +68,20 @@ class AppConstants {
     {'value': 'Selesai', 'label': 'Selesai Diperbaiki'},
   ];
 
-  static const List<Map<String, dynamic>> trackingStepsData = [
-    {'title': 'Laporan Dibuat', 'events': ['laporan_dibuat']},
-    {'title': 'Ditinjau Admin', 'events': ['laporan_diterima_admin']},
-    {'title': 'Teknisi Ditugaskan', 'events': ['teknisi_ditugaskan']},
-    {'title': 'Dalam Penanganan', 'events': ['penanganan_dimulai', 'teknisi_mulai_periksa']},
-    {'title': 'Selesai', 'events': ['penanganan_selesai']},
-  ];
+  /// Bangun tracking steps secara dinamis.
+  /// [showEskalasi] — true jika riwayat mengandung event eskalasi.
+  static List<Map<String, dynamic>> buildTrackingSteps({
+    required bool showEskalasi,
+  }) {
+    return [
+      {'title': 'Laporan Dibuat', 'events': ['laporan_dibuat']},
+      {'title': 'Ditinjau Admin', 'events': ['laporan_diterima_admin', 'laporan_ditolak']},
+      {'title': 'Teknisi Ditugaskan', 'events': ['teknisi_ditugaskan']},
+      {'title': 'Dalam Penanganan', 'events': ['penanganan_dimulai', 'teknisi_mulai_periksa']},
+      if (showEskalasi) {'title': 'Diteruskan ke Pusat', 'events': ['eskalasi_dari_teknisi', 'eskalasi_disetujui', 'eskalasi_ditolak', 'kajur_approve_eskalasi', 'diteruskan_ke_pusat']},
+      {'title': 'Selesai', 'events': ['penanganan_selesai', 'laporan_dikunci']},
+    ];
+  }
 }
 
 /// Nilai enum `jenis_event_enum` di tabel `tracking` Supabase.
@@ -84,21 +91,31 @@ class AppConstants {
 class JenisEvent {
   JenisEvent._();
 
-  static const String laporanDibuat       = 'laporan_dibuat';
+  static const String laporanDibuat        = 'laporan_dibuat';
   static const String laporanDiterimaAdmin = 'laporan_diterima_admin';
-  static const String teknisiDitugaskan   = 'teknisi_ditugaskan';
-  static const String teknisiMulaiPeriksa = 'teknisi_mulai_periksa';
-  static const String penangananDimulai   = 'penanganan_dimulai';
-  static const String penangananSelesai   = 'penanganan_selesai';
-  static const String diteruskanKePusat   = 'diteruskan_ke_pusat';
+  static const String laporanDitolak       = 'laporan_ditolak';
+  static const String teknisiDitugaskan    = 'teknisi_ditugaskan';
+  static const String teknisiMulaiPeriksa  = 'teknisi_mulai_periksa';
+  static const String penangananDimulai    = 'penanganan_dimulai';
+  static const String eskalasiDariTeknisi  = 'eskalasi_dari_teknisi';
+  static const String eskalasiDitolak      = 'eskalasi_ditolak';
+  static const String eskalasiDisetujui    = 'eskalasi_disetujui';
+  static const String kajurApproveEskalasi = 'kajur_approve_eskalasi';
+  static const String penangananSelesai    = 'penanganan_selesai';
+  static const String diteruskanKePusat    = 'diteruskan_ke_pusat';
 
   /// Semua nilai valid — berguna untuk validasi.
   static const Set<String> values = {
     laporanDibuat,
     laporanDiterimaAdmin,
+    laporanDitolak,
     teknisiDitugaskan,
     teknisiMulaiPeriksa,
     penangananDimulai,
+    eskalasiDariTeknisi,
+    eskalasiDitolak,
+    eskalasiDisetujui,
+    kajurApproveEskalasi,
     penangananSelesai,
     diteruskanKePusat,
   };

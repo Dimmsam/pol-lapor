@@ -32,7 +32,7 @@ class TrackingRemoteDatasource {
         'jenis_event': jenisEvent,
         'pesan_narasi': pesanNarasi,
         if (metadata != null) 'metadata': metadata,
-        'created_at': DateTime.now().toIso8601String(),
+        'created_at': DateTime.now().toUtc().toIso8601String(),
       });
       debugPrint('TrackingRemote: berhasil dicatat — "$pesanNarasi"');
     } catch (e) {
@@ -76,12 +76,19 @@ class TrackingRemoteDatasource {
             column: 'formulir_id',
             value: formulirId,
           ),
-          callback: (payload) {
+          callback: (payload) async {
             try {
-              final tracking = Tracking.fromJson(payload.newRecord);
-              onNewTracking(tracking);
+              // Parse dulu dari payload (tanpa nama aktor)
+              final partialTracking = Tracking.fromJson(payload.newRecord);
+
+              // Fetch ulang dengan join pengguna agar aktorNama terisi
+              final fullTracking = await _fetchSingleTracking(
+                partialTracking.trackingId,
+              );
+
+              onNewTracking(fullTracking ?? partialTracking);
               debugPrint(
-                'TrackingRemote: realtime baru — "${tracking.pesanNarasi}"',
+                'TrackingRemote: realtime baru — "${(fullTracking ?? partialTracking).pesanNarasi}"',
               );
             } catch (e) {
               debugPrint('TrackingRemote: error parse realtime tracking: $e');
@@ -93,6 +100,23 @@ class TrackingRemoteDatasource {
     debugPrint(
       'TrackingRemote: subscribed realtime untuk formulir $formulirId',
     );
+  }
+
+  /// Fetch satu row tracking dengan join pengguna (untuk realtime).
+  Future<Tracking?> _fetchSingleTracking(String trackingId) async {
+    try {
+      final response = await _supabase
+          .from('tracking')
+          .select('*, pengguna(nama_lengkap)')
+          .eq('tracking_id', trackingId)
+          .maybeSingle();
+      if (response != null) {
+        return Tracking.fromJson(response);
+      }
+    } catch (e) {
+      debugPrint('TrackingRemote: gagal fetch single tracking: $e');
+    }
+    return null;
   }
 
   void unsubscribe() {

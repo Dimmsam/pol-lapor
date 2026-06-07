@@ -23,6 +23,15 @@ class _LaporanScreenState extends State<LaporanScreen> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Fetch laporan publik dari server agar status selalu akurat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LaporanProvider>().fetchLaporanPublik();
+    });
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
@@ -126,7 +135,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
   void _navigateToEdit(BuildContext context, LaporanLokal laporan) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        // Sesuaikan dengan nama & parameter form laporan kamu
         builder: (_) => FormLaporanScreen(laporanEdit: laporan),
       ),
     );
@@ -232,7 +240,9 @@ class _LaporanScreenState extends State<LaporanScreen> {
       {'key': 'semua', 'label': 'Semua'},
       {'key': StatusLaporan.menungguKlasifikasi, 'label': 'Menunggu'},
       {'key': StatusLaporan.diproses, 'label': 'Diproses'},
+      {'key': 'eskalasi', 'label': 'Eskalasi'},
       {'key': StatusLaporan.selesai, 'label': 'Selesai'},
+      {'key': StatusLaporan.ditolak, 'label': 'Ditolak'},
     ];
 
     return Padding(
@@ -280,17 +290,51 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
   Widget _buildList({required bool isPublic}) {
     final laporanProvider = context.watch<LaporanProvider>();
-    var data = laporanProvider.filterLaporan(
-      filterStatus: _filterStatus,
-      searchQuery: _searchQuery,
-    );
-
+    List<LaporanLokal> data;
     if (isPublic) {
-      // Menampilkan semua laporan (publik), termasuk milik sendiri agar mudah di-test
-      // data = data; (tidak perlu difilter)
+      // Tab Publik: gunakan data langsung dari server agar status akurat
+      data = laporanProvider.laporanPublik;
+
+      // SINKRONISASI FILTER UNTUK TAB "LAPORAN PUBLIK"
+      // Gunakan pemfilteran mandiri yang aman terhadap Case-Sensitive & Search Query
+      data = data.where((l) {
+        final statusLaporan = l.status.toLowerCase();
+        final targetFilter = _filterStatus.toLowerCase();
+        
+        // Pencocokan status filter cerdas
+        bool matchStatus = false;
+        if (targetFilter == 'semua') {
+          matchStatus = true;
+        } else if (targetFilter == 'menunggu' || targetFilter == 'menungguklasifikasi' || targetFilter == 'menunggu_klasifikasi') {
+          matchStatus = statusLaporan == 'menunggu' || statusLaporan == 'menungguklasifikasi' || statusLaporan == 'menunggu_klasifikasi';
+        } else if (targetFilter == 'diproses') {
+          matchStatus = statusLaporan == 'diproses' || 
+                        statusLaporan == 'ditugaskan' || 
+                        statusLaporan == 'sedang_dikerjakan';
+        } else if (targetFilter == 'eskalasi') {
+          matchStatus = statusLaporan == 'eskalasi' || 
+                        statusLaporan == 'diteruskan_ke_pusat' || 
+                        statusLaporan == 'menunggu_persetujuan_kajur' || 
+                        statusLaporan == 'ekskalasi';
+        } else {
+          matchStatus = statusLaporan == targetFilter;
+        }
+
+        // Pencocokan kolom pencarian text field
+        final query = _searchQuery.trim().toLowerCase();
+        final matchSearch = query.isEmpty ||
+                            l.namaSarana.toLowerCase().contains(query) ||
+                            l.lokasiPerbaikan.toLowerCase().contains(query) ||
+                            l.keteranganKerusakan.toLowerCase().contains(query);
+
+        return matchStatus && matchSearch;
+      }).toList();
     } else {
-      // Menampilkan laporan milik sendiri
-      data = data.where((l) => laporanProvider.isOwner(l)).toList();
+      // Tab Laporanku: data dari Hive lokal (milik sendiri)
+      data = laporanProvider.filterLaporan(
+        filterStatus: _filterStatus,
+        searchQuery: _searchQuery,
+      ).where((l) => laporanProvider.isOwner(l)).toList();
     }
 
     if (data.isEmpty) {
@@ -302,7 +346,11 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        await context.read<LaporanProvider>().syncFromRemote();
+        if (isPublic) {
+          await context.read<LaporanProvider>().fetchLaporanPublik();
+        } else {
+          await context.read<LaporanProvider>().syncFromRemote();
+        }
       },
       color: const Color(0xFF0D47A1),
       backgroundColor: Colors.white,

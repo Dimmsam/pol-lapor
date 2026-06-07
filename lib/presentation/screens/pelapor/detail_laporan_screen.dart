@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -23,45 +22,47 @@ class DetailLaporanScreen extends StatefulWidget {
 
 class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
   bool _showTracking = true;
-  bool _isDisposed = false;
+
+  late TrackingProvider _trackingProvider;
 
   @override
   void initState() {
     super.initState();
+    _trackingProvider = context.read<TrackingProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_isDisposed && mounted) {
-        final tp = context.read<TrackingProvider>();
-        tp.fetchRiwayat(widget.laporan.formulirId);
-        tp.startRealtimeListener(widget.laporan.formulirId);
+      if (mounted) {
+        _trackingProvider.fetchRiwayat(widget.laporan.formulirId);
+        _trackingProvider.startRealtimeListener(widget.laporan.formulirId);
 
         // Fetch penanganan untuk mendapatkan fotoHasilUrl
         context.read<PenangananProvider>().fetchPenangananForFormulir(widget.laporan.formulirId);
+
+        // Refresh laporan dari server agar status selalu terupdate (misal jika ditolak/dieskalasi)
+        context.read<LaporanProvider>().syncFromRemote();
       }
     });
   }
 
   @override
   void dispose() {
-    _isDisposed = true;
-    if (mounted) {
-      try {
-        context.read<TrackingProvider>().stopRealtimeListener();
-      } catch (e) {
-        debugPrint('Error stopping listener: $e');
-      }
-    }
+    _trackingProvider.stopRealtimeListener();
     super.dispose();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
     // Ambil laporan terbaru dari provider jika ada (agar auto-refresh setelah edit)
     final provider = context.watch<LaporanProvider>();
+    
+    // MENGGUNAKAN LOGIKA ASLI KAMU KEMBALI (100% AMAN DARI ERROR GETTER)
     final laporan = provider.getLaporanById(widget.laporan.formulirId) ?? widget.laporan;
     
     final penanganan = context.watch<PenangananProvider>().getPenangananByFormulir(laporan.formulirId);
+
+    // Ikut mendengarkan TrackingProvider tanpa memanggil properti apa pun di dalamnya.
+    // Trik ini memaksa widget DetailLaporanScreen untuk melakukan rebuild (menggambar ulang layar) 
+    // secara otomatis saat ada data tracking baru masuk dari Supabase.
+    context.watch<TrackingProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -92,5 +93,4 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen> {
       ),
     );
   }
-
 }

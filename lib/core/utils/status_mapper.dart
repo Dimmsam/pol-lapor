@@ -10,6 +10,9 @@ class StatusMapper {
     'sedang_dikerjakan',
     'selesai',
     'diteruskan_ke_pusat',
+    'menunggu_persetujuan_kajur',
+    'menunggu_eskalasi_jurusan',
+    'ditolak',
   };
 
   /// Jika [statusLokal] sudah berupa nilai Supabase yang valid,
@@ -29,15 +32,19 @@ class StatusMapper {
       case 'diketahui_ka_upt':
       case 'surat_pengajuan_dibuat':
       case 'surat_kerja_diterbitkan':
-      case 'diproses': // status lokal Flutter
         return 'ditugaskan';
 
       case 'sedang_ditangani':
       case 'selesai_ditangani':
+      case 'diproses': // status lokal Flutter
         return 'sedang_dikerjakan';
 
       case 'berita_acara_dibuat':
         return 'selesai';
+
+      // Jika sebelumnya ada yang mengirim ditolak, map langsung ke ditolak
+      case 'ditolak':
+        return 'ditolak';
 
       default:
         debugPrint(
@@ -57,10 +64,16 @@ class StatusMapper {
       case 'ditugaskan':
       case 'sedang_dikerjakan':
         return 'diproses';
+      case 'diteruskan_ke_pusat':
+        return 'diteruskan_ke_pusat';
+      case 'menunggu_persetujuan_kajur':
+        return 'menunggu_persetujuan_kajur';
+      case 'menunggu_eskalasi_jurusan':
+        return 'menunggu_eskalasi_jurusan';
       case 'selesai':
         return 'selesai';
-      case 'diteruskan_ke_pusat':
-        return 'diproses'; // tampilkan sebagai diproses di UI pelapor
+      case 'ditolak':
+        return 'ditolak';
       default:
         debugPrint(
           'StatusMapper.fromSupabaseStatus: status "$statusCloud" tidak dikenal, '
@@ -77,12 +90,22 @@ class StatusMapper {
         return 'Laporan Dibuat';
       case 'laporan_diterima_admin':
         return 'Laporan Diterima Admin';
+      case 'laporan_ditolak':
+        return 'Laporan Ditolak';
       case 'teknisi_ditugaskan':
         return 'Teknisi Ditugaskan';
       case 'teknisi_mulai_periksa':
         return 'Teknisi Memulai Pemeriksaan';
       case 'penanganan_dimulai':
         return 'Penanganan Dimulai';
+      case 'eskalasi_dari_teknisi':
+        return 'Eskalasi dari Teknisi';
+      case 'eskalasi_ditolak':
+        return 'Eskalasi Ditolak';
+      case 'eskalasi_disetujui':
+        return 'Eskalasi Disetujui';
+      case 'kajur_approve_eskalasi':
+        return 'Disetujui Kajur';
       case 'penanganan_selesai':
         return 'Penanganan Selesai';
       case 'diteruskan_ke_pusat':

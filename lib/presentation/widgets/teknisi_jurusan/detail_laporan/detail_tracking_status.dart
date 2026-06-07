@@ -17,8 +17,10 @@ class DetailTrackingStatus extends StatelessWidget {
     return Consumer<TrackingProvider>(
       builder: (context, tp, _) {
         final riwayat = tp.riwayatTracking;
-        final stepsData = AppConstants.trackingStepsData;
-        final currentStep = tp.currentStep;
+        // Teknisi: tampilkan step eskalasi begitu teknisi submit
+        final showEskalasi = tp.hasEskalasiTeknisi;
+        final stepsData = AppConstants.buildTrackingSteps(showEskalasi: showEskalasi);
+        final currentStep = tp.currentStepFor(stepsData);
 
         return Container(
           padding: const EdgeInsets.all(20),
@@ -52,31 +54,79 @@ class DetailTrackingStatus extends StatelessWidget {
                 Column(
                   children: List.generate(stepsData.length, (index) {
                     final data = stepsData[index];
-                    final isCompleted = index < currentStep;
-                    final isActive = index == currentStep;
-                    final isWaiting = index > currentStep;
-                    final isLast = index == stepsData.length - 1;
-
-                    // Find the date
-                    DateTime? stepDate;
                     final events = data['events'] as List<String>;
+
+                    // Cari tanggal dan narasi dari riwayat
+                    DateTime? stepDate;
+                    String? pesanNarasi;
                     try {
-                      final found = riwayat.firstWhere(
+                      final found = riwayat.lastWhere(
                           (r) => r.jenisEvent != null && events.contains(r.jenisEvent));
                       stepDate = found.createdAt;
+                      pesanNarasi = found.pesanNarasi;
                     } catch (_) {}
 
-                    // Fallback using laporan creation for step 0 if not found
+                    // Fallback: step 0 pakai tanggal laporan
                     if (index == 0 && stepDate == null) {
-                       stepDate = laporan.createdAt;
+                      stepDate = laporan.createdAt;
+                    }
+
+                    // --- State computation (SAMA dengan Pelapor) ---
+                    final isCompleted = index < currentStep;
+                    final isActive = index == currentStep;
+                    final hasMatchingEvent = riwayat.any((e) => events.contains(e.jenisEvent));
+                    final isRolledBack = !isCompleted && !isActive && hasMatchingEvent;
+                    
+                    // Cek apakah step ini punya event penolakan
+                    final hasRejectionEvent = 
+                        (events.contains('laporan_ditolak') && riwayat.any((e) => e.jenisEvent == 'laporan_ditolak')) ||
+                        (events.contains('eskalasi_ditolak') && riwayat.any((e) => e.jenisEvent == 'eskalasi_ditolak'));
+                    
+                    // Cek apakah step ini dilewati (skipped) misal dari Admin langsung ke Eskalasi tanpa Teknisi
+                    // index > 1 karena Laporan Dibuat (0) dan Ditinjau Admin (1) harusnya tetap centang
+                    final isSkipped = isCompleted && !hasMatchingEvent && index > 1 && laporan.status != StatusLaporan.selesai;
+
+                    // Khusus untuk "Dalam Penanganan", jika ada eskalasi berarti penanganan gagal oleh teknisi
+                    bool isFailedPenanganan = false;
+                    if (data['title'] == 'Dalam Penanganan' && 
+                        riwayat.any((e) => e.jenisEvent == 'eskalasi_dari_teknisi') &&
+                        laporan.status != StatusLaporan.selesai) {
+                      isFailedPenanganan = true;
+                      try {
+                        final eskalasiEvent = riwayat.lastWhere((e) => e.jenisEvent == 'eskalasi_dari_teknisi');
+                        pesanNarasi = eskalasiEvent.pesanNarasi; // Timpa narasi dengan alasan teknisi
+                      } catch (_) {}
+                    }
+
+                    // Rejected style: rolled-back step ATAU step aktif yang ditolak ATAU step yang dilewati ATAU penanganan gagal
+                    final isRejected = isRolledBack || (isActive && hasRejectionEvent) || isSkipped || isFailedPenanganan;
+                    final isWaiting = !isCompleted && !isActive && !isRolledBack;
+                    final isLast = index == stepsData.length - 1;
+
+                    // --- Dynamic title (SAMA dengan Pelapor) ---
+                    String title = data['title'] as String;
+                    if (events.contains('laporan_ditolak') && riwayat.any((e) => e.jenisEvent == 'laporan_ditolak')) {
+                      title = 'Laporan Ditolak';
+                    } else if (events.contains('eskalasi_dari_teknisi')) {
+                      if (riwayat.any((e) => e.jenisEvent == 'eskalasi_ditolak')) {
+                        title = 'Eskalasi Ditolak';
+                      } else if (riwayat.any((e) => e.jenisEvent == 'kajur_approve_eskalasi' || e.jenisEvent == 'diteruskan_ke_pusat')) {
+                        title = 'Diteruskan ke Pusat';
+                      } else if (riwayat.any((e) => e.jenisEvent == 'eskalasi_disetujui')) {
+                        title = 'Menunggu Persetujuan Kajur';
+                      } else {
+                        title = 'Eskalasi Diajukan';
+                      }
                     }
 
                     return _buildStepItem(
-                      title: data['title'] as String,
+                      title: title,
                       date: stepDate,
-                      isCompleted: isCompleted,
-                      isActive: isActive,
+                      pesanNarasi: (isRejected || isRolledBack || events.contains('eskalasi_dari_teknisi')) ? pesanNarasi : null,
+                      isCompleted: isCompleted && !isRejected,
+                      isActive: isActive && !isRejected,
                       isWaiting: isWaiting,
+                      isRejected: isRejected,
                       isLast: isLast,
                     );
                   }),
@@ -91,34 +141,52 @@ class DetailTrackingStatus extends StatelessWidget {
   Widget _buildStepItem({
     required String title,
     DateTime? date,
+    String? pesanNarasi,
     required bool isCompleted,
     required bool isActive,
     required bool isWaiting,
+    required bool isRejected,
     required bool isLast,
   }) {
-    Color titleColor = isWaiting ? const Color(0xFF9CA3AF) : (isActive ? const Color(0xFF2563EB) : const Color(0xFF1F2937));
-    Color subtitleColor = isWaiting ? const Color(0xFFD1D5DB) : const Color(0xFF9CA3AF);
+    Color titleColor;
+    Color subtitleColor;
+
+    if (isRejected) {
+      titleColor = const Color(0xFFDC2626);
+      subtitleColor = const Color(0xFFEF4444);
+    } else if (isWaiting) {
+      titleColor = const Color(0xFF9CA3AF);
+      subtitleColor = const Color(0xFFD1D5DB);
+    } else if (isActive) {
+      titleColor = const Color(0xFF2563EB);
+      subtitleColor = const Color(0xFF9CA3AF);
+    } else {
+      titleColor = const Color(0xFF1F2937);
+      subtitleColor = const Color(0xFF9CA3AF);
+    }
 
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Indicator column
           SizedBox(
             width: 24,
             child: Column(
               children: [
-                _buildIndicator(isCompleted: isCompleted, isActive: isActive, isWaiting: isWaiting),
+                _buildIndicator(isCompleted: isCompleted, isActive: isActive, isWaiting: isWaiting, isRejected: isRejected),
                 if (!isLast)
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: const Color(0xFFF3F4F6), 
+                      color: const Color(0xFFF3F4F6),
                     ),
                   ),
               ],
             ),
           ),
           const SizedBox(width: 16),
+          // Content column
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 20.0),
@@ -129,7 +197,7 @@ class DetailTrackingStatus extends StatelessWidget {
                     title,
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: isActive || isCompleted ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: isActive || isCompleted || isRejected ? FontWeight.w600 : FontWeight.w500,
                       color: titleColor,
                     ),
                   ),
@@ -141,6 +209,27 @@ class DetailTrackingStatus extends StatelessWidget {
                       color: subtitleColor,
                     ),
                   ),
+                  // Tampilkan narasi untuk step yang ditolak/di-rollback
+                  if (pesanNarasi != null && pesanNarasi.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFCA5A5)),
+                      ),
+                      child: Text(
+                        pesanNarasi,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF991B1B),
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -150,8 +239,23 @@ class DetailTrackingStatus extends StatelessWidget {
     );
   }
 
-  Widget _buildIndicator({required bool isCompleted, required bool isActive, required bool isWaiting}) {
-    if (isCompleted) {
+  Widget _buildIndicator({
+    required bool isCompleted,
+    required bool isActive,
+    required bool isWaiting,
+    required bool isRejected,
+  }) {
+    if (isRejected) {
+      return Container(
+        width: 24,
+        height: 24,
+        decoration: const BoxDecoration(
+          color: Color(0xFFDC2626),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.close, color: Colors.white, size: 16),
+      );
+    } else if (isCompleted) {
       return Container(
         width: 24,
         height: 24,

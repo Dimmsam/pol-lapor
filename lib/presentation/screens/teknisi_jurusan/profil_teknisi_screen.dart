@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../widgets/teknisi_jurusan/profil/profil_teknisi_header.dart';
 import '../../widgets/teknisi_jurusan/profil/profil_teknisi_menu.dart';
+import '../../../data/models/user_session.dart';
 
 class ProfilTeknisiScreen extends StatefulWidget {
-  const ProfilTeknisiScreen({super.key});
+  final UserSession userSession;
+
+  const ProfilTeknisiScreen({super.key, required this.userSession});
 
   @override
   State<ProfilTeknisiScreen> createState() => _ProfilTeknisiScreenState();
@@ -24,7 +27,7 @@ class _ProfilTeknisiScreenState extends State<ProfilTeknisiScreen> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          const ProfilTeknisiHeader(navyColor: navy),
+          ProfilTeknisiHeader(navyColor: navy, userSession: widget.userSession),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(

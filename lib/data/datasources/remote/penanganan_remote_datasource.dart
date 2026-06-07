@@ -14,6 +14,7 @@ class PenangananRemoteDatasource {
             nomor_inventaris,
             foto_kerusakan_url,
             status,
+            prioritas,
             pelapor_id,
             created_at,
             updated_at,
@@ -84,12 +85,13 @@ class PenangananRemoteDatasource {
 
     for (final row in (response as List)) {
       final status = row['status_penanganan'] as String?;
-      if (status == null || status == StatusPenanganan.mulaiDikerjakan) {
-        belumDimulai++;
-      } else if (status == StatusPenanganan.selesai) {
+      if (status == StatusPenanganan.selesai) {
         selesai++;
-      } else {
+      } else if (status == StatusPenanganan.mulaiDikerjakan || status != null) {
+        // mulai_dikerjakan = sedang aktif dikerjakan
         aktif++;
+      } else {
+        belumDimulai++;
       }
     }
 
@@ -148,7 +150,7 @@ class PenangananRemoteDatasource {
     final statusCloud = StatusMapper.toSupabaseStatus(status);
     await _db.from('formulir_laporan').update({
       'status': statusCloud,
-      'updated_at': updatedAt ?? DateTime.now().toIso8601String(),
+      'updated_at': updatedAt ?? DateTime.now().toUtc().toIso8601String(),
     }).eq('formulir_id', formulirId);
   }
 }

@@ -1,23 +1,39 @@
 import 'package:hive/hive.dart';
+import '../../core/utils/status_mapper.dart';
 
 part 'laporan_lokal.g.dart';
 
-// STATUS CONSTANT 
 class StatusLaporan {
   static const String menungguKlasifikasi = 'menunggu_klasifikasi';
   static const String diproses = 'diproses';
   static const String selesai = 'selesai';
+  static const String ditolakEskalasi = 'ditolak_eskalasi';
+  static const String diteruskanKePusat = 'diteruskan_ke_pusat';
+  static const String menungguPersetujuanKajur = 'menunggu_persetujuan_kajur';
+  static const String ditolak = 'ditolak';
 
   /// Label tampilan UI
   static String toLabel(String status) {
     switch (status) {
+      case 'menunggu':
+      case menungguKlasifikasi:
+        return 'Menunggu';
+      case 'ditugaskan':
+        return 'Ditugaskan';
+      case 'sedang_dikerjakan':
       case diproses:
-        return 'Diproses';
+        return 'Sedang Dikerjakan';
       case selesai:
         return 'Selesai';
-      case menungguKlasifikasi:
+      case menungguPersetujuanKajur:
+      case diteruskanKePusat:
+        return 'Eskalasi';
+      case ditolakEskalasi:
+        return 'Eskalasi Ditolak';
+      case ditolak:
+        return 'Ditolak';
       default:
-        return 'Menunggu';
+        return status;
     }
   }
 
@@ -28,6 +44,12 @@ class StatusLaporan {
         return 'Laporan Selesai';
       case diproses:
         return 'Laporan Diproses';
+      case menungguPersetujuanKajur:
+        return 'Laporan Diteruskan ke Pusat';
+      case diteruskanKePusat:
+        return 'Laporan Diteruskan ke Pusat';
+      case ditolak:
+        return 'Laporan Ditolak';
       case menungguKlasifikasi:
         return 'Laporan Baru Masuk';
       default:
@@ -38,10 +60,17 @@ class StatusLaporan {
   /// Label untuk konteks teknisi (status laporan di dashboard tugas)
   static String toLabelTeknisi(String status) {
     switch (status) {
+      case 'ditugaskan':
+        return 'Ditugaskan';
+      case 'sedang_dikerjakan':
       case diproses:
         return 'Dikerjakan';
       case selesai:
         return 'Selesai';
+      case menungguPersetujuanKajur:
+      case diteruskanKePusat:
+        return 'Eskalasi';
+      case 'menunggu':
       case menungguKlasifikasi:
       default:
         return 'Menunggu';
@@ -77,6 +106,9 @@ class LaporanLokal extends HiveObject {
 
   @HiveField(8)
   final String pelaporId;
+
+  @HiveField(13) // New field for prioritas
+  String prioritas;
 
   @HiveField(9)
   bool isSynced;
@@ -115,16 +147,17 @@ class LaporanLokal extends HiveObject {
       lokasiPerbaikan: lokasiNama,
       nomorInventaris: json['nomor_inventaris'] as String?,
       fotoKerusakanUrl: json['foto_kerusakan_url'] as String?,
-      status: json['status'] as String? ?? StatusLaporan.menungguKlasifikasi,
+      status: StatusMapper.fromSupabaseStatus(json['status'] as String? ?? 'menunggu'),
+      prioritas: json['prioritas'] as String? ?? 'biasa',
       pelaporId: (json['pengguna'] != null && json['pengguna'] is Map && json['pengguna']['nama_lengkap'] != null)
           ? json['pengguna']['nama_lengkap'] as String
           : json['pelapor_id'] as String? ?? '',
       isSynced: true,
       createdAt: DateTime.parse(
-        json['created_at'] as String? ?? DateTime.now().toIso8601String(),
+        json['created_at'] as String? ?? DateTime.now().toUtc().toIso8601String(),
       ),
       updatedAt: DateTime.parse(
-        json['updated_at'] as String? ?? DateTime.now().toIso8601String(),
+        json['updated_at'] as String? ?? DateTime.now().toUtc().toIso8601String(),
       ),
     );
   }
@@ -138,12 +171,14 @@ class LaporanLokal extends HiveObject {
     this.fotoLokalPath,
     this.fotoKerusakanUrl,
     String? status,
+    String? prioritas,
     required this.pelaporId,
     this.isSynced = false,
     this.tandaTanganPelapor = true,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : status = status ?? StatusLaporan.menungguKlasifikasi,
+        prioritas = prioritas ?? 'biasa',
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? createdAt ?? DateTime.now();
 
@@ -162,6 +197,7 @@ class LaporanLokal extends HiveObject {
     String? fotoLokalPath,
     String? fotoKerusakanUrl,
     String? status,
+    String? prioritas,
     bool? isSynced,
     bool? tandaTanganPelapor,
     DateTime? updatedAt,
@@ -176,6 +212,7 @@ class LaporanLokal extends HiveObject {
       fotoLokalPath: fotoLokalPath ?? this.fotoLokalPath,
       fotoKerusakanUrl: fotoKerusakanUrl ?? this.fotoKerusakanUrl,
       status: status ?? this.status,
+      prioritas: prioritas ?? this.prioritas,
       pelaporId: pelaporId,
       isSynced: isSynced ?? this.isSynced,
       tandaTanganPelapor:
@@ -212,12 +249,12 @@ extension StatusLaporanExtension on String {
 // HELPER STATUS (UNTUK UI & PROVIDER)
 extension LaporanStatusHelper on LaporanLokal {
   bool get isMenunggu =>
-      status == StatusLaporan.menungguKlasifikasi;
+      status == 'menunggu' || status == StatusLaporan.menungguKlasifikasi;
 
   bool get isDiproses =>
-      status == StatusLaporan.diproses;
+      status == 'sedang_dikerjakan' || status == 'ditugaskan' || status == StatusLaporan.diproses;
 
   bool get isSelesai =>
-      status == StatusLaporan.selesai;
+      status == 'selesai' || status == StatusLaporan.selesai;
 }
 

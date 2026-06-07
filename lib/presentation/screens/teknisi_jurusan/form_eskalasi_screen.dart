@@ -81,6 +81,9 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
 
   // ─── SUBMIT ────────────────────────────────────────────────────────────────
   Future<void> _submit() async {
+    // Tutup keyboard terlebih dahulu untuk menghindari error didChangeMetrics saat widget di-dispose
+    FocusManager.instance.primaryFocus?.unfocus();
+
     if (!_formKey.currentState!.validate()) return;
     if (_kategoriTerpilih == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,10 +117,8 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.popUntil(
-        context,
-        (route) => route.settings.name == '/daftar-tugas-teknisi-jurusan',
-      );
+      // Kembali ke halaman detail laporan
+      Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -186,7 +187,7 @@ class _FormEskalasiScreenState extends State<FormEskalasiScreen> {
                       horizontal: 14, vertical: 12),
                 ),
                 items: AppConstants.kategoriList.map((k) {
-                  return DropdownMenuItem(
+                  return DropdownMenuItem<String>(
                     value: k,
                     child: Text(k.replaceAll('_', ' '),
                         style: const TextStyle(fontSize: 14)),
