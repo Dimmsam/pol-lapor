@@ -191,6 +191,10 @@ class PenangananProvider extends ChangeNotifier {
         tipe: TipeNotifikasi.updateStatus,
       );
     } catch (e) {
+      // Rollback jika gagal
+      _daftarPenangananLokal.removeWhere((p) => p.formulirId == formulirId);
+      _mapPenanganan.remove(formulirId);
+
       _errorMessage = 'Gagal memulai penanganan: $e';
       debugPrint('mulaiPenangananLangsung error: $e');
     } finally {
@@ -279,6 +283,7 @@ class PenangananProvider extends ChangeNotifier {
         keterangan:
             'Teknisi Jurusan mengajukan eskalasi ke Admin. '
             'Kategori: $kategoriKerusakan. Catatan: $catatanEskalasi',
+        aktorId: teknisiId,
       );
 
       // Kirim notifikasi ke pelapor
@@ -395,6 +400,7 @@ class PenangananProvider extends ChangeNotifier {
             : JenisEvent.teknisiMulaiPeriksa,
         keterangan:
             'Teknisi memperbarui progres: $statusBaru. ${catatanProgres ?? ""}',
+        aktorId: penanganan.teknisiId,
       );
 
       // Kirim notifikasi ke pelapor
@@ -447,14 +453,15 @@ class PenangananProvider extends ChangeNotifier {
     required String statusBaru,
     required String jenisEvent,
     required String keterangan,
+    String? aktorId,
   }) async {
     try {
-      final user = SupabaseService.auth.currentUser;
-      if (user == null) return;
+      final userId = aktorId ?? SupabaseService.auth.currentUser?.id;
+      if (userId == null) return;
 
       await _trackingRemote.catatTracking(
         formulirId: formulirId,
-        aktorId: user.id,
+        aktorId: userId,
         jenisEvent: jenisEvent,
         pesanNarasi: keterangan,
       );
