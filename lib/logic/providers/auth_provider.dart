@@ -12,8 +12,20 @@ import 'package:provider/provider.dart';
 enum LoginStatus { idle, loading, success, error }
 
 class AuthProvider extends ChangeNotifier {
-  final AuthLocalDatasource _localAuth = AuthLocalDatasource();
-  final AuthRemoteDatasource _remoteAuth = AuthRemoteDatasource();
+  final AuthLocalDatasource _localAuth;
+  final AuthRemoteDatasource _remoteAuth;
+
+  AuthProvider({
+    AuthLocalDatasource? localAuth,
+    AuthRemoteDatasource? remoteAuth,
+  })  : _localAuth = localAuth ?? AuthLocalDatasource(),
+        _remoteAuth = remoteAuth ?? AuthRemoteDatasource();
+
+  AuthProvider.withDependencies({
+    required AuthLocalDatasource localAuth,
+    required AuthRemoteDatasource remoteAuth,
+  })  : _localAuth = localAuth,
+        _remoteAuth = remoteAuth;
 
   LoginStatus _status = LoginStatus.idle;
   String? _errorMessage;
@@ -157,6 +169,12 @@ class AuthProvider extends ChangeNotifier {
     );
     await _localAuth.saveSession(updated);
     _session = updated;
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void setSessionForTest(UserSession session) {
+    _session = session;
     notifyListeners();
   }
 
