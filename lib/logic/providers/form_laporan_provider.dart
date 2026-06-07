@@ -9,10 +9,27 @@ import '../../data/models/laporan_lokal.dart';
 import '../../services/sync_service.dart';
 
 class FormLaporanProvider extends ChangeNotifier {
-  final LaporanLocalDatasource _local = LaporanLocalDatasource();
-  final LaporanRemoteDatasource _remote = LaporanRemoteDatasource();
-  final SyncService _sync = SyncService();
+  // ── Dependency injection (untuk production & testing) ─────────────────────
+  // Sebelumnya dependency di-hardcode sehingga tidak bisa di-mock saat testing.
+  // Sekarang dependency diinject lewat constructor agar bisa di-override dengan mock.
+  final LaporanLocalDatasource _local;
+  final LaporanRemoteDatasource _remote;
+  final StorageRemoteDatasource _storage;
+  final SyncService _sync;
   final _uuid = const Uuid();
+
+  /// Constructor dengan optional injection.
+  /// - Production: cukup `FormLaporanProvider()` → pakai instance default.
+  /// - Testing:    `FormLaporanProvider(local: mockLocal, ...)` → pakai mock.
+  FormLaporanProvider({
+    LaporanLocalDatasource? local,
+    LaporanRemoteDatasource? remote,
+    StorageRemoteDatasource? storage,
+    SyncService? sync,
+  })  : _local = local ?? LaporanLocalDatasource(),
+        _remote = remote ?? LaporanRemoteDatasource(),
+        _storage = storage ?? StorageRemoteDatasource(),
+        _sync = sync ?? SyncService();
 
   int _jumlahLaporanSerupa = 0;
   bool _isCheckingSerupa = false;
@@ -27,7 +44,7 @@ class FormLaporanProvider extends ChangeNotifier {
 
   void checkLaporanSerupa(String lokasi) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    
+
     _debounce = Timer(const Duration(milliseconds: 500), () async {
       _isCheckingSerupa = true;
       _jumlahLaporanSerupa = 0;
@@ -125,7 +142,8 @@ class FormLaporanProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateLaporan(LaporanLokal existing, {
+  Future<void> updateLaporan(
+    LaporanLokal existing, {
     required String namaSarana,
     required String keteranganKerusakan,
     required String lokasiPerbaikan,
@@ -142,10 +160,11 @@ class FormLaporanProvider extends ChangeNotifier {
       // Jika laporan sudah tersync di Supabase, update langsung ke remote
       if (existing.isSynced) {
         // Upload foto baru dulu jika ada
+        // BUG-03 FIX: Sebelumnya pakai `StorageRemoteDatasource()` langsung (tidak bisa di-mock).
+        // Sekarang pakai _storage yang diinject lewat constructor.
         if (fotoLokalPath != null && fotoLokalPath.isNotEmpty) {
           try {
-            final storage = StorageRemoteDatasource();
-            newFotoUrl = await storage.uploadFotoKerusakan(
+            newFotoUrl = await _storage.uploadFotoKerusakan(
               filePath: fotoLokalPath,
               formulirId: existing.formulirId,
             );
@@ -165,7 +184,7 @@ class FormLaporanProvider extends ChangeNotifier {
         );
       }
 
-      // Update data lokal (Hive) - jika ada foto baru, simpan URL-nya
+      // Update data lokal (Hive)
       final updated = existing.copyWith(
         namaSarana: namaSarana,
         keteranganKerusakan: keteranganKerusakan,
@@ -174,8 +193,6 @@ class FormLaporanProvider extends ChangeNotifier {
         clearNomorInventaris: nomorInventaris == null,
         fotoLokalPath: fotoLokalPath,
         fotoKerusakanUrl: newFotoUrl ?? existing.fotoKerusakanUrl,
-        // Kalau sudah tersync, tetap tersync (sudah diupdate langsung di atas)
-        // Kalau belum tersync, tandai belum sync agar sync service proses
         isSynced: existing.isSynced,
         updatedAt: DateTime.now(),
       );
